@@ -1,6 +1,6 @@
 # 4. Base de Datos
 
-## 🗄️ Documentación de Persistencia de Datos
+## Documentación de Persistencia de Datos
 
 Esta sección describe la estructura de la base de datos, sus tablas, relaciones y los scripts de creación necesarios para poner en funcionamiento el sistema de persistencia de datos.
 
@@ -8,18 +8,106 @@ Esta sección describe la estructura de la base de datos, sus tablas, relaciones
 
 ## 1. Diagrama Entidad-Relación (DER)
 
-### 1.1 DER Completo
+```mermaid
+erDiagram
+    CATEGORIA ||--o{ OPCION_MENU : contiene
+    OPCION_MENU ||--o{ CATEGORIA : navega_a
+    OPCION_MENU ||--o{ RESPUESTA : muestra
+    RESPUESTA ||--o{ RESPUESTA_DOCUMENTO : tiene
+    DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : adjunto_en
+    OPCION_MENU ||--o{ OPCION_CONTACTO : deriva_a
+    CONTACTO ||--o{ OPCION_CONTACTO : recibe
+    OPCION_MENU ||--o{ OPCION_CONTEXTO : requiere
+    CONTEXTO ||--o{ OPCION_CONTEXTO : ofrece
+    CONOCIMIENTO }o--|| OPCION_MENU : mapea_a
 
-![Diagrama Entidad-Relación](../analisis-y-modelado-del-diseño/screenshots/08\ -\ Diagrama\ Entidad-Relación\ \(DER\).png)
+    CATEGORIA {
+        int id PK
+        text clave UK
+        text nombre
+        text mensaje
+        int orden
+        boolean es_raiz
+        boolean activo
+    }
 
-*Imagen referencia: El DER fue creado en la Etapa 1 de análisis y modelado.*
+    OPCION_MENU {
+        int id PK
+        text clave UK
+        int categoria_id FK
+        text etiqueta
+        text tipo
+        int categoria_destino_id FK
+        int respuesta_id FK
+        boolean es_volver
+    }
 
-### 1.2 Descripción de Relaciones
+    RESPUESTA {
+        int id PK
+        text clave UK
+        text texto
+        int orden
+        boolean activo
+    }
 
-Las relaciones del sistema son:
+    DOCUMENTO {
+        int id PK
+        text clave UK
+        text nombre
+        text tipo
+        text drive_file_id
+        text mime_type
+        boolean vigente
+        text estado
+    }
 
-- **[Entidad A] → [Entidad B]:** Relación [tipo: 1:N, N:N, etc.]
-- **[Entidad C] → [Entidad D]:** Relación [tipo]
+    RESPUESTA_DOCUMENTO {
+        int respuesta_id FK "PK"
+        int documento_id FK "PK"
+        int orden
+    }
+
+    CONTACTO {
+        int id PK
+        text clave UK
+        text nombre
+        text rol
+        text email
+        text telefono
+        boolean activo
+    }
+
+    OPCION_CONTACTO {
+        int opcion_id FK "PK"
+        int contacto_id FK "PK"
+    }
+
+    CONTEXTO {
+        int id PK
+        text clave
+        text nombre
+        text valor
+        text ambito_tipo
+        boolean activo
+    }
+
+    OPCION_CONTEXTO {
+        int opcion_id FK "PK"
+        int contexto_id FK "PK"
+    }
+
+    CONOCIMIENTO {
+        int id PK
+        text opcion_clave FK
+        text normalized_text
+        text tipo
+    }
+```
+
+**Leyenda:** 
+- `||--o{` = Relación 1:N (uno a muchos)
+- `}o--||` = Relación N:1 (muchos a uno)
+- **PK** = Primary Key | **FK** = Foreign Key | **UK** = Unique Key
 
 ---
 
