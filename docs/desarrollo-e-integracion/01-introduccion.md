@@ -2,78 +2,79 @@
 
 ## Descripción General
 
-Esta es la cuarta y última etapa del proyecto PP4 Bot IFTS29. En esta etapa se integran todos los componentes del sistema en una aplicación completamente funcional que cumple con los requerimientos establecidos en las etapas anteriores.
+Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**. En esta etapa se integran todos los componentes del sistema en una aplicación completamente funcional que cumple con los requerimientos establecidos en las etapas anteriores.
 
 ## Objetivo
 
 El objetivo principal de esta etapa es:
 
-- **Desarrollar e integrar** una aplicación funcional que consolide todos los componentes del proyecto
+- **Desarrollar e integrar** una aplicación SPA (React) + API REST (Express) funcional y coherente
 - **Garantizar coherencia** con los diagramas, prototipos y documentación de las etapas previas
-- **Implementar la persistencia de datos** a través de una base de datos operativa
-- **Realizar pruebas exhaustivas** mediante pruebas unitarias e integración
-- **Documentar completamente** el sistema para facilitar su uso y mantenimiento
+- **Implementar la persistencia de datos** mediante PostgreSQL (Neon) con catálogo semilla local
+- **Realizar pruebas exhaustivas** mediante tests de integración (Node.js test, sin dependencias externas)
+- **Documentar completamente** el sistema para facilitar su uso, mantenimiento y despliegue
 
 ## Alcance
 
-### Componentes a Integrar
+### Componentes Implementados
 
-1. **Interfaz de Usuario**
-   - Pantalla principal
-   - Menús y navegación
-   - Funcionalidades según prototipos diseñados
+1. **Frontend (React + Vite)**
+   - Widget embebible en Moodle mediante iframe
+   - Componentes: ChatWidget, ChatLauncher, MessageBubble, OptionList, DocumentCard, ContactCard
+   - Estados gestionados con hook useChat
+   - Estilos responsive y accesibles
 
-2. **Lógica de Negocio**
-   - Procesamiento de datos
-   - Validaciones
-   - Reglas del sistema
+2. **Backend (Express + TypeScript)**
+   - Endpoints: GET /api/menu, POST /api/chat, GET /api/system/*
+   - Motor NL (lenguaje natural controlado): exacto, variantes, similitud trigram
+   - Servicios: chat, nl (interpretación), drive (sincronización), metricas
+   - Middleware: CORS, rate limiting, manejo de errores
+   - Dos modos: semilla (demo) y PostgreSQL (producción)
 
 3. **Persistencia de Datos**
-   - Base de datos funcional
-   - Operaciones CRUD (Create, Read, Update, Delete)
-   - Integridad referencial
+   - PostgreSQL (Neon) serverless
+   - 6 tablas: categoria, opcion_menu, respuesta, documento, contacto, conocimiento
+   - Índices B-tree y GIN trigram para búsqueda
+   - Catálogo semilla en memoria (idéntico a BD)
 
 4. **Gestión de Errores**
-   - Validación de entrada
-   - Manejo de excepciones
-   - Mensajes informativos al usuario
-
-## Etapas Previas Consideradas
-
-Este proyecto se basa en:
-
-- **Etapa 1: Análisis y Modelado del Diseño** - Requerimientos, diagramas UML, DER
-- **Etapa 2: Diseño de Interfaz** - Prototipos de pantallas y flujos de usuario
-- **Etapa 3: Prototipado Avanzado** - Validación de diseños con stakeholders
+   - Validación de entrada (longitud, formato)
+   - Rate limiting (120 req/min por IP)
+   - Manejo de excepciones con códigos HTTP
+   - Mensajes claros al cliente
 
 ## Tecnologías Utilizadas
 
-*(Completar según las tecnologías seleccionadas para el proyecto)*
-
-- Lenguaje/Framework principal: 
-- Base de datos: 
-- Herramientas de testing: 
-- Otras tecnologías: 
+| Componente | Tecnología | Versión |
+|-----------|-----------|---------|
+| Frontend | React | 18+ |
+| Build | Vite | 5.x |
+| Backend | Express | 5.x |
+| Lenguaje | TypeScript | 5.9.3+ |
+| Base de datos | PostgreSQL (Neon) | 15+ |
+| Runtime | Node.js | 20+ |
+| Testing | node:test (nativo) | - |
+| Deployment | Vercel | serverless |
+| Control de versiones | Git | 2.0+ |
 
 ## Entregables de Esta Etapa
 
-1. Aplicación completamente funcional
+1. Aplicación completamente funcional (frontend + backend)
 2. Manual Técnico detallado
 3. Manual de Usuario con capturas
-4. Base de datos con scripts de creación
-5. Pruebas unitarias documentadas
-6. Pruebas de integración documentadas
-7. Evidencias de ejecución
-8. Repositorio Git actualizado
-9. Proyecto comprimido (.zip)
-10. Aplicación ejecutable/APK/deployment
+4. Scripts SQL de creación y seed
+5. Pruebas documentadas (6 test files, 40+ casos)
+6. Evidencias de ejecución
+7. Repositorio Git actualizado
+8. Proyecto comprimido (.zip)
+9. Documentación compilada en PDF
 
-## Equipo de Desarrollo
+## Estado Actual
 
-- Integrante 1: [Nombre y rol]
-- Integrante 2: [Nombre y rol]
-- Integrante 3: [Nombre y rol]
-- (Agregar según corresponda)
+- Desarrollo completado
+- Aplicación ejecutándose en modo demo (sin BD) y producción (Neon)
+- Tests implementados y pasando
+- Faltaría: capturas, documentación final, evidencias
 
 ## Fechas Clave
 

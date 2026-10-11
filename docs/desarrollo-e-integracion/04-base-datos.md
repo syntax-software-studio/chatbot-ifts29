@@ -25,221 +25,368 @@ Las relaciones del sistema son:
 
 ## 2. Tablas y Campos
 
-### 2.1 Tabla: `usuarios`
+### 2.1 Tabla: `categoria` - Nodos del árbol conversacional
 
-**Descripción:** Almacena información de los usuarios del sistema
+**Descripción:** Estructura jerárquica del menú (categorías y subcategorías)
 
 | Campo | Tipo | Restricciones | Descripción |
 |-------|------|---------------|-------------|
-| `id_usuario` | INT | PRIMARY KEY, AUTO_INCREMENT | Identificador único del usuario |
-| `nombre` | VARCHAR(100) | NOT NULL | Nombre completo del usuario |
-| `email` | VARCHAR(100) | NOT NULL, UNIQUE | Correo electrónico único |
-| `contraseña` | VARCHAR(255) | NOT NULL | Contraseña encriptada |
-| `rol` | VARCHAR(20) | DEFAULT 'usuario' | Rol: admin, usuario, moderador |
-| `estado` | ENUM('activo','inactivo') | DEFAULT 'activo' | Estado del usuario |
-| `fecha_registro` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Fecha de creación de cuenta |
-| `fecha_ultima_conexion` | DATETIME | NULL | Última conexión del usuario |
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL, UNIQUE | Identificador único (ej: "RAIZ", "ADM") |
+| `nombre` | TEXT | NOT NULL | Nombre visible en interfaz |
+| `mensaje` | TEXT | NULL | Mensaje del bot al entrar a categoría |
+| `orden` | INTEGER | NOT NULL, DEFAULT 0 | Orden de presentación |
+| `es_raiz` | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE solo para categoría inicial |
+| `activo` | BOOLEAN | NOT NULL, DEFAULT TRUE | Visibilidad |
+| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+
+---
+
+### 2.2 Tabla: `opcion_menu` - Opciones seleccionables (botones)
+
+**Descripción:** Botones que el usuario puede tocar en cada categoría
+
+| Campo | Tipo | Restricciones | Descripción |
+|-------|------|---------------|-------------|
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL, UNIQUE | Identificador (ej: "ADM_OP_ADMISIONES") |
+| `categoria_id` | INTEGER | NOT NULL, FK → categoria | Categoría padre |
+| `etiqueta` | TEXT | NOT NULL | Texto del botón |
+| `descripcion` | TEXT | NULL | Descripción (tooltip) |
+| `tipo` | TEXT | CHECK IN ('navegar', 'responder', 'derivar') | navegar: subcategoría / responder: respuesta / derivar: contactos |
+| `categoria_destino_id` | INTEGER | FK → categoria | Para tipo='navegar' |
+| `respuesta_id` | INTEGER | FK → respuesta | Para tipo='responder' |
+| `es_volver` | BOOLEAN | DEFAULT FALSE | TRUE para "< Volver" |
+| `icono` | TEXT | NULL | Código de icono SVG |
+| `orden` | INTEGER | DEFAULT 0 | Orden en menú |
+| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
+| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+
+---
+
+### 2.3 Tabla: `respuesta` - Contenido institucional
+
+**Descripción:** Texto validado que devuelve el sistema (única fuente de contenido)
+
+| Campo | Tipo | Restricciones | Descripción |
+|-------|------|---------------|-------------|
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL, UNIQUE | Identificador único |
+| `texto` | TEXT | NOT NULL | Contenido (puede incluir markdown) |
+| `orden` | INTEGER | NOT NULL, DEFAULT 0 | Orden |
+| `activo` | BOOLEAN | NOT NULL, DEFAULT TRUE | Visibilidad |
+| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+
+---
+
+### 2.4 Tabla: `documento` - Archivos desde Google Drive
+
+**Descripción:** Metadatos de documentos sincronizados desde Drive (solo lectura)
+
+| Campo | Tipo | Restricciones | Descripción |
+|-------|------|---------------|-------------|
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL, UNIQUE | Identificador |
+| `nombre` | TEXT | NOT NULL | Nombre del archivo |
+| `descripcion` | TEXT | NULL | Descripción breve |
+| `tipo` | TEXT | CHECK IN (...) | Categoría: 'programa', 'cronograma', 'instructivo', 'planilla', etc. |
+| `drive_file_id` | TEXT | UNIQUE | ID en Google Drive |
+| `drive_nombre_archivo` | TEXT | NULL | Nombre original en Drive |
+| `mime_type` | TEXT | NOT NULL | MIME type (application/pdf, etc.) |
+| `drive_url` | TEXT | NULL | URL de acceso |
+| `drive_view_url` | TEXT | NULL | URL pública |
+| `drive_md5` | TEXT | NULL | Hash para detectar cambios |
+| `vigente` | BOOLEAN | NOT NULL, DEFAULT TRUE | ¿Aún válido? |
+| `estado` | TEXT | CHECK IN (...) | Ciclo: 'borrador' → 'revision' → 'vigente' → 'reemplazado'/'archivado' |
+| `vigencia_desde` | DATE | NULL | Fecha inicio validez |
+| `vigencia_hasta` | DATE | NULL | Fecha fin validez |
+| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `sincronizado_en` | TIMESTAMPTZ | NULL | Última sincronización |
 
 **Índices:**
 ```sql
-CREATE INDEX idx_email ON usuarios(email);
-CREATE INDEX idx_estado ON usuarios(estado);
+CREATE INDEX documento_vigente_idx ON documento(vigente, estado);
+CREATE INDEX documento_tipo_idx ON documento(tipo);
 ```
 
 ---
 
-### 2.2 Tabla: `[nombre_tabla_2]`
+### 2.5 Tabla: `respuesta_documento` - Relación M:N
 
-**Descripción:** [Descripción de la tabla]
+**Descripción:** Documentos adjuntos a cada respuesta
 
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id_[tabla]` | INT | PRIMARY KEY, AUTO_INCREMENT | Identificador único |
-| `campo1` | VARCHAR(100) | NOT NULL | [Descripción] |
-| `campo2` | DATETIME | DEFAULT CURRENT_TIMESTAMP | [Descripción] |
-| `id_usuario` | INT | FOREIGN KEY | Referencia a tabla usuarios |
+| Campo | Tipo | Restricciones |
+|-------|------|---------------|
+| `respuesta_id` | INTEGER | PK + FK → respuesta (CASCADE) |
+| `documento_id` | INTEGER | PK + FK → documento (CASCADE) |
+| `orden` | INTEGER | DEFAULT 0 |
 
 ---
 
-### 2.3 Tabla: `[nombre_tabla_3]`
+### 2.6 Tabla: `contacto` - Derivación asincrónica
 
-**Descripción:** [Descripción de la tabla]
+**Descripción:** Personas/áreas a las que derivar consultas
 
 | Campo | Tipo | Restricciones | Descripción |
 |-------|------|---------------|-------------|
-| `id_[tabla]` | INT | PRIMARY KEY, AUTO_INCREMENT | Identificador único |
-| [Agregar campos específicos] | | | |
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL, UNIQUE | Identificador |
+| `nombre` | TEXT | NOT NULL | Nombre del contacto |
+| `rol` | TEXT | NULL | Cargo (ej: "Secretario de Admisiones") |
+| `area` | TEXT | NULL | Departamento |
+| `email` | TEXT | NULL | Email de contacto |
+| `telefono` | TEXT | NULL | Teléfono |
+| `url_perfil` | TEXT | NULL | Enlace a perfil |
+| `motivo` | TEXT | NULL | Por qué contactar (mostrado al usuario) |
+| `horario` | TEXT | NULL | Horario de atención |
+| `orden` | INTEGER | DEFAULT 0 | Orden |
+| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
+| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+
+---
+
+### 2.7 Tabla: `opcion_contacto` - Relación M:N
+
+**Descripción:** Contactos asociados a cada opción
+
+| Campo | Tipo | Restricciones |
+|-------|------|---------------|
+| `opcion_id` | INTEGER | PK + FK → opcion_menu (CASCADE) |
+| `contacto_id` | INTEGER | PK + FK → contacto (CASCADE) |
+| `orden` | INTEGER | DEFAULT 0 |
+
+---
+
+### 2.8 Tabla: `contexto` - Datos contextuales
+
+**Descripción:** Valores que varían por materia, comisión, cuatrimestre, etc.
+
+| Campo | Tipo | Restricciones | Descripción |
+|-------|------|---------------|-------------|
+| `id` | SERIAL | PRIMARY KEY | ID único |
+| `clave` | TEXT | NOT NULL | Identificador (ej: "dias_cursada") |
+| `nombre` | TEXT | NOT NULL | Nombre visible |
+| `valor` | TEXT | NULL | Valor (ej: "Lunes y Miércoles 18:00-21:00") |
+| `ambito_tipo` | TEXT | CHECK IN (...) | Alcance: global / materia / comision / cuatrimestre / area |
+| `ambito_clave` | TEXT | NULL | Clave del ámbito |
+| `grupo` | TEXT | NULL | Agrupamiento |
+| `orden` | INTEGER | DEFAULT 0 | Orden |
+| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
+| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
+
+---
+
+### 2.9 Tabla: `opcion_contexto` - Relación M:N
+
+**Descripción:** Contextos que aplican a cada opción
+
+| Campo | Tipo | Restricciones |
+|-------|------|---------------|
+| `opcion_id` | INTEGER | PK + FK → opcion_menu (CASCADE) |
+| `contexto_id` | INTEGER | PK + FK → contexto (CASCADE) |
+
+---
+
+### 2.10 Tabla: `conocimiento` - Base de conocimiento (Knowledge Base)
+
+**Descripción:** Preguntas, variantes y texto normalizado para búsqueda por similitud
+
+Tabla derivada/generada automáticamente. Contiene:
+- Preguntas base (de `respuesta.texto` normalizado)
+- Variantes (preguntas alternativas que mapean a respuestas)
+- `normalized_text`: sin acentos, minúsculas, para búsqueda exacta y trigram
 
 ---
 
 ## 3. Relaciones entre Tablas
 
-### 3.1 Relación: Usuarios → [Tabla relacionada]
+### 3.1 Jerarquía del menú
 
-- **Tabla padre:** `usuarios`
-- **Tabla hijo:** `[tabla_relacionada]`
-- **Campo de referencia:** `id_usuario`
-- **Tipo de relación:** 1:N (Un usuario a muchos registros)
-- **ON DELETE:** CASCADE / RESTRICT / SET NULL
-- **ON UPDATE:** CASCADE
+```
+categoria (raíz)
+  ├── opcion_menu (tipo='navegar')
+  │   └── categoria (destino)
+  │       └── opcion_menu
+  │           └── categoria
+  │
+  ├── opcion_menu (tipo='responder')
+  │   └── respuesta
+  │       └── respuesta_documento
+  │           └── documento
+  │
+  └── opcion_menu (tipo='derivar')
+      └── opcion_contacto
+          └── contacto
+```
 
----
+### 3.2 Relación específica: categoria ↔ opcion_menu
 
-### 3.2 Relación: [Tabla A] → [Tabla B]
+- **Tipo:** 1:N (una categoría tiene muchas opciones)
+- **Campos:** `categoria.id` ← `opcion_menu.categoria_id`
+- **ON DELETE:** CASCADE (si borra categoría, borra opciones)
+- **Índices:** `opcion_menu(categoria_id, orden)`
 
-- **Tabla padre:** `[tabla_a]`
-- **Tabla hijo:** `[tabla_b]`
-- **Campo de referencia:** `id_[tabla]`
-- **Tipo de relación:** [Especificar]
-- **ON DELETE:** [Especificar]
-- **ON UPDATE:** [Especificar]
+### 3.3 Relación: opcion_menu ↔ respuesta
+
+- **Tipo:** M:1 (muchas opciones pueden linkear una respuesta)
+- **Campos:** `respuesta.id` ← `opcion_menu.respuesta_id`
+- **ON DELETE:** SET NULL (si borra respuesta, la opción queda sin respuesta)
+- **Restricción:** Solo si `tipo='responder'`
+
+### 3.4 Relación: respuesta ↔ documento
+
+- **Tipo:** M:N (muchos documentos por respuesta)
+- **Tabla junction:** `respuesta_documento`
+- **ON DELETE:** CASCADE (si borra respuesta o documento, se limpia la relación)
+- **Índices:** `respuesta_documento(respuesta_id, documento_id)`
+
+### 3.5 Relación: opcion_menu ↔ contacto
+
+- **Tipo:** M:N (una opción puede derivar a varios contactos)
+- **Tabla junction:** `opcion_contacto`
+- **ON DELETE:** CASCADE
+- **Restricción:** Solo si `tipo='derivar'`
+
+### 3.6 Relación: opcion_menu ↔ contexto
+
+- **Tipo:** M:N (una opción puede tener múltiples contextos)
+- **Tabla junction:** `opcion_contexto`
+- **ON DELETE:** CASCADE
+- **Uso:** Para submenús que dependen de comisión, cuatrimestre, etc.
 
 ---
 
 ## 4. Scripts de Creación
 
-### 4.1 Script Completo de Creación
+### 4.1 Scripts en el Repositorio
 
-```sql
--- ============================================
--- Script de Creación de Base de Datos
--- Proyecto: PP4 Bot IFTS29
--- Fecha: [Fecha]
--- ============================================
+Los scripts SQL están en `/db/`:
 
--- Crear base de datos
-CREATE DATABASE IF NOT EXISTS pp4_bot_ifts29;
-USE pp4_bot_ifts29;
+| Archivo | Propósito |
+|---------|-----------|
+| **001_schema.sql** | DDL: creación de tablas, índices, constraints, triggers, vistas |
+| **002_seed.sql** | DML: datos iniciales del menú (idempotente) |
+| **003_verificacion.sql** | Scripts de verificación (para testing) |
+| **005_kb_seed.sql** | Base de conocimiento: preguntas, variantes, intenciones |
 
--- ============================================
--- Tabla: usuarios
--- ============================================
-CREATE TABLE usuarios (
-    id_usuario INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    contraseña VARCHAR(255) NOT NULL,
-    rol VARCHAR(20) DEFAULT 'usuario',
-    estado ENUM('activo', 'inactivo') DEFAULT 'activo',
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_ultima_conexion DATETIME NULL
-);
+### 4.2 Cómo Ejecutar Scripts en Neon
 
--- Índices para usuarios
-CREATE INDEX idx_email ON usuarios(email);
-CREATE INDEX idx_estado ON usuarios(estado);
+**Opción 1: Desde CLI SQL (pgAdmin o psql):**
 
--- ============================================
--- Tabla: [nombre_tabla_2]
--- ============================================
-CREATE TABLE [nombre_tabla_2] (
-    id_[tabla] INT PRIMARY KEY AUTO_INCREMENT,
-    campo1 VARCHAR(100) NOT NULL,
-    campo2 DATETIME DEFAULT CURRENT_TIMESTAMP,
-    id_usuario INT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
-);
+```bash
+# Conectar a Neon
+psql "postgresql://usuario:password@ep-xxxx-pooler.region.neon.tech/ifts29?sslmode=require"
 
--- Índices
-CREATE INDEX idx_[tabla]_usuario ON [nombre_tabla_2](id_usuario);
-
--- ============================================
--- Tabla: [nombre_tabla_3]
--- ============================================
-CREATE TABLE [nombre_tabla_3] (
-    id_[tabla] INT PRIMARY KEY AUTO_INCREMENT,
-    -- Campos específicos
-    id_[referencia] INT,
-    FOREIGN KEY (id_[referencia]) REFERENCES [tabla_referenciada](id)
-);
-
--- ============================================
--- Agregar más tablas según sea necesario
--- ============================================
-
+# Ejecutar scripts
+\i db/001_schema.sql
+\i db/002_seed.sql
+\i db/005_kb_seed.sql
 ```
 
-### 4.2 Scripts de Inserción de Datos Iniciales
+**Opción 2: Desde Node.js (usando @neondatabase/serverless):**
 
-```sql
--- ============================================
--- Datos iniciales para pruebas
--- ============================================
-
--- Usuarios de prueba
-INSERT INTO usuarios (nombre, email, contraseña, rol, estado) VALUES
-('Admin User', 'admin@example.com', 'hashed_password_123', 'admin', 'activo'),
-('Usuario Prueba 1', 'usuario1@example.com', 'hashed_password_456', 'usuario', 'activo'),
-('Usuario Prueba 2', 'usuario2@example.com', 'hashed_password_789', 'usuario', 'activo');
-
--- Otros datos iniciales
--- [Agregar INSERT según las otras tablas]
-
+```bash
+cd backend
+npm run db:push     # Ejecuta 001_schema.sql + 002_seed.sql
+npm run db:kb       # Regenera 005_kb_seed.sql desde datos
 ```
 
-### 4.3 Scripts de Configuración Adicional
+### 4.3 Extensiones PostgreSQL Requeridas
 
 ```sql
--- Configurar colación por defecto
-ALTER DATABASE pp4_bot_ifts29 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Requeridas por 001_schema.sql:
+CREATE EXTENSION IF NOT EXISTS pgcrypto;    -- Para UUIDs y encriptación
+CREATE EXTENSION IF NOT EXISTS pg_trgm;     -- Para búsqueda por similitud (trigram)
+```
 
--- [Agregar otras configuraciones necesarias]
+### 4.4 Catálogo Semilla (Alternativa a BD)
 
+Si no hay `DATABASE_URL`:
+- Backend usa catálogo en memoria (`backend/src/seed/catalogo.ts`)
+- Contenido idéntico a `db/002_seed.sql` + `db/005_kb_seed.sql`
+- Perfecto para desarrollo y demostración sin infraestructura
+
+**Ubicación:**
+```
+backend/src/seed/
+├── catalogo.ts       # Menú, respuestas, documentos, contactos
+└── conocimiento.ts   # Base de intenciones (preguntas)
 ```
 
 ---
 
 ## 5. Operaciones CRUD
 
-### 5.1 Create (Crear)
+**IMPORTANTE:** El sistema es **de solo lectura** desde la perspectiva del usuario final. No hay creación, actualización o eliminación de datos por parte de los usuarios.
 
-**Insertar un nuevo usuario:**
+### 5.1 Read (Leer) - Única operación soportada
 
-```sql
-INSERT INTO usuarios (nombre, email, contraseña, rol, estado)
-VALUES ('Juan Pérez', 'juan@example.com', 'hashed_pwd', 'usuario', 'activo');
-```
-
-### 5.2 Read (Leer)
-
-**Obtener todos los usuarios:**
+**Obtener menú raíz:**
 
 ```sql
-SELECT * FROM usuarios;
+SELECT * FROM categoria WHERE es_raiz = TRUE;
 ```
 
-**Obtener un usuario específico:**
+**Obtener opciones de una categoría:**
 
 ```sql
-SELECT * FROM usuarios WHERE id_usuario = 1;
+SELECT * FROM opcion_menu 
+WHERE categoria_id = 1 AND activo = TRUE
+ORDER BY orden;
 ```
 
-**Obtener usuarios por criterio:**
+**Obtener respuesta para una opción:**
 
 ```sql
-SELECT * FROM usuarios WHERE estado = 'activo' ORDER BY fecha_registro DESC;
+SELECT r.* FROM respuesta r
+INNER JOIN opcion_menu om ON r.id = om.respuesta_id
+WHERE om.clave = 'ADM_OP_ADMISIONES' AND r.activo = TRUE;
 ```
 
-### 5.3 Update (Actualizar)
-
-**Actualizar datos de un usuario:**
+**Obtener documentos de una respuesta:**
 
 ```sql
-UPDATE usuarios 
-SET nombre = 'Juan Pérez Actualizado', 
-    email = 'juan.nuevo@example.com'
-WHERE id_usuario = 1;
+SELECT d.* FROM documento d
+INNER JOIN respuesta_documento rd ON d.id = rd.documento_id
+WHERE rd.respuesta_id = 1 AND d.vigente = TRUE AND d.estado = 'vigente'
+ORDER BY rd.orden;
 ```
 
-### 5.4 Delete (Eliminar)
-
-**Eliminar un usuario:**
+**Buscar en base de conocimiento (similitud trigram):**
 
 ```sql
-DELETE FROM usuarios WHERE id_usuario = 1;
+SELECT * FROM conocimiento
+WHERE normalized_text % 'acceso siu'    -- % es operador trigram
+ORDER BY similarity(normalized_text, 'acceso siu') DESC
+LIMIT 5;
 ```
 
-⚠️ **Advertencia:** Esta operación eliminará el registro y potencialmente registros relacionados según la configuración ON DELETE.
+### 5.2 Create / Update / Delete - NO DISPONIBLES
+
+Estas operaciones **no existen** en el API público:
+
+- ❌ POST /api/categorias (no existe)
+- ❌ PUT /api/respuesta/123 (no existe)  
+- ❌ DELETE /api/contacto/5 (no existe)
+
+**Razón:** El sistema es anónimo y de solo lectura por diseño (RF05, RNF05)
+
+### 5.3 Administración de Datos (interno)
+
+La institución administra datos a través de:
+- **Google Drive:** Sincronización de documentos
+- **BD PostgreSQL:** Scripts SQL directos o herramientas admin (pgAdmin)
+- **No hay UI de administración:** Se asume que personal técnico gestiona la BD
+
+**Cómo actualizar contenido:**
+1. Modificar datos en PostgreSQL (Neon dashboard)
+2. O modificar semilla en `backend/src/seed/` y regenerar
+3. Reiniciar API para aplicar cambios
 
 ---
 

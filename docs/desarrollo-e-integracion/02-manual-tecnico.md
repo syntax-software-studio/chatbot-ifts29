@@ -59,31 +59,31 @@ La aplicación fue diseñada para integrarse en el campus virtual (Moodle) del I
 ```
 ┌─────────────────────────────────────────────────────┐
 │              FRONTEND (React + Vite)                │
-│  ChatWidget | ChatLauncher | MessageBubble | Cards │
+│  ChatWidget | ChatLauncher | MessageBubble | Cards  │
 │  (embebible en Moodle mediante iframe)              │
 └────────────────────┬────────────────────────────────┘
                      │ HTTP/JSON
 ┌────────────────────▼────────────────────────────────┐
 │     BACKEND (Express + TypeScript, Vercel)          │
-├──────────────────────────────────────────────────────┤
-│  Routes:        Services:           Middleware:      │
+├─────────────────────────────────────────────────────┤
+│  Routes:        Services:           Middleware:     │
 │  • /api/menu    • chat.service      • CORS          │
 │  • /api/chat    • nl.service        • Rate Limit    │
 │  • /api/system  • drive.service     • Error Handler │
-│                 • metricas.service                   │
+│                 • metricas.service                  │
 └────────────────────┬────────────────────────────────┘
                      │ (SQL vía @neondatabase/serverless)
 ┌────────────────────▼────────────────────────────────┐
 │     DATABASE (PostgreSQL - Neon)                    │
-├──────────────────────────────────────────────────────┤
-│ Tablas:                                              │
-│ • categoria (nodos del árbol conversacional)         │
+├─────────────────────────────────────────────────────┤
+│ Tablas:                                             │
+│ • categoria (nodos del árbol conversacional)        │
 │ • opcion_menu (opciones seleccionables)             │
-│ • respuesta (contenido institucional validado)       │
-│ • documento (archivos de Google Drive)               │
-│ • contacto (para derivaciones asincrónicas)          │
-│ • conocimiento (base de intenciones/variantes)       │
-└──────────────────────────────────────────────────────┘
+│ • respuesta (contenido institucional validado)      │
+│ • documento (archivos de Google Drive)              │
+│ • contacto (para derivaciones asincrónicas)         │
+│ • conocimiento (base de intenciones/variantes)      │
+└─────────────────────────────────────────────────────┘
 ```
 
 **Flujo de datos:**
@@ -380,157 +380,493 @@ CREATE TABLE usuarios (
 ### 5.1 Requisitos Previos
 
 - **Sistema Operativo:** Windows 10/11, Linux, macOS
-- **Java/Runtime:** [Versión requerida]
-- **Base de Datos:** [Sistema requerido y versión]
-- **Conexión a Internet:** [Sí/No, para qué]
+- **Node.js:** Versión 20 o superior (probado hasta v24)
+- **npm:** Versión 10 o superior (o yarn como alternativa)
+- **Git:** Versión 2.0 o superior
+- **Conexión a Internet:** Opcional (modo demo funciona sin conexión)
+- **Base de Datos:** Opcional (catálogo semilla en memoria para demo)
 
-### 5.2 Tecnologías Utilizadas
+### 5.2 Dependencias principales
 
-| Componente | Versión |
-|-----------|---------|
-| [Software 1] | [Versión] |
-| [Software 2] | [Versión] |
-| [Dependencias] | [Versión] |
-
-### 5.3 Dependencias Necesarias
-
+**Backend:**
 ```
-[Listar todas las dependencias del proyecto]
-- Dependencia 1: [versión]
-- Dependencia 2: [versión]
+express@5.x                    - Framework HTTP
+@neondatabase/serverless@1.x   - Cliente PostgreSQL serverless
+typescript@5.9.3               - Compilador TypeScript
+zod@3.24.1                     - Validación de esquemas
+googleapis@144.x               - Sincronización Google Drive
 ```
 
-### 5.4 Configuración Inicial
+**Frontend:**
+```
+react@18.x                     - Biblioteca de UI
+vite@5.x                       - Build tool y dev server
+typescript@5.9.3               - Compilador TypeScript
+```
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone [URL del repositorio]
-   cd bot-ifts29
-   ```
+### 5.3 Configuración Inicial
 
-2. **Instalar dependencias**
-   ```bash
-   [Comando específico para el proyecto]
-   ```
-
-3. **Configurar variables de entorno**
-   ```
-   [Crear archivo .env con las siguientes variables]
-   DATABASE_URL=[URL de conexión]
-   API_KEY=[Si aplica]
-   ```
-
-### 5.5 Pasos para Importar/Abrir el Proyecto
-
-1. Abrir IDE [especificar: VS Code, IntelliJ IDEA, Android Studio, etc.]
-2. File → Open → Seleccionar carpeta del proyecto
-3. Esperar a que se resuelvan las dependencias
-4. [Pasos adicionales específicos de la tecnología]
-
-### 5.6 Pasos para Ejecutar la Aplicación
+#### Paso 1: Clonar el repositorio
 
 ```bash
-# Opción 1: Desde línea de comandos
-[Comando de ejecución]
-
-# Opción 2: Desde IDE
-[Instrucciones específicas]
+git clone <URL-del-repositorio>
+cd asistente-virtual-ifts29
 ```
 
-**Acceso:** La aplicación estará disponible en `[URL/puerto]`
+#### Paso 2: Instalar dependencias (monorepo)
 
-### 5.7 Pasos para Crear/Restaurar la Base de Datos
+```bash
+npm install
+# Se instalan automáticamente las dependencias de backend/ y frontend/
+```
 
-1. **Crear base de datos**
-   ```bash
-   [Comando específico]
-   ```
+#### Paso 3: Configurar variables de entorno
 
-2. **Ejecutar scripts SQL**
-   ```bash
-   [Comando para importar scripts]
-   ```
+```bash
+# Copiar plantilla a .env
+cp .env.example .env
 
-3. **Verificar creación**
-   ```bash
-   [Comando para verificar tablas]
-   ```
+# Editar .env con las variables necesarias:
+# - VITE_API_BASE_URL (opcional, default = mismo origen)
+# - DATABASE_URL (opcional, sin esto usa modo semilla)
+# - GOOGLE_SERVICE_ACCOUNT_EMAIL (opcional, si no viene = Drive deshabilitado)
+# - Otros parámetros según .env.example
+```
 
-### 5.8 Credenciales de Prueba
+### 5.4 Pasos para Ejecutar la Aplicación
 
-| Usuario | Contraseña | Rol |
-|---------|-----------|-----|
-| admin | 123456 | Administrador |
-| user1 | password | Usuario normal |
-| [Usuario 3] | [Contraseña] | [Rol] |
+#### Modo desarrollo (simultáneo):
+
+```bash
+# Terminal única: API + Frontend concurrentemente
+npm run dev
+
+# O por separado en dos terminales:
+# Terminal 1 - Backend (API):
+npm run dev:api
+# Resultado: http://localhost:3000/api/health
+
+# Terminal 2 - Frontend (SPA):
+npm run dev:web
+# Resultado: http://localhost:5173
+```
+
+#### Modo producción:
+
+```bash
+# Compilar TypeScript
+npm run build
+
+# Ejecutar API (backend)
+npm start
+# o
+NODE_ENV=production PORT=3000 npm start
+```
+
+### 5.5 Acceso a la Aplicación
+
+| Componente | URL | Descripción |
+|-----------|-----|-------------|
+| Frontend | http://localhost:5173 | SPA React (Vite) |
+| API | http://localhost:3000 | Endpoints REST |
+| Health Check | http://localhost:3000/api/health | Verificar API activa |
+| Menú | http://localhost:3000/api/menu | GET árbol conversacional |
+| Chat | http://localhost:3000/api/chat | POST consultas/opciones |
+
+### 5.6 Variables de Entorno Disponibles
+
+Ver `.env.example` para documentación completa. Variables principales:
+
+**Frontend (Vite, build-time):**
+```
+VITE_API_BASE_URL=               # URL base de API (vacío = mismo origen)
+VITE_INSTITUTO_NOMBRE=IFTS N°29
+VITE_INSTITUTO_SUBTITULO=En linea
+VITE_ALLOWED_ORIGINS=            # CORS origins (separado por coma)
+```
+
+**Backend (runtime):**
+```
+DATABASE_URL=                    # PostgreSQL Neon (vacío = catálogo semilla)
+GOOGLE_SERVICE_ACCOUNT_EMAIL=    # Service account (vacío = Drive deshabilitado)
+GOOGLE_PRIVATE_KEY=              # Clave privada de Service Account
+GOOGLE_SHARED_FOLDER_ID=         # ID carpeta Google Drive institucional
+NODE_ENV=production              # development | production
+PORT=3000                        # Puerto API
+RATE_LIMIT_MAX=120               # Req máximas por ventana
+RATE_LIMIT_WINDOW_MS=60000       # Ventana rate limit (ms)
+```
+
+**Parámetros del motor NL:**
+```
+KB_MIN_MENSAJE=2                 # Mínimo caracteres consulta
+KB_MAX_MENSAJE=800               # Máximo caracteres consulta
+KB_UMBRAL_ALTO=0.90              # Confianza para responder directo
+KB_UMBRAL_MEDIO=0.70             # Confianza para pedir aclaración
+KB_MARGEN_AMBIGUEDAD=0.05        # Margen para desempate
+KB_MAX_OPCIONES_ACLARACION=4     # Máx opciones en aclaración
+```
+
+### 5.7 Sin Credenciales: Sistema Completamente Funcional
+
+**Importante:** El sistema funciona SIN variables opcionales:
+- Sin `DATABASE_URL` → usa catálogo semilla en memoria (demo perfecto)
+- Sin `GOOGLE_SERVICE_ACCOUNT_*` → Drive deshabilitado (respuestas sin documentos)
+- Sin credenciales → 100% funcional para desarrollo y demostración
+
+### 5.8 Verificación de la Instalación
+
+```bash
+# 1. Verificar API activa
+curl http://localhost:3000/api/health
+
+# 2. Obtener menú raíz
+curl http://localhost:3000/api/menu
+
+# 3. Enviar consulta escrita
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "¿Cómo accedo a SIU Guaraní?"}'
+```
 
 ---
 
 ## 6. Componentes Principales
 
-### 6.1 Descripción Técnica de Módulos Clave
+### 6.1 Backend - Servicios clave
 
-#### Módulo: [Nombre del módulo]
+#### ChatService (`backend/src/services/chat.service.ts`)
 
 **Responsabilidades:**
-- [Responsabilidad 1]
-- [Responsabilidad 2]
+- Procesar turnos de chat (opción del menú vs. consulta escrita)
+- Interpretar intención del usuario
+- Obtener respuesta institucional validada
+- Manejar contexto conversacional
+- Generar derivaciones a contactos
 
-**Métodos principales:**
-```java
-// Ejemplo de método
-public void metodo(String parametro) {
-    // Descripción de implementación
+**Flujo principal:**
+```typescript
+// POST /api/chat recibe:
+// - opcion: string (clave de opción menú) O
+// - message: string (consulta escrita)
+//
+// Retorna TurnoChat:
+// { tipo: 'nodo' | 'respuesta' | 'derivacion' | 'contexto' | 'aclaracion' | 'no_disponible' | 'error' }
+```
+
+---
+
+#### NLService (`backend/src/services/nl.service.ts`)
+
+**Responsabilidades:**
+- **Normalizar texto:** lleva a minúsculas, elimina acentos, caracteres especiales
+- **Búsqueda exacta:** B-tree en `conocimiento.normalized_text`
+- **Búsqueda por similitud:** trigram (`pg_trgm`) para variantes
+- **Cálculo de confianza:** basado en distancia editorial
+- **Desambiguación:** si hay empate, pide aclaración con opciones reales
+
+**Algoritmo:**
+```
+1. Normalizar consulta del usuario
+2. Buscar coincidencia exacta (nivel A)
+   Si encontrada con confianza >= KB_UMBRAL_ALTO → responder
+3. Buscar similitud trigram (nivel B)
+   Si una opción >= KB_UMBRAL_ALTO → responder
+   Si una opción >= KB_UMBRAL_MEDIO → pedir aclaración
+4. Si ninguna >= KB_UMBRAL_MEDIO → "No disponible"
+```
+
+---
+
+#### DriveService (`backend/src/services/drive.service.ts`)
+
+**Responsabilidades:**
+- Sincronización de documentos desde Google Drive
+- Descarga de archivos institucionales
+- Generación de enlaces públicos (si DRIVE_PUBLIC_LINKS=true)
+- Caching de enlaces (TTL configurable)
+- Manejo de errores de conectividad
+
+**Endpoints afectados:**
+- POST `/api/system/sync` - Fuerza sincronización manual
+- Automático en startup (si `DATABASE_URL` configurado)
+
+---
+
+#### MetricasService (`backend/src/services/metricas.service.ts`)
+
+**Responsabilidades:**
+- Recopilación de estadísticas de uso
+- Conteo de consultas por tipo (menú vs. escrita)
+- Tracking de intenciones frecuentes
+- Análisis de hit rate del motor NL
+
+**Exposición:**
+- GET `/api/system/metricas` - Devuelve estadísticas
+
+---
+
+### 6.2 Backend - Rutas (Endpoints)
+
+#### GET `/api/menu`
+
+```
+Retorna: NodoMenu {
+  categoria: Categoria        // Nodo actual (raíz al inicio)
+  mensaje: string            // Mensaje del bot
+  opciones: OpcionMenu[]     // Botones disponibles
+  esRaiz: boolean            // TRUE solo para raíz
+}
+
+Ejemplo respuesta:
+{
+  "categoria": {
+    "id": 1,
+    "clave": "RAIZ",
+    "nombre": "Inicio",
+    "mensaje": "Hola, soy el asistente virtual del IFTS N.29",
+    "esRaiz": true
+  },
+  "opciones": [
+    {
+      "clave": "ADM_OP_ADMISIONES",
+      "etiqueta": "Admisiones",
+      "tipo": "navegar",
+      "categoria_destino_id": 2
+    }
+  ]
 }
 ```
 
-**Interacciones:**
-- Se comunica con: [Otros módulos]
-- Es utilizado por: [Qué componentes lo usan]
+---
 
-*(Repetir para cada módulo principal)*
+#### POST `/api/chat`
+
+```
+Entrada:
+{
+  "opcion"?: string      // Clave de opción (si navega por menú)
+  "message"?: string     // Consulta escrita (si lenguaje natural)
+  "contexto"?: any       // [Opcional] contexto conversacional
+}
+
+Salida: TurnoChat (discriminada union):
+- { tipo: 'nodo', nodo: NodoMenu }
+- { tipo: 'respuesta', respuesta: Respuesta, documentos: [] }
+- { tipo: 'derivacion', derivacion: Derivacion, contactos: [] }
+- { tipo: 'contexto', pregunta: PreguntaContexto }
+- { tipo: 'aclaracion', aclaracion: Aclaracion, opciones: [] }
+- { tipo: 'no_disponible', mensaje: string }
+- { tipo: 'error', mensaje: string }
+
+Meta (solo para consultas escritas):
+{
+  "intent": string           // Intención detectada
+  "confidence": number       // 0 a 1
+  "source": "menu" | "kb_question" | "kb_variant" | ...
+  "matchType": "exacto" | "similar" | "regla" | "ninguno"
+}
+```
+
+---
+
+#### System Routes (`/api/system/*`)
+
+```
+GET  /api/health           → { status: 'ok' }
+GET  /api/metricas         → Estadísticas de uso
+POST /api/system/sync      → Fuerza sincronización Drive (requiere SYNC_SECRET)
+```
+
+---
+
+### 6.3 Frontend - Componentes React
+
+#### ChatWidget (componente principal)
+
+**Props/State:**
+- `isOpen: boolean` - Widget expandido/colapsado
+- `messages: Message[]` - Historial de chat
+- `currentNode: NodoMenu` - Categoría actual
+- `isLoading: boolean` - Esperando respuesta API
+
+**Responsabilidades:**
+- Renderizar conversación completa
+- Manejar entrada de usuario (botones + campo de texto)
+- Comunicarse con API
+- Persistir histórico en sessionStorage
+
+**Estilo:**
+- Responsive (mobile first)
+- Embebible en iframe (sin conflictos CSS)
+- Accesible (ARIA labels, contrast)
+
+---
+
+#### useChat Hook
+
+**Estado:**
+```typescript
+const [
+  messages,       // Historial
+  currentNode,    // Nodo del menú
+  isLoading,      // Cargando
+  handleSend,     // Envía mensaje/opción
+  reset           // Vuelve al raíz
+] = useChat()
+```
+
+**Lógica:**
+- Gestiona estado del chat
+- Realiza fetch a `/api/menu` y `/api/chat`
+- Interpreta TurnoChat y actualiza estado
+- Maneja errores de API
+
+---
+
+#### Componentes auxiliares
+
+- **MessageBubble** - Renderiza mensaje (bot o usuario)
+- **OptionList** - Lista de opciones interactivas (botones)
+- **DocumentCard** - Tarjeta de documento con enlace
+- **ContactCard** - Tarjeta de contacto (nombre, email, teléfono)
+- **ChatHeader** - Encabezado con nombre institución
+- **ChatLauncher** - Botón flotante para abrir/cerrar widget
 
 ---
 
 ## 7. Gestión de Errores y Validaciones
 
-### 7.1 Manejo de Errores de Conexión
+### 7.1 Middleware de Errores
 
-- **Error de base de datos:** [Cómo se maneja]
-- **Error de conexión a Internet:** [Cómo se maneja]
-- **Timeout:** [Cómo se maneja]
+**Ubicación:** `backend/src/middleware/error.ts`
 
-### 7.2 Validaciones de Datos
+**Códigos HTTP retornados:**
+```
+400 Bad Request        - Validación de entrada (mensaje muy corto/largo)
+401 Unauthorized       - SYNC_SECRET inválido (POST /api/system/sync)
+404 Not Found          - Opción o categoría no existe
+429 Too Many Requests  - Rate limit excedido
+500 Internal Server    - Error del servidor
+```
 
-- **Campo vacío:** Se valida antes de procesar
-- **Formato inválido:** Se valida contra patrones específicos
-- **Duplicados:** Se verifica en [dónde]
+**Respuesta de error (formato estándar):**
+```json
+{
+  "tipo": "error",
+  "mensaje": "Descripción del error",
+  "codigo": "ERROR_CODE_INTERNO"
+}
+```
 
-### 7.3 Situaciones Excepcionales
+### 7.2 Validaciones de Entrada
 
-- **Usuario no autenticado:** [Comportamiento]
-- **Recurso no encontrado:** [Comportamiento]
-- **Permisos insuficientes:** [Comportamiento]
+**POST `/api/chat` - Validación de mensaje:**
+```typescript
+// Validada con Zod (backend/src/utils/env.ts)
+- Mínimo: KB_MIN_MENSAJE caracteres (default: 2)
+- Máximo: KB_MAX_MENSAJE caracteres (default: 800)
+- Si incumple: retorna 400 Bad Request
+
+Ej: "?" (1 char) → rechazado
+    "Consulta válida de 20 caracteres" → aceptado
+```
+
+**Rate Limiting:**
+```
+- 120 peticiones por ventana (default: 60 segundos)
+- Por IP source
+- Si excede: 429 Too Many Requests
+- Middleware: `backend/src/middleware/rateLimit.ts`
+```
+
+### 7.3 Recuperación ante Errores
+
+**Si BD cae (DATABASE_URL pero Neon no disponible):**
+- API responde con error 500
+- Nota en logs: "Fallback to seed catalog"
+- Si `DATABASE_URL` estaba configurado pero falló:
+  - NO cae a modo semilla automáticamente
+  - Retorna error al cliente
+
+**Si Google Drive falla:**
+- Respuesta devuelta sin documentos
+- Campo `documentos: []` en respuesta
+- Mensaje al usuario no se ve afectado
+- El sistema continúa funcionando
+
+**Si consulta escrita sin coincidencia:**
+- No retorna error
+- Retorna `{ tipo: 'no_disponible', mensaje: '...' }`
+- Sugiere volver a menú guiado
+
+### 7.4 Situaciones por Diseño (no son errores)
+
+- **Sistema anónimo:** No hay autenticación
+- **Solo lectura:** No hay creación/edición/borrado de contenido
+- **Sin LLM:** Interpretación determinística (misma consulta = misma respuesta)
 
 ---
 
 ## 8. Pruebas Implementadas
 
-### 8.1 Pruebas Unitarias
+**Framework:** Node.js `test` nativo (sin dependencias externas)  
+**Ejecutar:** `cd backend && npm test`
 
-**Resumen:**
-- Total de pruebas: [Número]
-- Casos cubiertos: [Descripción general]
+### 8.1 Suite de Tests
 
-Para más detalles: Ver documento [05-pruebas-unitarias.md](05-pruebas-unitarias.md)
+| Archivo | Casos | Objetivo |
+|---------|-------|----------|
+| **api.test.ts** | 8+ | Tests HTTP end-to-end de endpoints |
+| **nl.service.test.ts** | 10+ | Tests del motor NL (interpretación, similitud) |
+| **conocimiento.test.ts** | 6+ | Tests de búsqueda en KB (exacta, variantes) |
+| **normalizar.test.ts** | 5+ | Tests de normalización de texto |
+| **sql-coincide.test.ts** | 4+ | Tests de coincidencia con SQL |
+| **kb-seed.test.ts** | 3+ | Tests de generación de semilla KB |
 
-### 8.2 Pruebas de Integración
+**Total aproximado:** 40+ casos de prueba
 
-**Resumen:**
-- Total de pruebas: [Número]
-- Módulos validados: [Lista]
+### 8.2 Pruebas HTTP de Endpoints (api.test.ts)
 
-Para más detalles: Ver documento [06-pruebas-integracion.md](06-pruebas-integracion.md)
+```typescript
+test('el menú raíz sigue funcionando')
+  → GET /api/menu retorna categoría RAIZ + opciones
+
+test('una opción del menú se procesa como siempre')
+  → POST /api/chat { opcion: 'ADM_OP_SIU' }
+  → Retorna respuesta tipo "respuesta"
+
+test('una consulta escrita devuelve la respuesta institucional')
+  → POST /api/chat { message: '¿Cómo accedo al SIU Guaraní?' }
+  → Retorna respuesta tipo "respuesta" con meta.matchType = "exacto"
+
+test('una consulta ambigua devuelve aclaración con opciones')
+  → POST /api/chat { message: '¿Cuándo empiezan las clases?' }
+  → Retorna respuesta tipo "aclaracion" con opciones
+```
+
+### 8.3 Cómo Ejecutar
+
+```bash
+# Ejecutar todos los tests
+cd backend
+npm test
+
+# Ejecutar un archivo específico
+npm test -- --grep "api.test.ts"
+
+# Modo watch (reinicia en cambios)
+npm test -- --watch
+```
+
+### 8.4 Modo de Ejecución
+
+- Tests corren contra **catálogo semilla** (sin DATABASE_URL)
+- Contenido idéntico al que está en `db/002_seed.sql` y `db/005_kb_seed.sql`
+- No requieren BD externa, ni Internet, ni Google Drive
+- Perfectos para CI/CD y desarrollo local
+
+Para más detalles: Ver documentos [05-pruebas-unitarias.md](05-pruebas-unitarias.md) y [06-pruebas-integracion.md](06-pruebas-integracion.md)
 
 ---
 
