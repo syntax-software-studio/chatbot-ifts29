@@ -3,12 +3,12 @@
 ## Documentación
 
 ### Documentos Principales
-- [x] **01-introduccion.md** - Estructura base creada
-- [ ] **02-manual-tecnico.md** - En progreso (arquitectura y BD iniciado)
-- [ ] **03-manual-usuario.md** - Estructura base creada, sin capturas aún
-- [ ] **04-base-datos.md** - Estructura base creada, sin scripts reales aún
-- [ ] **05-pruebas-unitarias.md** - Estructura base creada, sin ejecución aún
-- [ ] **06-pruebas-integracion.md** - Estructura base creada, sin ejecución aún
+- [x] **01-introduccion.md** - Completado (datos reales del proyecto)
+- [x] **02-manual-tecnico.md** - Completado (arquitectura, tecnologías, componentes, pruebas)
+- [x] **03-manual-usuario.md** - Completado (interfaz, flujos, FAQ, solución de problemas)
+- [x] **04-base-datos.md** - Completado (tablas, relaciones, scripts, DER Mermaid)
+- [x] **05-pruebas-unitarias.md** - Completado (40 tests ejecutados, 100% pasados)
+- [x] **06-pruebas-integracion.md** - Completado (7 flujos validados, 26 tests integración)
 
 ### Screenshots
 - [ ] **manual-usuario/** - Mínimo 5-8 capturas de pantallas principales
@@ -51,17 +51,18 @@
   - `kb-seed.test.ts` - Tests de generación de semilla
 
 ### Pruebas Unitarias
-- [x] Mínimo 6+ pruebas unitarias implementadas
+- [x] 40 pruebas totales implementadas
 - [x] Tests ejecutan contra catálogo semilla (sin BD requerida)
-- [ ] Resultados de ejecución documentados en 05-pruebas-unitarias.md
-- [ ] Evidencias de ejecución (ejecutar `npm test` en backend)
+- [x] Resultados de ejecución documentados en 05-pruebas-unitarias.md
+- [x] Salida TAP completa capturada en documentación
 
 ### Pruebas de Integración
-- [x] Tests de endpoints HTTP (api.test.ts): menú raíz, opciones, consultas escritas
+- [x] 26 tests de integración (de los 40 totales)
+- [x] Tests de endpoints HTTP (api.test.ts): menú, opciones, consultas
 - [x] Tests de flujo completo: opción menú → respuesta institucional
 - [x] Tests de consultas ambiguas con aclaraciones
-- [ ] Documentación de resultados en 06-pruebas-integracion.md
-- [ ] Evidencias de ejecución capturadas
+- [x] Documentación de resultados en 06-pruebas-integracion.md
+- [x] Output TAP documentado como evidencia
 
 ### Cómo Ejecutar Tests
 ```bash
@@ -155,12 +156,13 @@ npm run dev:web      # Terminal 2: Frontend en :5173
 - [ ] Excluye: node_modules/, .env, .git/, capturas de pruebas
 
 ### Documentación
-- [ ] README.md completo (ya existe en raíz)
-- [ ] Manual Técnico completo (02-manual-tecnico.md)
-- [ ] Manual de Usuario con capturas (03-manual-usuario.md)
-- [ ] Documentación de BD (04-base-datos.md)
-- [ ] Evidencias de pruebas (05 y 06)
+- [x] README.md completo (ya existe en raíz)
+- [x] Manual Técnico completo (02-manual-tecnico.md)
+- [x] Manual de Usuario estructura completa (03-manual-usuario.md, sin capturas)
+- [x] Documentación de BD (04-base-datos.md)
+- [x] Evidencias de pruebas (05 y 06 documentadas)
 - [ ] PDF integrado con toda la documentación
+- [x] DER con Mermaid (04-base-datos.md)
 
 ### Aplicación Funcional
 - [x] Frontend ejecutable: `npm run dev:web` → http://localhost:5173
@@ -195,8 +197,16 @@ npm run dev:web      # Terminal 2: Frontend en :5173
 
 ```
 DOCUMENTACIÓN:
-☑ 01-introduccion.md              (estructura base)
-~ 02-manual-tecnico.md            (en actualización con datos reales)
+✓ 01-introduccion.md              (completado)
+✓ 02-manual-tecnico.md            (completado)
+✓ 03-manual-usuario.md            (completado, sin capturas)
+✓ 04-base-datos.md                (completado + DER Mermaid)
+✓ 05-pruebas-unitarias.md         (completado, 40 tests)
+✓ 06-pruebas-integracion.md       (completado, 26 tests)
+✓ CHECKLIST-ENTREGA.md            (este archivo)
+
+DIAGRAMAS:
+✓ DER con Mermaid                 (en 04-base-datos.md)
 ☐ 03-manual-usuario.md            (estructura base, sin capturas)
 ☐ 04-base-datos.md                (estructura base)
 ☐ 05-pruebas-unitarias.md         (estructura base, ejecutar tests)
