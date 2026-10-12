@@ -159,7 +159,11 @@ export function ChatWidget() {
           <ChatHeader titulo={titulo || undefined} />
           <Cuerpo chat={chat} cuerpoRef={cuerpoRef} />
           <Entrada chat={chat} />
-          <Pie onReiniciar={() => void chat.reiniciar()} />
+          <Pie
+            onReiniciar={() => void chat.reiniciar()}
+            onVolver={() => void chat.volver()}
+            puedeVolver={chat.puedeNavegarAtras}
+          />
         </div>
       </div>
     );
@@ -174,7 +178,11 @@ export function ChatWidget() {
           <ChatHeader onCerrar={() => setAbierto(false)} />
           <Cuerpo chat={chat} cuerpoRef={cuerpoRef} />
           <Entrada chat={chat} />
-          <Pie onReiniciar={() => void chat.reiniciar()} />
+          <Pie
+            onReiniciar={() => void chat.reiniciar()}
+            onVolver={() => void chat.volver()}
+            puedeVolver={chat.puedeNavegarAtras}
+          />
         </div>
       ) : null}
     </div>
@@ -319,20 +327,24 @@ function Entrada({ chat }: { chat: ReturnType<typeof useChat> }) {
    Pie
    ======================================================================== */
 
-function Pie({ onReiniciar }: { onReiniciar: () => void }) {
+function Pie({
+  onReiniciar,
+  onVolver,
+  puedeVolver,
+}: {
+  onReiniciar: () => void;
+  onVolver: () => void;
+  puedeVolver: boolean;
+}) {
   return (
     <footer className="ifts-pie">
-      <p className="ifts-pie__texto">
-        Información de{' '}
-        <a
-          className="ifts-pie__enlace"
-          href="https://aulasvirtuales.bue.edu.ar/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          IFTS N.°29
-        </a>
-      </p>
+      {puedeVolver ? (
+        <button type="button" className="ifts-reiniciar" onClick={onVolver}>
+          ‹ Volver al menú
+        </button>
+      ) : (
+        <span />
+      )}
       <button type="button" className="ifts-reiniciar" onClick={onReiniciar}>
         <IconoReiniciar />
         Reiniciar

@@ -66,13 +66,10 @@ export interface SeedContacto {
   id: number;
   clave: string;
   nombre: string;
-  rol: string | null;
   area: string | null;
   email: string | null;
-  telefono: string | null;
   url_perfil: string | null;
   motivo: string | null;
-  horario: string | null;
   orden: number;
   activo: boolean;
 }
@@ -125,31 +122,13 @@ export interface SeedData {
  * ======================================================================== */
 const contactos: SeedContacto[] = [
   {
-    id: 1,
-    clave: 'tutoria_academica',
-    nombre: 'MG María González',
-    rol: 'Tutora académica',
-    area: 'Tutorías',
-    email: 'mgonzalez@bue.edu.ar',
-    telefono: null,
-    url_perfil: 'https://aulasvirtuales.bue.edu.ar/',
-    motivo:
-      'Dudas sobre cursada, pertenencia a comisiones, presentación de trabajos prácticos o elección de materia.',
-    horario: 'Lunes a viernes de 9:00 a 18:00 hs',
-    orden: 1,
-    activo: true,
-  },
-  {
     id: 2,
     clave: 'bedelia',
     nombre: 'Bedelía IFTS N.29',
-    rol: 'Secretaría académica',
     area: 'Bedelía',
     email: 'bedelia.ifts29@bue.edu.ar',
-    telefono: null,
     url_perfil: null,
     motivo: 'Inscripciones, mesas de examen, constancias, certificados y trámites administrativos.',
-    horario: 'Lunes a viernes de 8:30 a 17:30 hs',
     orden: 2,
     activo: true,
   },
@@ -157,13 +136,10 @@ const contactos: SeedContacto[] = [
     id: 3,
     clave: 'advisory_pedagogica',
     nombre: 'Asesoría Pedagógica',
-    rol: 'Tutoría pedagógica',
     area: 'Tutorías',
     email: 'tutoria.ifts29@bue.edu.ar',
-    telefono: null,
     url_perfil: null,
     motivo: 'Dudas sobre cursada en ambiente virtual y uso del campus, con el equipo docente.',
-    horario: 'Lunes a viernes de 9:00 a 18:00 hs',
     orden: 3,
     activo: true,
   },
@@ -378,8 +354,7 @@ const respuestas: SeedRespuesta[] = [
     id: 5,
     clave: 'DERIVACION_GENERAL',
     texto:
-      'Si no encontraste lo que buscabas, tu **tutora académica de este cuatrimestre** es MG María González (Tutora académica - mgonzalez@bue.edu.ar). Escribile y te va a orientar.\n' +
-      'Si tu consulta es administrativa o sobre el uso del campus, también podés escribir a Bedelía o a Asesoría Pedagógica:',
+      'Si no encontraste lo que buscabas, podés escribir a alguna de estas personas o áreas:',
     orden: 90,
     activo: true,
   },

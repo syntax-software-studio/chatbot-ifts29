@@ -78,13 +78,10 @@ interface RawContacto {
   id: number;
   clave: string;
   nombre: string;
-  rol: string | null;
   area: string | null;
   email: string | null;
-  telefono: string | null;
   url_perfil: string | null;
   motivo: string | null;
-  horario: string | null;
 }
 
 const toCategoria = (r: RawCategoria): Categoria => ({
@@ -123,13 +120,10 @@ const toContacto = (r: RawContacto): Contacto => ({
   id: r.id,
   clave: r.clave,
   nombre: r.nombre,
-  rol: r.rol,
   area: r.area,
   email: r.email,
-  telefono: r.telefono,
   urlPerfil: r.url_perfil,
   motivo: r.motivo,
-  horario: r.horario,
 });
 
 /* ==========================================================================
@@ -170,16 +164,19 @@ const SQL_DOCUMENTOS_DE_RESPUESTA = `
    WHERE rd.respuesta_id = $1 AND d.estado <> 'archivado'
    ORDER BY rd.orden, d.id`;
 
+/* Si `$2` viene (comision elegida), se filtran los contactos de esa comision.
+ * Los contactos sin comision o con "General" se muestran siempre. */
 const SQL_CONTACTOS_DE_OPCION = `
-  SELECT c.id, c.clave, c.nombre, c.rol, c.area, c.email, c.telefono,
-         c.url_perfil, c.motivo, c.horario
+  SELECT c.id, c.clave, c.nombre, c.area, c.email,
+         c.url_perfil, c.motivo
     FROM opcion_contacto oc
     JOIN contacto c ON c.id = oc.contacto_id
    WHERE oc.opcion_id = $1 AND c.activo
+     AND ($2::text IS NULL OR c.comision IS NULL OR c.comision = 'General' OR c.comision = $2)
    ORDER BY oc.orden, c.id`;
 
 const SQL_CONTEXTOS_DE_OPCION = `
-  SELECT ctx.id AS contexto_id, ctx.clave, ctx.nombre AS etiqueta, ctx.valor
+  SELECT ctx.id AS contexto_id, ctx.clave, ctx.nombre AS etiqueta, ctx.valor, ctx.ambito_clave
     FROM contexto_opcion co
     JOIN contexto ctx ON ctx.id = co.contexto_id
    WHERE co.opcion_id = $1 AND ctx.activo
@@ -312,9 +309,9 @@ export async function obtenerRespuesta(respuestaId: number): Promise<Respuesta> 
 }
 
 /** Contactos de derivación de una opción. */
-export async function obtenerContactos(opcionId: number): Promise<Contacto[]> {
+export async function obtenerContactos(opcionId: number, comision?: string | null): Promise<Contacto[]> {
   if (getPool()) {
-    const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId]);
+    const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId, comision ?? null]);
     return r.rows.map(toContacto);
   }
   return seedContactosDeOpcion(opcionId);
@@ -328,12 +325,14 @@ export async function obtenerContextosDeOpcion(opcionId: number): Promise<Opcion
       clave: string;
       etiqueta: string;
       valor: string | null;
+      ambito_clave: string | null;
     }>(SQL_CONTEXTOS_DE_OPCION, [opcionId]);
     return r.rows.map((row) => ({
       contextoId: row.contexto_id,
       clave: row.clave,
       etiqueta: row.etiqueta,
       valor: row.valor,
+      ambitoClave: row.ambito_clave,
     }));
   }
 
@@ -350,6 +349,7 @@ export async function obtenerContextosDeOpcion(opcionId: number): Promise<Opcion
         clave: ctx.clave,
         etiqueta: ctx.nombre,
         valor: ctx.valor,
+        ambitoClave: ctx.ambito_clave ?? null,
       };
     })
     .filter((x): x is OpcionContexto => x !== null);
@@ -384,12 +384,12 @@ export async function listarCategorias(): Promise<Categoria[]> {
 
 /** Texto introductorio de una derivación (opcional). */
 export async function textoDerivacion(respuestaId: number | null): Promise<string> {
-  if (respuestaId === null) return 'La derivación es asincrónica: elegí con quién necesitás hablar.';
+  if (respuestaId === null) return 'Elegí con quién necesitás hablar.';
   try {
     const { texto } = await obtenerRespuesta(respuestaId);
     return texto;
   } catch {
-    return 'La derivación es asincrónica: elegí con quién necesitás hablar.';
+    return 'Elegí con quién necesitás hablar.';
   }
 }
 

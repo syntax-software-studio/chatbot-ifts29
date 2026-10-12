@@ -270,7 +270,7 @@ BASE DE DATOS:
 
 PRUEBAS:
 ☑ Pruebas unitarias/integración: 6 archivos .test.ts en backend/test/
-☐ Ejecutar: cd backend && npm test
+☑ Ejecutar: cd backend && npm test
 ☐ Documentar resultados en 05 y 06
 
 APLICACIÓN:
