@@ -370,7 +370,6 @@ CREATE TABLE usuarios (
     fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Agregar más scripts según corresponda
 ```
 
 ---

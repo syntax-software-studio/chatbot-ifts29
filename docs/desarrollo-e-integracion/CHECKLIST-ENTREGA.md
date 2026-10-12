@@ -102,6 +102,28 @@ npm test
 
 ---
 
+## Integración Drive → Base de Datos (IMPORTANTE: pendiente)
+
+### Nomenclatura de archivos
+- [ ] Definir convención de nombres de archivo en Drive (materia, tipo, cuatrimestre)
+- [ ] Documentar la convención para el equipo que sube los archivos
+
+### Alta automática desde Drive
+- [ ] Crear registro en `documento` para archivos nuevos que no tengan ficha
+- [ ] Sincronizar archivos nuevos como parte de la base de conocimiento
+- [ ] Verificar que todos los archivos sincronizados quedan disponibles para el menú y el texto libre
+
+### Información institucional desde Drive
+- [ ] Definir formato de origen para horarios, cursadas y datos de contacto
+- [ ] Consumir horarios, cursadas y contactos desde Drive en lugar de la carga manual del seed
+
+### Métricas exportadas a Drive
+- [ ] Generar un informe de métricas de sesión periódico (propuesta: cada 7 días)
+- [ ] Guardar el informe en Drive para que el cliente lo lea
+- [ ] Resolver permisos de escritura: hoy la Service Account es de solo lectura
+
+---
+
 ## Configuración e Instalación
 
 ### Requisitos
