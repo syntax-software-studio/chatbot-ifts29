@@ -1,4 +1,4 @@
-import { IconoCorreo, IconoInfo, IconoReloj, IconoUsuario } from './icons';
+import { IconoCorreo, IconoInfo, IconoUsuario } from './icons';
 import type { Contacto } from '../types';
 
 function iniciales(nombre: string): string {
@@ -18,7 +18,7 @@ interface PropsContacto {
 /**
  * Ficha de derivación (RF04).
  *
- * Muestra nombre, rol, correo y enlace de perfil junto con el motivo. La
+ * Muestra nombre, área, correo y enlace de perfil junto con el motivo. La
  * derivación es asincrónica: el asistente no inicia conversaciones, no envía
  * mensajes y no gestiona trámites en nombre del estudiante.
  */
@@ -33,7 +33,6 @@ export function ContactCard({ contacto }: PropsContacto) {
 
       <div className="ifts-contacto__cuerpo">
         <p className="ifts-contacto__nombre">{contacto.nombre}</p>
-        {contacto.rol ? <p className="ifts-contacto__rol">{contacto.rol}</p> : null}
 
         {contacto.motivo ? <p className="ifts-contacto__motivo">{contacto.motivo}</p> : null}
 
@@ -56,14 +55,7 @@ export function ContactCard({ contacto }: PropsContacto) {
               Ver perfil
             </a>
           ) : null}
-        </div>
-
-        {contacto.horario ? (
-          <p className="ifts-contacto__horario">
-            <IconoReloj /> {contacto.horario}
-          </p>
-        ) : null}
-      </div>
+        </div>      </div>
     </div>
   );
 }
@@ -74,8 +66,8 @@ export function AvisoDerivacionAsincronica() {
     <p className="ifts-aviso-async">
       <IconoInfo />
       <span>
-        La derivación es <strong>asincrónica</strong>: el asistente no inicia conversaciones ni envía
-        mensajes por vos. Escribile directamente a la persona o al área indicada.
+        El asistente no envía mensajes por vos.
+        Escribile directamente a la persona del área indicada.
       </span>
     </p>
   );

@@ -35,21 +35,22 @@ export interface Contacto {
   id: number;
   clave: string;
   nombre: string;
-  rol: string | null;
   area: string | null;
   email: string | null;
-  telefono: string | null;
   urlPerfil: string | null;
   motivo: string | null;
-  horario: string | null;
 }
 
-/** Valor de contexto ofrecido como submenu (comision, cuatrimestre...). */
+/**
+ * Valor de contexto ofrecido como submenu (comision, cuatrimestre...).
+ * `ambitoClave` identifica el valor para filtrar (p. ej. 'A' para la comision A).
+ */
 export interface OpcionContexto {
   contextoId: number;
   clave: string;
   etiqueta: string;
   valor: string | null;
+  ambitoClave: string | null;
 }
 
 /** Opcion seleccionable del menu: es la respuesta autorizada a la que también

@@ -179,18 +179,24 @@ CREATE TABLE IF NOT EXISTS contacto (
     id          SERIAL PRIMARY KEY,
     clave       TEXT        NOT NULL UNIQUE,
     nombre      TEXT        NOT NULL,
-    rol         TEXT,
     area        TEXT,
     email       TEXT,
-    telefono    TEXT,
     url_perfil  TEXT,
     motivo      TEXT,
-    horario     TEXT,
+    comision    TEXT,
     orden       INTEGER     NOT NULL DEFAULT 0,
     activo      BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Comision a la que responde el contacto ('A', 'B', ... o 'General').
+-- ADD COLUMN IF NOT EXISTS: la base ya creada no recibe cambios de CREATE TABLE.
+ALTER TABLE contacto ADD COLUMN IF NOT EXISTS comision TEXT;
+-- La columna horario se quitó del modelo: los contactos ya no muestran horario.
+ALTER TABLE contacto DROP COLUMN IF EXISTS horario;
+ALTER TABLE contacto DROP COLUMN IF EXISTS rol;
+ALTER TABLE contacto DROP COLUMN IF EXISTS telefono;
 
 COMMENT ON TABLE  contacto            IS 'Persona o area a la que se deriva la consulta (RF04).';
 COMMENT ON COLUMN contacto.motivo     IS 'Motivo de la derivacion, mostrado junto al contacto.';

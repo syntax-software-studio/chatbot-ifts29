@@ -21,29 +21,36 @@ BEGIN;
 -- CONTACTO  (derivacion asincronica - RF04)
 -- El sistema solo MUESTRA estos datos: no envia mails ni gestiona tramites.
 -- ---------------------------------------------------------------------------
-INSERT INTO contacto (clave, nombre, rol, area, email, url_perfil, motivo, horario, orden) VALUES
-('tutoria_academica', 'MG María González', 'Tutora académica', 'Tutorías',
- 'mgonzalez@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/',
- 'Dudas sobre cursada, pertenencia a comisiones, presentación de trabajos prácticos o elección de materia.',
- 'Lunes a viernes de 9:00 a 18:00 hs', 1),
-('bedelia', 'Bedelía IFTS N.29', 'Secretaría académica', 'Bedelía',
+-- MG María González ya no es contacto. Borra la fila si existe en la base;
+-- sus vínculos en opcion_contacto se van por ON DELETE CASCADE.
+DELETE FROM contacto WHERE clave = 'tutoria_academica';
+
+INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, activo) VALUES
+('tutoria_comision_a', 'Alexis Eletto', 'Tutorías', 'A',
+ 'alexis.eletto@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/user/view.php?id=250272&course=28479',
+ 'Orientación para organizar tu cursada, entender correlatividades y reglamento, preparar finales o materias libres, usar el Campus Virtual, y conocer prácticas profesionalizantes, becas y talleres.',
+ 1, TRUE),
+('tutoria_comision_b', 'Fiamma Gramajo', 'Tutorías', 'B',
+ 'fiamma.gramajo@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/user/view.php?id=216461&course=28479',
+ 'Orientación para organizar tu cursada, entender correlatividades y reglamento, preparar finales o materias libres, usar el Campus Virtual, y conocer prácticas profesionalizantes, becas y talleres.',
+ 2, TRUE),
+('bedelia', 'Bedelía IFTS N.29', 'Bedelía', 'General',
  'bedelia.ifts29@bue.edu.ar', NULL,
- 'Inscripciones, mesas de examen, constancias, certificados y trámites administrativos.',
- 'Lunes a viernes de 8:30 a 17:30 hs', 2),
-('advisory_pedagogica', 'Asesoría Pedagógica', 'Tutoría pedagógica', 'Tutorías',
+ 'Certificados y constancias, libretas, control de asistencia, actualización de datos, inscripciones a materias y trámites de equivalencias.',
+ 3, TRUE),
+('advisory_pedagogica', 'Asesoría Pedagógica', 'Asesoría Pedagógica', 'General',
  'tutoria.ifts29@bue.edu.ar', NULL,
- 'Dudas sobre cursada en ambiente virtual y uso del campus, con el equipo docente.',
- 'Lunes a viernes de 9:00 a 18:00 hs', 3)
+ 'Dificultades pedagógicas, seguimiento de tu trayectoria y dudas normativas sobre el cursado y la equivalencia de materias.',
+ 4, TRUE)
 ON CONFLICT (clave) DO UPDATE SET
     nombre     = EXCLUDED.nombre,
-    rol        = EXCLUDED.rol,
     area       = EXCLUDED.area,
+    comision   = EXCLUDED.comision,
     email      = EXCLUDED.email,
     url_perfil = EXCLUDED.url_perfil,
     motivo     = EXCLUDED.motivo,
-    horario    = EXCLUDED.horario,
     orden      = EXCLUDED.orden,
-    activo     = TRUE;
+    activo     = EXCLUDED.activo;
 
 -- ---------------------------------------------------------------------------
 -- CATEGORIA  (nodos del arbol)
@@ -55,6 +62,8 @@ INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz) VALUES
  'Sobre qué tema administrativo puedo ayudarte?', 1, FALSE),
 ('ACADEMICAS', 'Consultas academicas',
  '¿Sobre qué materia necesitás información?', 2, FALSE),
+('NOENCONTRE', 'No encontré lo que busco',
+ '¿Qué tipo de consulta tenés?', 3, FALSE),
 ('M_ADMIN_BASE_DATOS', 'Administración de Bases de Datos',
  '¿Qué información necesitás sobre Administración de Bases de Datos?', 10, FALSE),
 ('M_ANALISIS_MATEMATICO', 'Elementos de Análisis Matemático',
@@ -73,18 +82,18 @@ ON CONFLICT (clave) DO UPDATE SET
 -- DOCUMENTO  (fichas; los fileId se completan con la sincronizacion de Drive)
 -- ---------------------------------------------------------------------------
 INSERT INTO documento (clave, nombre, descripcion, tipo, mime_type, drive_nombre_archivo, vigente, estado) VALUES
-('DOC_ABD_PROGRAMA',    'Administracion de Base de Datos_Programa.pdf',             'Programa vigente de la materia.',            'programa',              'application/pdf', 'Administracion de Base de Datos_Programa.pdf',             TRUE, 'vigente'),
-('DOC_ABD_CRONOGRAMA',  'Administracion de Base de Datos_Cronograma.pdf',           'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Administracion de Base de Datos_Cronograma.pdf',           TRUE, 'vigente'),
-('DOC_ABD_CONDICIONES', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', TRUE, 'vigente'),
-('DOC_EAM_PROGRAMA',    'Elementos de Analisis Matematico_Programa.pdf',            'Programa vigente de la materia.',            'programa',              'application/pdf', 'Elementos de Analisis Matematico_Programa.pdf',            TRUE, 'vigente'),
-('DOC_EAM_CRONOGRAMA',  'Elementos de Analisis Matematico_Cronograma.pdf',          'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Elementos de Analisis Matematico_Cronograma.pdf',          TRUE, 'vigente'),
-('DOC_EAM_CONDICIONES', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', TRUE, 'vigente'),
-('DOC_LC_PROGRAMA',     'Logica Computacional_Programa.pdf',                        'Programa vigente de la materia.',            'programa',              'application/pdf', 'Logica Computacional_Programa.pdf',                        TRUE, 'vigente'),
-('DOC_LC_CRONOGRAMA',   'Logica Computacional_Cronograma.pdf',                      'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Logica Computacional_Cronograma.pdf',                      TRUE, 'vigente'),
-('DOC_LC_CONDICIONES',  'Logica Computacional_Condiciones_de_Aprobacion.pdf',       'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'Logica Computacional_Condiciones_de_Aprobacion.pdf',       TRUE, 'vigente'),
-('DOC_TP_PROGRAMA',     'Tecnicas de Programacion_Programa.pdf',                    'Programa vigente de la materia.',            'programa',              'application/pdf', 'Tecnicas de Programacion_Programa.pdf',                    TRUE, 'vigente'),
-('DOC_TP_CRONOGRAMA',   'Tecnicas de Programacion_Cronograma.pdf',                  'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Tecnicas de Programacion_Cronograma.pdf',                  TRUE, 'vigente'),
-('DOC_TP_CONDICIONES',  'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   TRUE, 'vigente')
+('DOC_ABD_PROGRAMA',    'Administracion de Base de Datos_Programa.pdf',             'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__administracion-bases-datos.pdf',                 TRUE, 'vigente'),
+('DOC_ABD_CRONOGRAMA',  'Administracion de Base de Datos_Cronograma.pdf',           'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__administracion-bases-datos.pdf',             TRUE, 'vigente'),
+('DOC_ABD_CONDICIONES', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__administracion-bases-datos.pdf',         TRUE, 'vigente'),
+('DOC_EAM_PROGRAMA',    'Elementos de Analisis Matematico_Programa.pdf',            'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__elementos-analisis-matematico.pdf',            TRUE, 'vigente'),
+('DOC_EAM_CRONOGRAMA',  'Elementos de Analisis Matematico_Cronograma.pdf',          'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__elementos-analisis-matematico.pdf',          TRUE, 'vigente'),
+('DOC_EAM_CONDICIONES', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__elementos-analisis-matematico.pdf',      TRUE, 'vigente'),
+('DOC_LC_PROGRAMA',     'Logica Computacional_Programa.pdf',                        'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__logica-computacional.pdf',                     TRUE, 'vigente'),
+('DOC_LC_CRONOGRAMA',   'Logica Computacional_Cronograma.pdf',                      'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__logica-computacional.pdf',                   TRUE, 'vigente'),
+('DOC_LC_CONDICIONES',  'Logica Computacional_Condiciones_de_Aprobacion.pdf',       'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__logica-computacional.pdf',                  TRUE, 'vigente'),
+('DOC_TP_PROGRAMA',     'Tecnicas de Programacion_Programa.pdf',                    'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__tecnicas-programacion.pdf',                    TRUE, 'vigente'),
+('DOC_TP_CRONOGRAMA',   'Tecnicas de Programacion_Cronograma.pdf',                  'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__tecnicas-programacion.pdf',                  TRUE, 'vigente'),
+('DOC_TP_CONDICIONES',  'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__tecnicas-programacion.pdf',                  TRUE, 'vigente')
 ON CONFLICT (clave) DO UPDATE SET
     nombre               = EXCLUDED.nombre,
     descripcion          = EXCLUDED.descripcion,
@@ -111,8 +120,7 @@ INSERT INTO respuesta (clave, texto, orden) VALUES
  4),
 -- Derivación (texto introductorio; los datos de contacto salen de CONTACTO)
 ('DERIVACION_GENERAL',
- 'Si no encontraste lo que buscabas, tu **tutora académica de este cuatrimestre** es MG María González (Tutora académica - mgonzalez@bue.edu.ar). Escribile y te va a orientar.
-Si tu consulta es administrativa o sobre el uso del campus, también podés escribir a Bedelía o a Asesoría Pedagógica:',
+ 'Si no encontraste lo que buscabas, podés escribir a alguna de estas personas o áreas:',
  90)
 ON CONFLICT (clave) DO UPDATE SET
     texto  = EXCLUDED.texto,
@@ -194,8 +202,18 @@ INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_
  (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), NULL, FALSE, 1),
 ('RAIZ_OP_ACAD',  (SELECT id FROM categoria WHERE clave='RAIZ'), 'Consultas academicas', 'navegar',
  (SELECT id FROM categoria WHERE clave='ACADEMICAS'), NULL, FALSE, 2),
-('RAIZ_OP_NOFUE', (SELECT id FROM categoria WHERE clave='RAIZ'), 'No encontre lo que busco', 'derivar',
+('RAIZ_OP_NOFUE', (SELECT id FROM categoria WHERE clave='RAIZ'), 'No encontre lo que busco', 'navegar',
+ (SELECT id FROM categoria WHERE clave='NOENCONTRE'), NULL, FALSE, 3),
+
+-- --- NO ENCONTRE (tipo de consulta -> derivacion)
+('NOFUE_OP_VOLVER', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), '< Volver al menu anterior', 'navegar',
+ (SELECT id FROM categoria WHERE clave='RAIZ'), NULL, TRUE, 1),
+('NOFUE_OP_ADMIN', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), 'Consultas administrativas', 'derivar',
+ NULL, NULL, FALSE, 2),
+('NOFUE_OP_ACAD', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), 'Consultas academicas', 'derivar',
  NULL, NULL, FALSE, 3),
+('NOFUE_OP_PED', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), 'Consultas pedagogicas', 'derivar',
+ NULL, NULL, FALSE, 4),
 
 -- --- ADMINISTRATIVAS
 ('ADM_OP_VOLVER',      (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), '< Volver al menu anterior', 'navegar',
@@ -281,12 +299,17 @@ ON CONFLICT (clave) DO UPDATE SET
 -- ---------------------------------------------------------------------------
 -- OPCION_CONTACTO  (derivaciones - RF04)
 -- ---------------------------------------------------------------------------
+-- Los vinculos viejos de RAIZ_OP_NOFUE (ahora navega) se quitan antes de cargar los nuevos.
+DELETE FROM opcion_contacto
+ WHERE opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOFUE');
+
 INSERT INTO opcion_contacto (opcion_id, contacto_id, orden)
 SELECT o.id, c.id, x.orden
 FROM (VALUES
-    ('RAIZ_OP_NOFUE', 'tutoria_academica',  1),
-    ('RAIZ_OP_NOFUE', 'bedelia',            2),
-    ('RAIZ_OP_NOFUE', 'advisory_pedagogica', 3)
+    ('NOFUE_OP_ADMIN', 'bedelia',             1),
+    ('NOFUE_OP_ACAD',  'tutoria_comision_a',  1),
+    ('NOFUE_OP_ACAD',  'tutoria_comision_b',  2),
+    ('NOFUE_OP_PED',   'advisory_pedagogica', 1)
 ) AS x(opcion_clave, contacto_clave, orden)
 JOIN opcion_menu o ON o.clave = x.opcion_clave
 JOIN contacto    c ON c.clave = x.contacto_clave
@@ -304,13 +327,23 @@ INSERT INTO contexto (clave, nombre, valor, ambito_tipo, ambito_clave, grupo, or
 ('modalidad',            'Modalidad',            'Virtual sincrónica',                                     NULL, NULL, 'institucional', 5),
 ('dias_cursada', 'Comisión A', 'Lunes y Miércoles de 18:00 a 21:00 hs', 'comision', 'comision_a', 'dias_cursada', 1),
 ('dias_cursada', 'Comisión B', 'Martes y Jueves de 8:00 a 11:00 hs',    'comision', 'comision_b', 'dias_cursada', 2),
-('dias_cursada', 'Comisión C', 'Viernes de 14:00 a 20:00 hs',           'comision', 'comision_c', 'dias_cursada', 3)
+('dias_cursada', 'Comisión C', 'Viernes de 14:00 a 20:00 hs',           'comision', 'comision_c', 'dias_cursada', 3),
+-- Submenu de comision para la derivacion a tutores (ambito_clave = letra de comision de contacto.comision)
+('tutor_comision', 'Comisión A', NULL, 'comision', 'A', 'tutor_comision', 1),
+('tutor_comision', 'Comisión B', NULL, 'comision', 'B', 'tutor_comision', 2)
 ON CONFLICT (clave, COALESCE(ambito_tipo,'global'), COALESCE(ambito_clave,'')) DO UPDATE SET
     nombre = EXCLUDED.nombre,
     valor  = EXCLUDED.valor,
     grupo  = EXCLUDED.grupo,
     orden  = EXCLUDED.orden,
     activo = TRUE;
+
+-- Submenu de comision de "Consultas academicas" en la derivacion (ver chat.service).
+INSERT INTO contexto_opcion (opcion_id, contexto_id, etiqueta, orden)
+SELECT o.id, ctx.id, ctx.nombre, ctx.orden
+  FROM opcion_menu o, contexto ctx
+ WHERE o.clave = 'NOFUE_OP_ACAD' AND ctx.clave = 'tutor_comision'
+ON CONFLICT (opcion_id, contexto_id) DO UPDATE SET orden = EXCLUDED.orden;
 
 COMMIT;
 

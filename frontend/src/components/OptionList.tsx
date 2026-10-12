@@ -15,22 +15,23 @@ export const prefijoContexto = 'ctx:';
  * es el compositor de consulta escrita, que termina en la misma opción (RF05).
  */
 export function OptionList({ opciones, deshabilitado, onSeleccionar }: PropsOpciones) {
-  if (opciones.length === 0) return null;
+  // "Volver" no se muestra en la lista: tiene un único lugar, el pie del widget.
+  const visibles = opciones.filter((o) => !('esVolver' in o && o.esVolver));
+  if (visibles.length === 0) return null;
 
   return (
     <div className="ifts-opciones" role="group" aria-label="Opciones del menú">
-      {opciones.map((opcion) => {
+      {visibles.map((opcion) => {
         const esContexto = 'contextoId' in opcion;
         const clave = esContexto ? `${prefijoContexto}${opcion.contextoId}` : opcion.clave;
         const etiqueta = esContexto ? opcion.etiqueta : opcion.etiqueta;
-        const esVolver = !esContexto && (opcion as OpcionMenu).esVolver;
         const descripcion = esContexto ? null : (opcion as OpcionMenu).descripcion;
 
         return (
           <button
             key={clave}
             type="button"
-            className={`ifts-opcion${esVolver ? ' ifts-opcion--volver' : ''}`}
+            className="ifts-opcion"
             disabled={deshabilitado}
             onClick={() =>
               onSeleccionar(clave, esContexto ? (opcion as OpcionContexto).contextoId : undefined)

@@ -126,9 +126,11 @@ export async function procesarSeleccion(
 
   // 2.d. Derivación asincrónica con contactos (RF04).
   if (opcion.tipo === 'derivar') {
+    // Si el submenu contextual eligio una comision, solo se derivan sus contactos.
+    const comision = contextos.find((c) => c.contextoId === entrada.contexto)?.ambitoClave ?? null;
     const [texto, contactos] = await Promise.all([
       textoDerivacion(opcion.respuestaId),
-      obtenerContactos(opcion.opcionId),
+      obtenerContactos(opcion.opcionId, comision),
     ]);
     await registrarMetrica(opcion.clave, evento);
     return { tipo: 'derivacion', claveOpcion: opcion.clave, derivacion: { texto, contactos } };

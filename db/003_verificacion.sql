@@ -59,8 +59,8 @@ SELECT d.id, d.clave, d.nombre, d.descripcion, d.tipo, d.mime_type,
 
 \echo ''
 \echo '=== 7. SQL_CONTACTOS_DE_OPCION (derivacion) ==='
-SELECT c.id, c.clave, c.nombre, c.rol, c.area, c.email, c.telefono,
-       c.url_perfil, c.motivo, c.horario
+SELECT c.id, c.clave, c.nombre, c.area, c.email,
+       c.url_perfil, c.motivo
   FROM opcion_contacto oc
   JOIN contacto c ON c.id = oc.contacto_id
  WHERE oc.opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOFUE') AND c.activo

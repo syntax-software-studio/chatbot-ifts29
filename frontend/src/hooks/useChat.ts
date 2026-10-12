@@ -46,6 +46,8 @@ export interface EstadoChat {
   seleccionar: (clave: string, contextoId?: number) => Promise<void>;
   /** Envía una consulta escrita y aplica el turno que devuelva la API. */
   consultar: (texto: string) => Promise<void>;
+  /** Vuelve al menú anterior, también desde una respuesta o derivación. */
+  volver: () => Promise<void>;
   reiniciar: () => Promise<void>;
 }
 
@@ -63,6 +65,11 @@ export function useChat(): EstadoChat {
   const historial = useRef<string[]>([]);
   /** Datos del turno de contexto pendiente, para resolver la selección. */
   const contextoPendiente = useRef<{ claveOpcion: string; clave: string } | null>(null);
+  /**
+   * true cuando el último turno no es un menú (respuesta, derivación, submenú).
+   * En ese caso "volver" muestra la categoría de la que se llegó, sin sacarla de la pila.
+   */
+  const enHoja = useRef(false);
 
   const agregarTurno = useCallback((turno: Omit<Turno, 'id'>) => {
     setTurnos((prev) => [...prev, { ...turno, id: nuevoId() }]);
@@ -78,6 +85,7 @@ export function useChat(): EstadoChat {
       setNodoActual(nodo.categoria.clave);
       historial.current = [nodo.categoria.clave];
       contextoPendiente.current = null;
+      enHoja.current = false;
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -98,6 +106,7 @@ export function useChat(): EstadoChat {
           setNodoActual(turno.nodo.categoria.clave);
           historial.current.push(turno.nodo.categoria.clave);
           contextoPendiente.current = null;
+          enHoja.current = false;
           break;
 
         case 'respuesta':
@@ -111,6 +120,7 @@ export function useChat(): EstadoChat {
           // seguir explorando sin reiniciar. Un clic de menú sí las reemplaza.
           if (!turno.meta) setOpciones([]);
           contextoPendiente.current = null;
+          enHoja.current = true;
           break;
 
         case 'derivacion':
@@ -121,6 +131,7 @@ export function useChat(): EstadoChat {
           });
           if (!turno.meta) setOpciones([]);
           contextoPendiente.current = null;
+          enHoja.current = true;
           break;
 
         case 'contexto':
@@ -130,6 +141,7 @@ export function useChat(): EstadoChat {
             claveOpcion: turno.claveOpcion,
             clave: turno.pregunta.clave,
           };
+          enHoja.current = true;
           break;
 
         case 'aclaracion':
@@ -138,6 +150,7 @@ export function useChat(): EstadoChat {
           agregarTurno({ autor: 'bot', texto: turno.aclaracion.mensaje });
           setOpciones(turno.aclaracion.opciones);
           contextoPendiente.current = null;
+          enHoja.current = true;
           break;
 
         case 'no_disponible':
@@ -225,6 +238,41 @@ export function useChat(): EstadoChat {
     [cargando, agregarTurno, aplicarTurno],
   );
 
+  /**
+   * Vuelve al menú anterior. Desde un menú se sale de él (se saca de la pila);
+   * desde una respuesta, derivación o submenú se vuelve a la categoría de origen.
+   */
+  const volver = useCallback(async () => {
+    if (cargando) return;
+    const pila = historial.current;
+    if (!enHoja.current) pila.pop();
+    const destino = pila[pila.length - 1];
+    if (!destino) {
+      await inicializar();
+      return;
+    }
+
+    setCargando(true);
+    agregarTurno({ autor: 'estudiante', texto: '< Volver al menú anterior' });
+    try {
+      const nodo = await obtenerMenu(destino);
+      agregarTurno({ autor: 'bot', texto: nodo.mensaje });
+      setOpciones(nodo.opciones);
+      setNodoActual(nodo.categoria.clave);
+      contextoPendiente.current = null;
+      enHoja.current = false;
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'No se pudo volver al menú. Probá de nuevo en un momento.',
+      );
+    } finally {
+      setCargando(false);
+    }
+  }, [cargando, agregarTurno, inicializar]);
+
   const reiniciar = useCallback(async () => {
     historial.current = [];
     await inicializar();
@@ -236,10 +284,11 @@ export function useChat(): EstadoChat {
     turnos,
     opciones,
     nodoActual,
-    puedeNavegarAtras: historial.current.length > 1,
+    puedeNavegarAtras: enHoja.current ? historial.current.length > 0 : historial.current.length > 1,
     inicializar,
     seleccionar,
     consultar,
+    volver,
     reiniciar,
   };
 }

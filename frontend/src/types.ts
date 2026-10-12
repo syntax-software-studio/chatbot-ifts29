@@ -29,13 +29,10 @@ export interface Contacto {
   id: number;
   clave: string;
   nombre: string;
-  rol: string | null;
   area: string | null;
   email: string | null;
-  telefono: string | null;
   urlPerfil: string | null;
   motivo: string | null;
-  horario: string | null;
 }
 
 export interface OpcionContexto {
