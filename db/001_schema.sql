@@ -192,6 +192,10 @@ CREATE TABLE IF NOT EXISTS contacto (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Comision a la que responde el contacto ('A', 'B', ... o 'General').
+-- ADD COLUMN IF NOT EXISTS: la base ya creada no recibe cambios de CREATE TABLE.
+ALTER TABLE contacto ADD COLUMN IF NOT EXISTS comision TEXT;
+
 COMMENT ON TABLE  contacto            IS 'Persona o area a la que se deriva la consulta (RF04).';
 COMMENT ON COLUMN contacto.motivo     IS 'Motivo de la derivacion, mostrado junto al contacto.';
 

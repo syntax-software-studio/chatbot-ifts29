@@ -21,29 +21,40 @@ BEGIN;
 -- CONTACTO  (derivacion asincronica - RF04)
 -- El sistema solo MUESTRA estos datos: no envia mails ni gestiona tramites.
 -- ---------------------------------------------------------------------------
-INSERT INTO contacto (clave, nombre, rol, area, email, url_perfil, motivo, horario, orden) VALUES
-('tutoria_academica', 'MG María González', 'Tutora académica', 'Tutorías',
+INSERT INTO contacto (clave, nombre, rol, area, comision, email, url_perfil, motivo, horario, orden, activo) VALUES
+('tutoria_comision_a', 'Alexis Eletto', 'Tutoría de comisión', 'Tutorías', 'A',
+ 'alexis.eletto@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/user/view.php?id=250272&course=28479',
+ 'Orientación para organizar tu cursada, entender correlatividades y reglamento, preparar finales o materias libres, usar el Campus Virtual, y conocer prácticas profesionalizantes, becas y talleres.',
+ NULL, 1, TRUE),
+('tutoria_comision_b', 'Fiamma Gramajo', 'Tutoría de comisión', 'Tutorías', 'B',
+ 'fiamma.gramajo@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/user/view.php?id=216461&course=28479',
+ 'Orientación para organizar tu cursada, entender correlatividades y reglamento, preparar finales o materias libres, usar el Campus Virtual, y conocer prácticas profesionalizantes, becas y talleres.',
+ NULL, 2, TRUE),
+('bedelia', 'Bedelía IFTS N.29', 'Secretaría académica', 'Bedelía', 'General',
+ 'bedelia.ifts29@bue.edu.ar', NULL,
+ 'Certificados y constancias, libretas, control de asistencia, actualización de datos, inscripciones a materias y trámites de equivalencias.',
+ 'Lunes a viernes de 8:30 a 17:30 hs', 3, TRUE),
+('advisory_pedagogica', 'Asesoría Pedagógica', 'Tutoría pedagógica', 'Asesoría Pedagógica', 'General',
+ 'tutoria.ifts29@bue.edu.ar', NULL,
+ 'Dificultades pedagógicas, seguimiento de tu trayectoria y dudas normativas sobre el cursado y la equivalencia de materias.',
+ 'Lunes a viernes de 9:00 a 18:00 hs', 4, TRUE),
+-- Desactivada, no borrada: ya no es la tutora general confirmada. Las filas
+-- que la referencian (opcion_contacto) la omiten porque el SQL filtra c.activo.
+('tutoria_academica', 'MG María González', 'Tutora académica', 'Tutorías', 'General',
  'mgonzalez@bue.edu.ar', 'https://aulasvirtuales.bue.edu.ar/',
  'Dudas sobre cursada, pertenencia a comisiones, presentación de trabajos prácticos o elección de materia.',
- 'Lunes a viernes de 9:00 a 18:00 hs', 1),
-('bedelia', 'Bedelía IFTS N.29', 'Secretaría académica', 'Bedelía',
- 'bedelia.ifts29@bue.edu.ar', NULL,
- 'Inscripciones, mesas de examen, constancias, certificados y trámites administrativos.',
- 'Lunes a viernes de 8:30 a 17:30 hs', 2),
-('advisory_pedagogica', 'Asesoría Pedagógica', 'Tutoría pedagógica', 'Tutorías',
- 'tutoria.ifts29@bue.edu.ar', NULL,
- 'Dudas sobre cursada en ambiente virtual y uso del campus, con el equipo docente.',
- 'Lunes a viernes de 9:00 a 18:00 hs', 3)
+ 'Lunes a viernes de 9:00 a 18:00 hs', 5, FALSE)
 ON CONFLICT (clave) DO UPDATE SET
     nombre     = EXCLUDED.nombre,
     rol        = EXCLUDED.rol,
     area       = EXCLUDED.area,
+    comision   = EXCLUDED.comision,
     email      = EXCLUDED.email,
     url_perfil = EXCLUDED.url_perfil,
     motivo     = EXCLUDED.motivo,
     horario    = EXCLUDED.horario,
     orden      = EXCLUDED.orden,
-    activo     = TRUE;
+    activo     = EXCLUDED.activo;
 
 -- ---------------------------------------------------------------------------
 -- CATEGORIA  (nodos del arbol)
@@ -73,18 +84,18 @@ ON CONFLICT (clave) DO UPDATE SET
 -- DOCUMENTO  (fichas; los fileId se completan con la sincronizacion de Drive)
 -- ---------------------------------------------------------------------------
 INSERT INTO documento (clave, nombre, descripcion, tipo, mime_type, drive_nombre_archivo, vigente, estado) VALUES
-('DOC_ABD_PROGRAMA',    'Administracion de Base de Datos_Programa.pdf',             'Programa vigente de la materia.',            'programa',              'application/pdf', 'Administracion de Base de Datos_Programa.pdf',             TRUE, 'vigente'),
-('DOC_ABD_CRONOGRAMA',  'Administracion de Base de Datos_Cronograma.pdf',           'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Administracion de Base de Datos_Cronograma.pdf',           TRUE, 'vigente'),
-('DOC_ABD_CONDICIONES', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', TRUE, 'vigente'),
-('DOC_EAM_PROGRAMA',    'Elementos de Analisis Matematico_Programa.pdf',            'Programa vigente de la materia.',            'programa',              'application/pdf', 'Elementos de Analisis Matematico_Programa.pdf',            TRUE, 'vigente'),
-('DOC_EAM_CRONOGRAMA',  'Elementos de Analisis Matematico_Cronograma.pdf',          'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Elementos de Analisis Matematico_Cronograma.pdf',          TRUE, 'vigente'),
-('DOC_EAM_CONDICIONES', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', TRUE, 'vigente'),
-('DOC_LC_PROGRAMA',     'Logica Computacional_Programa.pdf',                        'Programa vigente de la materia.',            'programa',              'application/pdf', 'Logica Computacional_Programa.pdf',                        TRUE, 'vigente'),
-('DOC_LC_CRONOGRAMA',   'Logica Computacional_Cronograma.pdf',                      'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Logica Computacional_Cronograma.pdf',                      TRUE, 'vigente'),
-('DOC_LC_CONDICIONES',  'Logica Computacional_Condiciones_de_Aprobacion.pdf',       'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'Logica Computacional_Condiciones_de_Aprobacion.pdf',       TRUE, 'vigente'),
-('DOC_TP_PROGRAMA',     'Tecnicas de Programacion_Programa.pdf',                    'Programa vigente de la materia.',            'programa',              'application/pdf', 'Tecnicas de Programacion_Programa.pdf',                    TRUE, 'vigente'),
-('DOC_TP_CRONOGRAMA',   'Tecnicas de Programacion_Cronograma.pdf',                  'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'Tecnicas de Programacion_Cronograma.pdf',                  TRUE, 'vigente'),
-('DOC_TP_CONDICIONES',  'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   TRUE, 'vigente')
+('DOC_ABD_PROGRAMA',    'Administracion de Base de Datos_Programa.pdf',             'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__administracion-bases-datos.pdf',                 TRUE, 'vigente'),
+('DOC_ABD_CRONOGRAMA',  'Administracion de Base de Datos_Cronograma.pdf',           'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__administracion-bases-datos.pdf',             TRUE, 'vigente'),
+('DOC_ABD_CONDICIONES', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__administracion-bases-datos.pdf',         TRUE, 'vigente'),
+('DOC_EAM_PROGRAMA',    'Elementos de Analisis Matematico_Programa.pdf',            'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__elementos-analisis-matematico.pdf',            TRUE, 'vigente'),
+('DOC_EAM_CRONOGRAMA',  'Elementos de Analisis Matematico_Cronograma.pdf',          'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__elementos-analisis-matematico.pdf',          TRUE, 'vigente'),
+('DOC_EAM_CONDICIONES', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__elementos-analisis-matematico.pdf',      TRUE, 'vigente'),
+('DOC_LC_PROGRAMA',     'Logica Computacional_Programa.pdf',                        'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__logica-computacional.pdf',                     TRUE, 'vigente'),
+('DOC_LC_CRONOGRAMA',   'Logica Computacional_Cronograma.pdf',                      'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__logica-computacional.pdf',                   TRUE, 'vigente'),
+('DOC_LC_CONDICIONES',  'Logica Computacional_Condiciones_de_Aprobacion.pdf',       'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__logica-computacional.pdf',                  TRUE, 'vigente'),
+('DOC_TP_PROGRAMA',     'Tecnicas de Programacion_Programa.pdf',                    'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__tecnicas-programacion.pdf',                    TRUE, 'vigente'),
+('DOC_TP_CRONOGRAMA',   'Tecnicas de Programacion_Cronograma.pdf',                  'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__tecnicas-programacion.pdf',                  TRUE, 'vigente'),
+('DOC_TP_CONDICIONES',  'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__tecnicas-programacion.pdf',                  TRUE, 'vigente')
 ON CONFLICT (clave) DO UPDATE SET
     nombre               = EXCLUDED.nombre,
     descripcion          = EXCLUDED.descripcion,
