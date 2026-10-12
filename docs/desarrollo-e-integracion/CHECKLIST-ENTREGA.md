@@ -105,8 +105,29 @@ npm test
 ## Integración Drive → Base de Datos (IMPORTANTE: pendiente)
 
 ### Nomenclatura de archivos
-- [ ] Definir convención de nombres de archivo en Drive (materia, tipo, cuatrimestre)
-- [ ] Documentar la convención para el equipo que sube los archivos
+
+**Definición propuesta** (sujeta a validación del equipo):
+
+- **Organización:** una sola carpeta plana compartida. No se usan subcarpetas por tipo: el tipo va en el nombre, para que cada archivo tenga una única fuente de verdad.
+- **Formato del nombre:** `tipo__materia__comision.pdf`
+  - Campos separados por doble guion bajo (`__`). Dentro de cada campo, palabras separadas por guion (`-`).
+  - Todo en minúsculas, sin acentos ni espacios.
+  - `comision` solo si la materia tiene más de una (`comision-a`, `comision-b`).
+  - Documentos generales: `materia` = `general`.
+  - Cuatrimestre opcional, como último campo: `carga-horaria__general__2026-2.pdf`.
+- **Tipo** (lista cerrada): `programa`, `cronograma`, `condiciones-aprobacion`, `horarios`, `carga-horaria`, `plan-estudios`, `correlatividades`, `equivalencias`, `reglamento`, `tramite`, `guia`, `protocolo`, `instructivo`.
+- **Materia** (catálogo fijo): `administracion-bases-datos`, `logica-computacional`, `tecnicas-programacion`, `elementos-analisis-matematico`, `general`.
+- **Extensión:** solo PDF. Los `.docx`, `.xlsx`, `.pptx` y archivos nativos de Google se ignoran y se reportan en `mensajes`.
+- **Versiones:** no van en el nombre. Reemplazar un archivo = subir uno nuevo con el mismo nombre.
+- **Ejemplos:** `programa__administracion-bases-datos__comision-a.pdf`, `cronograma__logica-computacional.pdf`, `reglamento__general.pdf`.
+
+**Pendiente de implementación:**
+
+- [ ] Validar la definición con el equipo que sube los archivos
+- [ ] Relevar y renombrar los archivos actuales de Drive (incluye errores como "Administación", duplicados de "Entrega de documentación" y "Logica" sin acento)
+- [ ] Parsear el nombre a partir del nombre original, no del normalizado (`normalizar()` convierte `__` en `_`)
+- [ ] Rechazar tipos y materias fuera de catálogo, con aviso en `sinMatch` o `mensajes`
+- [ ] Documentar la convención para el equipo que sube los archivos (en la documentación final, una vez implementada)
 
 ### Alta automática desde Drive
 - [ ] Crear registro en `documento` para archivos nuevos que no tengan ficha
