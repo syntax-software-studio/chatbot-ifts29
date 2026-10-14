@@ -106,17 +106,17 @@ ON CONFLICT (clave) DO UPDATE SET
 -- ---------------------------------------------------------------------------
 INSERT INTO respuesta (clave, texto, orden) VALUES
 -- Rama: Consultas administrativas
-('ADM_INSCRIPCIONES',
- 'Las inscripciones a materias se realizan a través del SIU Guaraní, en el período habilitado por Bedelía. Ingresá con tu usuario y contraseña, seleccioná "Inscripción a materias" y elegí las comisiones disponibles. Si tenés dudas sobre el calendario de inscripciones, escribí a bedelia.ifts29@bue.edu.ar.',
+('ADM_INSCRIPCION_MATERIAS',
+ 'Podés inscribirte a materias desde el SIU Guaraní: https://guarani-autogestionagencia.bue.edu.ar/cursada. Ingresá con tu usuario y contraseña y elegí las comisiones disponibles. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
  1),
 ('ADM_EXAMENES_MESAS',
- 'Las mesas de examen se publican en el SIU Guaraní con 7 días de anticipación. Para inscribirte, ingresá al sistema, seleccioná "Inscripción a exámenes" y elegí la materia y mesa.',
+ 'Podés inscribirte a mesas de examen desde el SIU Guaraní: https://guarani-autogestionagencia.bue.edu.ar/examen. Ingresá con tu usuario y contraseña y elegí la materia y la mesa. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
  2),
 ('ADM_ACCESO_SIU',
  'Para acceder al SIU Guaraní visitá https://guarani-autogestionagencia.bue.edu.ar/acceso. Tu usuario es tu número de legajo y la contraseña inicial es tu DNI. Si tenés problemas de acceso, contactá a Bedelía a través de bedelia.ifts29@bue.edu.ar.',
  3),
 ('ADM_SIU_VS_CAMPUS',
- 'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno educativo donde encontrás materiales de estudio, foros y entregas de trabajos prácticos. El SIU Guaraní es el sistema administrativo para gestionar inscripciones, historial académico y trámites. Usás el campus para estudiar y el SIU para gestionar tu situación académica.',
+ 'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno de cursada: ahí encontrás los materiales, los foros y las entregas de trabajos prácticos. El SIU Guaraní (https://guarani-autogestionagencia.bue.edu.ar/acceso) es el sistema administrativo: ahí te inscribís a materias y exámenes y consultás tu historial académico. Usá el campus para estudiar y el SIU para tus trámites académicos.',
  4),
 -- Derivación (texto introductorio; los datos de contacto salen de CONTACTO)
 ('DERIVACION_GENERAL',
@@ -218,9 +218,9 @@ INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_
 -- --- ADMINISTRATIVAS
 ('ADM_OP_VOLVER',      (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), '< Volver al menu anterior', 'navegar',
  (SELECT id FROM categoria WHERE clave='RAIZ'), NULL, TRUE, 1),
-('ADM_OP_INSCRIPCIONES', (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Inscripciones', 'responder',
- NULL, (SELECT id FROM respuesta WHERE clave='ADM_INSCRIPCIONES'), FALSE, 2),
-('ADM_OP_EXAMENES',    (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Examenes/Mesas', 'responder',
+('ADM_OP_INSCRIPCION_MATERIAS', (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Inscripción a materias', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='ADM_INSCRIPCION_MATERIAS'), FALSE, 2),
+('ADM_OP_EXAMENES',    (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Inscripción a exámenes', 'responder',
  NULL, (SELECT id FROM respuesta WHERE clave='ADM_EXAMENES_MESAS'), FALSE, 3),
 ('ADM_OP_SIU',         (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Acceso al SIU', 'responder',
  NULL, (SELECT id FROM respuesta WHERE clave='ADM_ACCESO_SIU'), FALSE, 4),
@@ -323,7 +323,7 @@ INSERT INTO contexto (clave, nombre, valor, ambito_tipo, ambito_clave, grupo, or
 ('url_campus_virtual',   'Campus Virtual',       'https://aulasvirtuales.bue.edu.ar/',                     NULL, NULL, 'institucional', 1),
 ('url_siu',              'SIU Guaraní',          'https://guarani-autogestionagencia.bue.edu.ar/acceso',   NULL, NULL, 'institucional', 2),
 ('email_bedelia',        'Bedelía',              'bedelia.ifts29@bue.edu.ar',                              NULL, NULL, 'institucional', 3),
-('cuatrimestre_vigente', 'Cuatrimestre vigente', '2C 2026',                                                NULL, NULL, 'institucional', 4),
+('periodo_academico_vigente', 'Período vigente', '2C 2026',                                                NULL, NULL, 'institucional', 4),
 ('modalidad',            'Modalidad',            'Virtual sincrónica',                                     NULL, NULL, 'institucional', 5),
 ('dias_cursada', 'Comisión A', 'Lunes y Miércoles de 18:00 a 21:00 hs', 'comision', 'comision_a', 'dias_cursada', 1),
 ('dias_cursada', 'Comisión B', 'Martes y Jueves de 8:00 a 11:00 hs',    'comision', 'comision_b', 'dias_cursada', 2),

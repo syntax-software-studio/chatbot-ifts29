@@ -320,9 +320,9 @@ for (const m of materias) {
 const respuestas: SeedRespuesta[] = [
   {
     id: 1,
-    clave: 'ADM_INSCRIPCIONES',
+    clave: 'ADM_INSCRIPCION_MATERIAS',
     texto:
-      'Las inscripciones a materias se realizan a través del SIU Guaraní, en el período habilitado por Bedelía. Ingresá con tu usuario y contraseña, seleccioná "Inscripción a materias" y elegí las comisiones disponibles. Si tenés dudas sobre el calendario de inscripciones, escribí a bedelia.ifts29@bue.edu.ar.',
+      'Podés inscribirte a materias desde el SIU Guaraní: https://guarani-autogestionagencia.bue.edu.ar/cursada. Ingresá con tu usuario y contraseña y elegí las comisiones disponibles. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
     orden: 1,
     activo: true,
   },
@@ -330,7 +330,7 @@ const respuestas: SeedRespuesta[] = [
     id: 2,
     clave: 'ADM_EXAMENES_MESAS',
     texto:
-      'Las mesas de examen se publican en el SIU Guaraní con 7 días de anticipación. Para inscribirte, ingresá al sistema, seleccioná "Inscripción a exámenes" y elegí la materia y mesa.',
+      'Podés inscribirte a mesas de examen desde el SIU Guaraní: https://guarani-autogestionagencia.bue.edu.ar/examen. Ingresá con tu usuario y contraseña y elegí la materia y la mesa. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
     orden: 2,
     activo: true,
   },
@@ -346,7 +346,7 @@ const respuestas: SeedRespuesta[] = [
     id: 4,
     clave: 'ADM_SIU_VS_CAMPUS',
     texto:
-      'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno educativo donde encontrás materiales de estudio, foros y entregas de trabajos prácticos. El SIU Guaraní es el sistema administrativo para gestionar inscripciones, historial académico y trámites. Usás el campus para estudiar y el SIU para gestionar tu situación académica.',
+      'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno de cursada: ahí encontrás los materiales, los foros y las entregas de trabajos prácticos. El SIU Guaraní (https://guarani-autogestionagencia.bue.edu.ar/acceso) es el sistema administrativo: ahí te inscribís a materias y exámenes y consultás tu historial académico. Usá el campus para estudiar y el SIU para tus trámites académicos.',
     orden: 4,
     activo: true,
   },
@@ -434,8 +434,8 @@ const definiciones: OpcionSeedDef[] = [
 
   // --- ADMINISTRATIVAS
   { clave: 'ADM_OP_VOLVER', cat: 'ADMINISTRATIVAS', etiqueta: '< Volver al menu anterior', tipo: 'navegar', destino: 'RAIZ', volver: true, orden: 1 },
-  { clave: 'ADM_OP_INSCRIPCIONES', cat: 'ADMINISTRATIVAS', etiqueta: 'Inscripciones', tipo: 'responder', resp: 'ADM_INSCRIPCIONES', orden: 2 },
-  { clave: 'ADM_OP_EXAMENES', cat: 'ADMINISTRATIVAS', etiqueta: 'Examenes/Mesas', tipo: 'responder', resp: 'ADM_EXAMENES_MESAS', orden: 3 },
+  { clave: 'ADM_OP_INSCRIPCION_MATERIAS', cat: 'ADMINISTRATIVAS', etiqueta: 'Inscripción a materias', tipo: 'responder', resp: 'ADM_INSCRIPCION_MATERIAS', orden: 2 },
+  { clave: 'ADM_OP_EXAMENES', cat: 'ADMINISTRATIVAS', etiqueta: 'Inscripción a exámenes', tipo: 'responder', resp: 'ADM_EXAMENES_MESAS', orden: 3 },
   { clave: 'ADM_OP_SIU', cat: 'ADMINISTRATIVAS', etiqueta: 'Acceso al SIU', tipo: 'responder', resp: 'ADM_ACCESO_SIU', orden: 4 },
   { clave: 'ADM_OP_SIU_CAMPUS', cat: 'ADMINISTRATIVAS', etiqueta: 'Diferencias entre campus virtual y SIU', tipo: 'responder', resp: 'ADM_SIU_VS_CAMPUS', orden: 5 },
 
@@ -490,7 +490,7 @@ const contextos: SeedContexto[] = [
   { id: 1, clave: 'url_campus_virtual', nombre: 'Campus Virtual', valor: 'https://aulasvirtuales.bue.edu.ar/', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 1, activo: true },
   { id: 2, clave: 'url_siu', nombre: 'SIU Guaraní', valor: 'https://guarani-autogestionagencia.bue.edu.ar/acceso', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 2, activo: true },
   { id: 3, clave: 'email_bedelia', nombre: 'Bedelía', valor: 'bedelia.ifts29@bue.edu.ar', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 3, activo: true },
-  { id: 4, clave: 'cuatrimestre_vigente', nombre: 'Cuatrimestre vigente', valor: '2C 2026', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 4, activo: true },
+  { id: 4, clave: 'periodo_academico_vigente', nombre: 'Período vigente', valor: '2C 2026', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 4, activo: true },
   { id: 5, clave: 'modalidad', nombre: 'Modalidad', valor: 'Virtual sincrónica', ambito_tipo: null, ambito_clave: null, grupo: 'institucional', orden: 5, activo: true },
   { id: 6, clave: 'dias_cursada', nombre: 'Comisión A', valor: 'Lunes y Miércoles de 18:00 a 21:00 hs', ambito_tipo: 'comision', ambito_clave: 'comision_a', grupo: 'dias_cursada', orden: 1, activo: true },
   { id: 7, clave: 'dias_cursada', nombre: 'Comisión B', valor: 'Martes y Jueves de 8:00 a 11:00 hs', ambito_tipo: 'comision', ambito_clave: 'comision_b', grupo: 'dias_cursada', orden: 2, activo: true },
