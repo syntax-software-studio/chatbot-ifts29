@@ -19,7 +19,7 @@ RAIZ
 │   ├── Inscripción a materias            [existe]
 │   ├── Inscripción a exámenes            [existe]
 │   ├── Entrega de documentación          [nuevo · documento pendiente]
-│   ├── Certificados                      [nuevo · documento pendiente]
+│   ├── Certificado de examen             [existe · texto con formulario de Google Forms]
 │   └── Equivalencias                     [nuevo · documento disponible en Simulación]
 ├── Normativa
 │   ├── Plan de estudios                  [nuevo · documento en ejemplo]
@@ -29,7 +29,7 @@ RAIZ
 ├── SIU y campus
 │   ├── Acceso al SIU                     [existe]
 │   ├── Diferencias SIU y campus          [existe]
-│   ├── Acceso al campus                  [nuevo · documento pendiente]
+│   ├── Acceso al campus                  [nuevo · texto con URL, sin documento]
 │   └── Foros y mensajería                [nuevo · documentos en Simulación]
 ├── Materias
 │   ├── Administración de Bases de Datos
@@ -41,7 +41,7 @@ RAIZ
 │   │   ├── Programa                      [existe · contenido pendiente]
 │   │   ├── Cronograma                    [existe · contenido pendiente]
 │   │   ├── Horarios por comisión         [existe]
-│   │   └── Condiciones de aprobación     [pendiente · falta el documento]
+│   │   └── Condiciones de aprobación     [pendiente · sin archivo: muestra aviso para consultar a tutoría o bedelía]
 │   ├── Lógica Computacional
 │   │   └── (mismas cuatro opciones)
 │   └── Técnicas de Programación

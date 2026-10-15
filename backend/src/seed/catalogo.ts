@@ -259,6 +259,21 @@ const DIAS_CURSADA =
   'Comisión B: Martes y Jueves de 8:00 a 11:00 hs — modalidad virtual sincrónica.\n' +
   'Comisión C: Viernes de 14:00 a 20:00 hs — modalidad virtual sincrónica.';
 
+/** Slug de cada materia en el nombre del archivo del Drive (convención de la checklist). */
+const SLUG_MATERIA: Record<string, string> = {
+  ABD: 'administracion-bases-datos',
+  EAM: 'elementos-analisis-matematico',
+  LC: 'logica-computacional',
+  TP: 'tecnicas-programacion',
+};
+
+/** Tipo de archivo en el Drive, por tipo de documento de materia. */
+const ARCHIVO_TIPO: Record<string, string> = {
+  PROGRAMA: 'programa',
+  CRONOGRAMA: 'cronograma',
+  CONDICIONES: 'condiciones',
+};
+
 const TIPOS_DOC: Array<{
   sufijo: string;
   /** Sufijo de la clave del documento. Debe coincidir con db/002_seed.sql. */
@@ -283,7 +298,7 @@ const TIPOS_DOC: Array<{
     descripcion: 'Cronograma vigente del cuatrimestre.',
   },
   {
-    sufijo: 'Condiciones_de_Aprobacion',
+    sufijo: 'Condiciones de aprobación',
     claveDoc: 'CONDICIONES',
     claveRespuesta: 'condiciones',
     tipo: 'condiciones_aprobacion',
@@ -294,16 +309,16 @@ const TIPOS_DOC: Array<{
 const documentos: SeedDocumento[] = [];
 for (const m of materias) {
   for (const t of TIPOS_DOC) {
-    const nombreArchivo = `${m.prefijoArchivo}_${t.sufijo}.pdf`;
+    const archivo = `${ARCHIVO_TIPO[t.claveDoc]}__${SLUG_MATERIA[m.codigo]}.pdf`;
     documentos.push({
       id: documentos.length + 1,
       clave: `DOC_${m.codigo}_${t.claveDoc}`,
-      nombre: nombreArchivo,
+      nombre: `${t.sufijo} – ${m.nombre}`,
       descripcion: t.descripcion,
       tipo: t.tipo,
       mime_type: 'application/pdf',
       drive_file_id: null,
-      drive_nombre_archivo: nombreArchivo,
+      drive_nombre_archivo: archivo,
       drive_view_url: null,
       vigente: true,
       estado: 'vigente',
@@ -313,6 +328,43 @@ for (const m of materias) {
     });
   }
 }
+
+/** Documentos generales (normativa, trámites, campus). Espejo de db/002_seed.sql. */
+const docGeneral = (
+  clave: string,
+  nombre: string,
+  descripcion: string,
+  tipo: string,
+  archivo: string,
+): SeedDocumento => ({
+  id: documentos.length + 1,
+  clave,
+  nombre,
+  descripcion,
+  tipo,
+  mime_type: 'application/pdf',
+  drive_file_id: null,
+  drive_nombre_archivo: archivo,
+  drive_view_url: null,
+  vigente: true,
+  estado: 'vigente',
+  vigencia_desde: null,
+  actualizado_en: null,
+  sincronizado_en: null,
+});
+
+documentos.push(
+  docGeneral('DOC_GEN_PLAN_ESTUDIOS', 'Plan de estudios', 'Plan de estudios de la carrera.', 'documento', 'plan-estudios__general.pdf'),
+  docGeneral('DOC_GEN_CORRELATIVIDADES', 'Correlatividades', 'Régimen de correlatividades de la carrera.', 'documento', 'correlatividades__general.pdf'),
+  docGeneral('DOC_GEN_CARGA_HORARIA', 'Carga horaria', 'Carga horaria de la carrera.', 'documento', 'carga-horaria__general.pdf'),
+  docGeneral('DOC_GEN_HORARIOS', 'Horarios por comisión', 'Grilla de horarios y comisiones del cuatrimestre.', 'documento', 'horarios__general.pdf'),
+  docGeneral('DOC_GEN_ENTREGA_DOCUMENTACION', 'Entrega de documentación', 'Cómo y dónde entregar la documentación.', 'documento', 'entrega-documentacion__general.pdf'),
+  docGeneral('DOC_GEN_EQUIVALENCIAS', 'Equivalencias', 'Normativa de equivalencias del IFTS N.º 29.', 'documento', 'equivalencias__general.pdf'),
+  docGeneral('DOC_GEN_GUIA_FOROS', 'Guía para la participación en foros', 'Guía para participar en los foros del campus.', 'documento', 'guia-foros__general.pdf'),
+  docGeneral('DOC_GEN_INSTRUCTIVO_MENSAJERIA', 'Uso de mensajería interna', 'Instructivo de la mensajería interna del campus.', 'instructivo', 'instructivo-mensajeria__general.pdf'),
+  docGeneral('DOC_GEN_PROTOCOLO_EXAMENES', 'Protocolo de seguridad en exámenes', 'Protocolo de seguridad para los exámenes del IFTS N.º 29.', 'documento', 'protocolo-examenes__general.pdf'),
+  docGeneral('DOC_GEN_REGLAMENTO', 'Síntesis del reglamento orgánico', 'Síntesis del reglamento orgánico del IFTS N.º 29.', 'documento', 'reglamento__general.pdf'),
+);
 
 /* ==========================================================================
  * 4. Respuestas
@@ -348,6 +400,14 @@ const respuestas: SeedRespuesta[] = [
     texto:
       'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno de cursada: ahí encontrás los materiales, los foros y las entregas de trabajos prácticos. El SIU Guaraní (https://guarani-autogestionagencia.bue.edu.ar/acceso) es el sistema administrativo: ahí te inscribís a materias y exámenes y consultás tu historial académico. Usá el campus para estudiar y el SIU para tus trámites académicos.',
     orden: 4,
+    activo: true,
+  },
+  {
+    id: 6,
+    clave: 'ADM_CERTIFICADO_EXAMEN',
+    texto:
+      'Para solicitar un certificado de examen, completá este formulario: https://docs.google.com/forms/d/e/1FAIpQLSecd-D9-fBf5j_dSMIV_qOWBKmhnSQAiES6dfQLBauPca4pfA/viewform. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
+    orden: 5,
     activo: true,
   },
   {
@@ -438,6 +498,7 @@ const definiciones: OpcionSeedDef[] = [
   { clave: 'ADM_OP_EXAMENES', cat: 'ADMINISTRATIVAS', etiqueta: 'Inscripción a exámenes', tipo: 'responder', resp: 'ADM_EXAMENES_MESAS', orden: 3 },
   { clave: 'ADM_OP_SIU', cat: 'ADMINISTRATIVAS', etiqueta: 'Acceso al SIU', tipo: 'responder', resp: 'ADM_ACCESO_SIU', orden: 4 },
   { clave: 'ADM_OP_SIU_CAMPUS', cat: 'ADMINISTRATIVAS', etiqueta: 'Diferencias entre campus virtual y SIU', tipo: 'responder', resp: 'ADM_SIU_VS_CAMPUS', orden: 5 },
+  { clave: 'ADM_OP_CERTIFICADO_EXAMEN', cat: 'ADMINISTRATIVAS', etiqueta: 'Certificado de examen', tipo: 'responder', resp: 'ADM_CERTIFICADO_EXAMEN', orden: 6 },
 
   // --- ACADEMICAS
   { clave: 'ACA_OP_VOLVER', cat: 'ACADEMICAS', etiqueta: '< Volver al menu anterior', tipo: 'navegar', destino: 'RAIZ', volver: true, orden: 1 },
