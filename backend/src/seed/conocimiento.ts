@@ -75,8 +75,8 @@ const ADMINISTRATIVAS: AdminDef[] = [
   {
     key: 'inscripcion_materias',
     name: 'Inscripción a materias',
-    opcion: 'ADM_OP_INSCRIPCIONES',
-    respuesta: 'ADM_INSCRIPCIONES',
+    opcion: 'ADM_OP_INSCRIPCION_MATERIAS',
+    respuesta: 'ADM_INSCRIPCION_MATERIAS',
     question: '¿Cómo me inscribo a las materias?',
     variantes: [
       ['inscripción a materias', 0.95],

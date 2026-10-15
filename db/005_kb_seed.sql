@@ -22,7 +22,7 @@ BEGIN;
 -- ---------------------------------------------------------------------------
 INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo)
 VALUES
-    ('inscripcion_materias', 'Inscripción a materias', 'administrativo', 'ADM_OP_INSCRIPCIONES', TRUE),
+    ('inscripcion_materias', 'Inscripción a materias', 'administrativo', 'ADM_OP_INSCRIPCION_MATERIAS', TRUE),
     ('inscripcion_examenes', 'Inscripción a exámenes y mesas', 'administrativo', 'ADM_OP_EXAMENES', TRUE),
     ('acceso_siu', 'Acceso al SIU Guaraní', 'administrativo', 'ADM_OP_SIU', TRUE),
     ('siu_o_campus', 'Diferencia entre SIU y Campus Virtual', 'administrativo', 'ADM_OP_SIU_CAMPUS', TRUE),
@@ -54,7 +54,7 @@ ON CONFLICT (clave) DO UPDATE
 INSERT INTO kb_pregunta (intencion_id, pregunta, respuesta_id, priority, minimum_threshold, activo)
 SELECT i.id, d.pregunta, r.id, d.priority, d.minimum_threshold, TRUE
   FROM (VALUES
-    ('inscripcion_materias'::text, '¿Cómo me inscribo a las materias?'::text, 'ADM_INSCRIPCIONES'::text, 0::integer, 0.700::numeric(4,3)),
+    ('inscripcion_materias'::text, '¿Cómo me inscribo a las materias?'::text, 'ADM_INSCRIPCION_MATERIAS'::text, 0::integer, 0.700::numeric(4,3)),
     ('inscripcion_examenes'::text, '¿Cómo me inscribo a los exámenes?'::text, 'ADM_EXAMENES_MESAS'::text, 0::integer, 0.700::numeric(4,3)),
     ('acceso_siu'::text, '¿Cómo accedo al SIU Guaraní?'::text, 'ADM_ACCESO_SIU'::text, 0::integer, 0.700::numeric(4,3)),
     ('siu_o_campus'::text, '¿Cuál es la diferencia entre el SIU y el campus virtual?'::text, 'ADM_SIU_VS_CAMPUS'::text, 0::integer, 0.700::numeric(4,3)),
