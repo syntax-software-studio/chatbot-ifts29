@@ -58,10 +58,14 @@ ON CONFLICT (clave) DO UPDATE SET
 INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz) VALUES
 ('RAIZ', 'Inicio',
  '¡Hola! Soy el asistente virtual del IFTS Nº29. ¿En qué puedo ayudarte hoy?', 0, TRUE),
-('ADMINISTRATIVAS', 'Consultas administrativas',
- 'Sobre qué tema administrativo puedo ayudarte?', 1, FALSE),
-('ACADEMICAS', 'Consultas academicas',
- '¿Sobre qué materia necesitás información?', 2, FALSE),
+('TRAMITES', 'Trámites',
+ 'Sobre qué trámite necesitás ayuda?', 1, FALSE),
+('NORMATIVA', 'Normativa',
+ '¿Qué documento necesitás?', 2, FALSE),
+('SIUCAMPUS', 'SIU y campus',
+ '¿Sobre qué necesitás información?', 3, FALSE),
+('ACADEMICAS', 'Materias',
+ '¿Sobre qué materia necesitás información?', 4, FALSE),
 ('NOENCONTRE', 'No encontré lo que busco',
  '¿Qué tipo de consulta tenés?', 3, FALSE),
 ('M_ADMIN_BASE_DATOS', 'Administración de Bases de Datos',
@@ -82,18 +86,28 @@ ON CONFLICT (clave) DO UPDATE SET
 -- DOCUMENTO  (fichas; los fileId se completan con la sincronizacion de Drive)
 -- ---------------------------------------------------------------------------
 INSERT INTO documento (clave, nombre, descripcion, tipo, mime_type, drive_nombre_archivo, vigente, estado) VALUES
-('DOC_ABD_PROGRAMA',    'Administracion de Base de Datos_Programa.pdf',             'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__administracion-bases-datos.pdf',                 TRUE, 'vigente'),
-('DOC_ABD_CRONOGRAMA',  'Administracion de Base de Datos_Cronograma.pdf',           'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__administracion-bases-datos.pdf',             TRUE, 'vigente'),
-('DOC_ABD_CONDICIONES', 'Administracion de Base de Datos_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__administracion-bases-datos.pdf',         TRUE, 'vigente'),
-('DOC_EAM_PROGRAMA',    'Elementos de Analisis Matematico_Programa.pdf',            'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__elementos-analisis-matematico.pdf',            TRUE, 'vigente'),
-('DOC_EAM_CRONOGRAMA',  'Elementos de Analisis Matematico_Cronograma.pdf',          'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__elementos-analisis-matematico.pdf',          TRUE, 'vigente'),
-('DOC_EAM_CONDICIONES', 'Elementos de Analisis Matematico_Condiciones_de_Aprobacion.pdf', 'Condiciones oficiales de aprobación.',  'condiciones_aprobacion', 'application/pdf', 'condiciones__elementos-analisis-matematico.pdf',      TRUE, 'vigente'),
-('DOC_LC_PROGRAMA',     'Logica Computacional_Programa.pdf',                        'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__logica-computacional.pdf',                     TRUE, 'vigente'),
-('DOC_LC_CRONOGRAMA',   'Logica Computacional_Cronograma.pdf',                      'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__logica-computacional.pdf',                   TRUE, 'vigente'),
-('DOC_LC_CONDICIONES',  'Logica Computacional_Condiciones_de_Aprobacion.pdf',       'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__logica-computacional.pdf',                  TRUE, 'vigente'),
-('DOC_TP_PROGRAMA',     'Tecnicas de Programacion_Programa.pdf',                    'Programa vigente de la materia.',            'programa',              'application/pdf', 'programa__tecnicas-programacion.pdf',                    TRUE, 'vigente'),
-('DOC_TP_CRONOGRAMA',   'Tecnicas de Programacion_Cronograma.pdf',                  'Cronograma vigente del cuatrimestre.',      'cronograma',            'application/pdf', 'cronograma__tecnicas-programacion.pdf',                  TRUE, 'vigente'),
-('DOC_TP_CONDICIONES',  'Tecnicas de Programacion_Condiciones_de_Aprobacion.pdf',   'Condiciones oficiales de aprobación.',      'condiciones_aprobacion', 'application/pdf', 'condiciones__tecnicas-programacion.pdf',                  TRUE, 'vigente')
+('DOC_ABD_PROGRAMA', 'Programa – Administración de Bases de Datos', 'Programa vigente de la materia.', 'programa', 'application/pdf', 'programa__administracion-bases-datos.pdf', TRUE, 'vigente'),
+('DOC_ABD_CRONOGRAMA', 'Cronograma – Administración de Bases de Datos', 'Cronograma vigente del cuatrimestre.', 'cronograma', 'application/pdf', 'cronograma__administracion-bases-datos.pdf', TRUE, 'vigente'),
+('DOC_ABD_CONDICIONES', 'Condiciones de aprobación – Administración de Bases de Datos', 'Condiciones oficiales de aprobación.', 'condiciones_aprobacion', 'application/pdf', 'condiciones__administracion-bases-datos.pdf', TRUE, 'vigente'),
+('DOC_EAM_PROGRAMA', 'Programa – Elementos de Análisis Matemático', 'Programa vigente de la materia.', 'programa', 'application/pdf', 'programa__elementos-analisis-matematico.pdf', TRUE, 'vigente'),
+('DOC_EAM_CRONOGRAMA', 'Cronograma – Elementos de Análisis Matemático', 'Cronograma vigente del cuatrimestre.', 'cronograma', 'application/pdf', 'cronograma__elementos-analisis-matematico.pdf', TRUE, 'vigente'),
+('DOC_EAM_CONDICIONES', 'Condiciones de aprobación – Elementos de Análisis Matemático', 'Condiciones oficiales de aprobación.', 'condiciones_aprobacion', 'application/pdf', 'condiciones__elementos-analisis-matematico.pdf', TRUE, 'vigente'),
+('DOC_LC_PROGRAMA', 'Programa – Lógica Computacional', 'Programa vigente de la materia.', 'programa', 'application/pdf', 'programa__logica-computacional.pdf', TRUE, 'vigente'),
+('DOC_LC_CRONOGRAMA', 'Cronograma – Lógica Computacional', 'Cronograma vigente del cuatrimestre.', 'cronograma', 'application/pdf', 'cronograma__logica-computacional.pdf', TRUE, 'vigente'),
+('DOC_LC_CONDICIONES', 'Condiciones de aprobación – Lógica Computacional', 'Condiciones oficiales de aprobación.', 'condiciones_aprobacion', 'application/pdf', 'condiciones__logica-computacional.pdf', TRUE, 'vigente'),
+('DOC_TP_PROGRAMA', 'Programa – Técnicas de Programación', 'Programa vigente de la materia.', 'programa', 'application/pdf', 'programa__tecnicas-programacion.pdf', TRUE, 'vigente'),
+('DOC_TP_CRONOGRAMA', 'Cronograma – Técnicas de Programación', 'Cronograma vigente del cuatrimestre.', 'cronograma', 'application/pdf', 'cronograma__tecnicas-programacion.pdf', TRUE, 'vigente'),
+('DOC_TP_CONDICIONES', 'Condiciones de aprobación – Técnicas de Programación', 'Condiciones oficiales de aprobación.', 'condiciones_aprobacion', 'application/pdf', 'condiciones__tecnicas-programacion.pdf', TRUE, 'vigente'),
+('DOC_GEN_PLAN_ESTUDIOS', 'Plan de estudios', 'Plan de estudios de la carrera.', 'documento', 'application/pdf', 'plan-estudios__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_CORRELATIVIDADES', 'Correlatividades', 'Régimen de correlatividades de la carrera.', 'documento', 'application/pdf', 'correlatividades__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_CARGA_HORARIA', 'Carga horaria', 'Carga horaria de la carrera.', 'documento', 'application/pdf', 'carga-horaria__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_HORARIOS', 'Horarios por comisión', 'Grilla de horarios y comisiones del cuatrimestre.', 'documento', 'application/pdf', 'horarios__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_ENTREGA_DOCUMENTACION', 'Entrega de documentación', 'Cómo y dónde entregar la documentación.', 'documento', 'application/pdf', 'entrega-documentacion__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_EQUIVALENCIAS', 'Equivalencias', 'Normativa de equivalencias del IFTS N.º 29.', 'documento', 'application/pdf', 'equivalencias__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_GUIA_FOROS', 'Guía para la participación en foros', 'Guía para participar en los foros del campus.', 'documento', 'application/pdf', 'guia-foros__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_INSTRUCTIVO_MENSAJERIA', 'Uso de mensajería interna', 'Instructivo de la mensajería interna del campus.', 'instructivo', 'application/pdf', 'instructivo-mensajeria__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_PROTOCOLO_EXAMENES', 'Protocolo de seguridad en exámenes', 'Protocolo de seguridad para los exámenes del IFTS N.º 29.', 'documento', 'application/pdf', 'protocolo-examenes__general.pdf', TRUE, 'vigente'),
+('DOC_GEN_REGLAMENTO', 'Síntesis del reglamento orgánico', 'Síntesis del reglamento orgánico del IFTS N.º 29.', 'documento', 'application/pdf', 'reglamento__general.pdf', TRUE, 'vigente')
 ON CONFLICT (clave) DO UPDATE SET
     nombre               = EXCLUDED.nombre,
     descripcion          = EXCLUDED.descripcion,
@@ -118,6 +132,33 @@ INSERT INTO respuesta (clave, texto, orden) VALUES
 ('ADM_SIU_VS_CAMPUS',
  'El Campus Virtual (https://aulasvirtuales.bue.edu.ar/) es el entorno de cursada: ahí encontrás los materiales, los foros y las entregas de trabajos prácticos. El SIU Guaraní (https://guarani-autogestionagencia.bue.edu.ar/acceso) es el sistema administrativo: ahí te inscribís a materias y exámenes y consultás tu historial académico. Usá el campus para estudiar y el SIU para tus trámites académicos.',
  4),
+('ADM_CERTIFICADO_EXAMEN',
+ 'Para solicitar un certificado de examen, completá este formulario: https://docs.google.com/forms/d/e/1FAIpQLSecd-D9-fBf5j_dSMIV_qOWBKmhnSQAiES6dfQLBauPca4pfA/viewform. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
+ 5),
+('TRAM_ENTREGA_DOCUMENTACION',
+ 'Te dejamos el documento con la entrega de documentación. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
+ 6),
+('TRAM_EQUIVALENCIAS',
+ 'Te dejamos la normativa de equivalencias del IFTS N.º 29. Si tenés dudas, escribí a bedelia.ifts29@bue.edu.ar.',
+ 7),
+('NORM_PLAN_ESTUDIOS',
+ 'Te dejamos el plan de estudios de la carrera.',
+ 8),
+('NORM_CORRELATIVIDADES',
+ 'Te dejamos el régimen de correlatividades de la carrera.',
+ 9),
+('NORM_CARGA_HORARIA',
+ 'Te dejamos la carga horaria de la carrera.',
+ 10),
+('NORM_REGLAMENTO',
+ 'Te dejamos la síntesis del reglamento orgánico y el protocolo de seguridad en exámenes.',
+ 11),
+('SIUC_ACCESO_CAMPUS',
+ 'Para ingresar al campus virtual, entrá a https://aulasvirtuales.bue.edu.ar/. Si tenés problemas para acceder, escribí a Asesoría Pedagógica: tutoria.ifts29@bue.edu.ar.',
+ 12),
+('SIUC_FOROS_MENSAJERIA',
+ 'Te dejamos la guía para participar en los foros y el instructivo de mensajería interna del campus.',
+ 13),
 -- Derivación (texto introductorio; los datos de contacto salen de CONTACTO)
 ('DERIVACION_GENERAL',
  'Si no encontraste lo que buscabas, podés escribir a alguna de estas personas o áreas:',
@@ -194,16 +235,40 @@ JOIN documento d ON d.clave = x.documento_clave
 ON CONFLICT (respuesta_id, documento_id) DO UPDATE SET orden = EXCLUDED.orden;
 
 -- ---------------------------------------------------------------------------
+-- RESPUESTA_DOCUMENTO  (documentos generales: trámites, normativa, campus)
+-- ---------------------------------------------------------------------------
+INSERT INTO respuesta_documento (respuesta_id, documento_id, orden)
+SELECT r.id, d.id, x.orden
+FROM (VALUES
+    ('TRAM_ENTREGA_DOCUMENTACION', 'DOC_GEN_ENTREGA_DOCUMENTACION', 1),
+    ('TRAM_EQUIVALENCIAS',         'DOC_GEN_EQUIVALENCIAS',         1),
+    ('NORM_PLAN_ESTUDIOS',         'DOC_GEN_PLAN_ESTUDIOS',         1),
+    ('NORM_CORRELATIVIDADES',      'DOC_GEN_CORRELATIVIDADES',      1),
+    ('NORM_CARGA_HORARIA',         'DOC_GEN_CARGA_HORARIA',         1),
+    ('NORM_REGLAMENTO',            'DOC_GEN_REGLAMENTO',            1),
+    ('NORM_REGLAMENTO',            'DOC_GEN_PROTOCOLO_EXAMENES',    2),
+    ('SIUC_FOROS_MENSAJERIA',      'DOC_GEN_GUIA_FOROS',            1),
+    ('SIUC_FOROS_MENSAJERIA',      'DOC_GEN_INSTRUCTIVO_MENSAJERIA', 2)
+) AS x(respuesta_clave, documento_clave, orden)
+JOIN respuesta r ON r.clave = x.respuesta_clave
+JOIN documento d ON d.clave = x.documento_clave
+ON CONFLICT (respuesta_id, documento_id) DO UPDATE SET orden = EXCLUDED.orden;
+
+-- ---------------------------------------------------------------------------
 -- OPCION_MENU  (arbol completo)
 -- ---------------------------------------------------------------------------
 INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden) VALUES
 -- --- RAIZ
-('RAIZ_OP_ADMIN', (SELECT id FROM categoria WHERE clave='RAIZ'), 'Consultas administrativas', 'navegar',
- (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), NULL, FALSE, 1),
-('RAIZ_OP_ACAD',  (SELECT id FROM categoria WHERE clave='RAIZ'), 'Consultas academicas', 'navegar',
- (SELECT id FROM categoria WHERE clave='ACADEMICAS'), NULL, FALSE, 2),
+('RAIZ_OP_ACAD',  (SELECT id FROM categoria WHERE clave='RAIZ'), 'Materias', 'navegar',
+ (SELECT id FROM categoria WHERE clave='ACADEMICAS'), NULL, FALSE, 1),
+('RAIZ_OP_SIUC', (SELECT id FROM categoria WHERE clave='RAIZ'), 'SIU y campus', 'navegar',
+ (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), NULL, FALSE, 2),
+('RAIZ_OP_TRAM', (SELECT id FROM categoria WHERE clave='RAIZ'), 'Trámites', 'navegar',
+ (SELECT id FROM categoria WHERE clave='TRAMITES'), NULL, FALSE, 3),
+('RAIZ_OP_NORM', (SELECT id FROM categoria WHERE clave='RAIZ'), 'Normativa', 'navegar',
+ (SELECT id FROM categoria WHERE clave='NORMATIVA'), NULL, FALSE, 4),
 ('RAIZ_OP_NOFUE', (SELECT id FROM categoria WHERE clave='RAIZ'), 'No encontre lo que busco', 'navegar',
- (SELECT id FROM categoria WHERE clave='NOENCONTRE'), NULL, FALSE, 3),
+ (SELECT id FROM categoria WHERE clave='NOENCONTRE'), NULL, FALSE, 5),
 
 -- --- NO ENCONTRE (tipo de consulta -> derivacion)
 ('NOFUE_OP_VOLVER', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), '< Volver al menu anterior', 'navegar',
@@ -215,17 +280,43 @@ INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_
 ('NOFUE_OP_PED', (SELECT id FROM categoria WHERE clave='NOENCONTRE'), 'Consultas pedagogicas', 'derivar',
  NULL, NULL, FALSE, 4),
 
--- --- ADMINISTRATIVAS
-('ADM_OP_VOLVER',      (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), '< Volver al menu anterior', 'navegar',
+-- --- TRAMITES
+('ADM_OP_VOLVER',      (SELECT id FROM categoria WHERE clave='TRAMITES'), '< Volver al menu anterior', 'navegar',
  (SELECT id FROM categoria WHERE clave='RAIZ'), NULL, TRUE, 1),
-('ADM_OP_INSCRIPCION_MATERIAS', (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Inscripción a materias', 'responder',
+('ADM_OP_INSCRIPCION_MATERIAS', (SELECT id FROM categoria WHERE clave='TRAMITES'), 'Inscripción a materias', 'responder',
  NULL, (SELECT id FROM respuesta WHERE clave='ADM_INSCRIPCION_MATERIAS'), FALSE, 2),
-('ADM_OP_EXAMENES',    (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Inscripción a exámenes', 'responder',
+('ADM_OP_EXAMENES',    (SELECT id FROM categoria WHERE clave='TRAMITES'), 'Inscripción a exámenes', 'responder',
  NULL, (SELECT id FROM respuesta WHERE clave='ADM_EXAMENES_MESAS'), FALSE, 3),
-('ADM_OP_SIU',         (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Acceso al SIU', 'responder',
- NULL, (SELECT id FROM respuesta WHERE clave='ADM_ACCESO_SIU'), FALSE, 4),
-('ADM_OP_SIU_CAMPUS',  (SELECT id FROM categoria WHERE clave='ADMINISTRATIVAS'), 'Diferencias entre campus virtual y SIU', 'responder',
- NULL, (SELECT id FROM respuesta WHERE clave='ADM_SIU_VS_CAMPUS'), FALSE, 5),
+('ADM_OP_CERTIFICADO_EXAMEN', (SELECT id FROM categoria WHERE clave='TRAMITES'), 'Certificado de examen', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='ADM_CERTIFICADO_EXAMEN'), FALSE, 4),
+('TRAM_OP_ENTREGA',    (SELECT id FROM categoria WHERE clave='TRAMITES'), 'Entrega de documentación', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='TRAM_ENTREGA_DOCUMENTACION'), FALSE, 5),
+('TRAM_OP_EQUIV',      (SELECT id FROM categoria WHERE clave='TRAMITES'), 'Equivalencias', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='TRAM_EQUIVALENCIAS'), FALSE, 6),
+
+-- --- NORMATIVA
+('NORM_OP_VOLVER',     (SELECT id FROM categoria WHERE clave='NORMATIVA'), '< Volver al menu anterior', 'navegar',
+ (SELECT id FROM categoria WHERE clave='RAIZ'), NULL, TRUE, 1),
+('NORM_OP_PLAN',       (SELECT id FROM categoria WHERE clave='NORMATIVA'), 'Plan de estudios', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='NORM_PLAN_ESTUDIOS'), FALSE, 2),
+('NORM_OP_CORR',       (SELECT id FROM categoria WHERE clave='NORMATIVA'), 'Correlatividades', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='NORM_CORRELATIVIDADES'), FALSE, 3),
+('NORM_OP_CARGA',      (SELECT id FROM categoria WHERE clave='NORMATIVA'), 'Carga horaria', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='NORM_CARGA_HORARIA'), FALSE, 4),
+('NORM_OP_REGL',       (SELECT id FROM categoria WHERE clave='NORMATIVA'), 'Reglamento y protocolos', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='NORM_REGLAMENTO'), FALSE, 5),
+
+-- --- SIU Y CAMPUS
+('SIUC_OP_VOLVER',     (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), '< Volver al menu anterior', 'navegar',
+ (SELECT id FROM categoria WHERE clave='RAIZ'), NULL, TRUE, 1),
+('ADM_OP_SIU',         (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), 'Acceso al SIU', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='ADM_ACCESO_SIU'), FALSE, 2),
+('ADM_OP_SIU_CAMPUS',  (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), 'Diferencias entre campus virtual y SIU', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='ADM_SIU_VS_CAMPUS'), FALSE, 3),
+('SIUC_OP_CAMPUS',     (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), 'Acceso al campus virtual', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='SIUC_ACCESO_CAMPUS'), FALSE, 4),
+('SIUC_OP_FOROS',      (SELECT id FROM categoria WHERE clave='SIUCAMPUS'), 'Foros y mensajería', 'responder',
+ NULL, (SELECT id FROM respuesta WHERE clave='SIUC_FOROS_MENSAJERIA'), FALSE, 5),
 
 -- --- ACADEMICAS
 ('ACA_OP_VOLVER', (SELECT id FROM categoria WHERE clave='ACADEMICAS'), '< Volver al menu anterior', 'navegar',
