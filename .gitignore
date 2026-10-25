@@ -19,4 +19,4 @@ service-account*.json
 planilla-import/
 
 # Casos generados para evaluar el texto libre (se regeneran)
-backend/scripts/salida/
+backend/test/casos/salida/

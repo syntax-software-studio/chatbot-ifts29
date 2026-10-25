@@ -6,14 +6,14 @@
  *
  *   npm run casos:generar --workspace backend
  *
- * Lee `DATABASE_URL` del entorno y escribe `scripts/salida/casos.json`, que no
+ * Lee `DATABASE_URL` del entorno y escribe `test/casos/salida/casos.json`, que no
  * se versiona: se regenera cada vez que cambia el contenido.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getPool, closePool } from '../src/db/pool.js';
+import { getPool, closePool } from '../../src/db/pool.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const destino = join(aqui, 'salida', 'casos.json');

@@ -13,8 +13,8 @@
     "test": "node --import tsx --test --test-concurrency=1 \"test/*.test.ts\"",
     "db:push": "tsx src/db/push.ts",
     "sync": "tsx src/db/sincronizar.ts",
-    "casos:generar": "tsx scripts/generar-casos.ts",
-    "casos:evaluar": "tsx scripts/evaluar-casos.ts"
+    "casos:generar": "tsx test/casos/generar-casos.ts",
+    "casos:evaluar": "tsx test/casos/evaluar-casos.ts"
   },
   "dependencies": {
     "@types/pg": "^8.23.1",

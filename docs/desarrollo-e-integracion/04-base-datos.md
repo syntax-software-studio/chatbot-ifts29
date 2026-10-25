@@ -39,6 +39,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 | `kb_intencion` | Qué tipo de consulta responde una opción del menú (`opcion_clave`) |
 | `kb_pregunta` | Formulación canónica de una intención, con prioridad y umbral |
 | `kb_pregunta_variante` | Redacciones posibles, ya normalizadas (`normalized_text`), con peso |
+| `kb_alias` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
 
 Índices: B-tree sobre `normalized_text` (coincidencia exacta) y GIN con `gin_trgm_ops` (similitud).
 

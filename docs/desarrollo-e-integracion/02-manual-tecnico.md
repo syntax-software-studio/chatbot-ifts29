@@ -81,11 +81,16 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
 
 **Texto libre:** el frontend envía `{ "message": "<texto>" }`. El motor:
 
-1. Normaliza el texto (minúsculas, sin acentos, sin signos repetidos).
-2. Saludos: devuelve el menú raíz.
-3. Coincidencia exacta con una variante → responde con la opción de esa intención.
-4. Si no hay exacta, similitud trigram (`pg_trgm`) contra las variantes.
-5. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
+1. Expande siglas y nombres cortos con la pestaña `alias` (por ejemplo, "abd" → "administracion de bases de datos").
+2. Normaliza el texto (minúsculas, sin acentos ni signos) y quita palabras vacías ("de", "la", "el", "y"...). Las variantes de la base pasan por la misma normalización al cargarse.
+3. Saludos: devuelve el menú raíz.
+4. Coincidencia exacta con una variante → responde con la opción de esa intención.
+5. Si no hay exacta, calcula para cada variante el mayor de dos puntajes:
+   - similitud trigram (`pg_trgm`) sobre el texto completo;
+   - comparación por palabras: proporción de palabras de la consulta que aparecen en la variante, tolerando un error de tipeo por palabra (distancia de Damerau ≤ 1 en palabras de 4 letras o más, que cuenta una transposición como un solo error).
+6. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
+
+La comparación por palabras se calcula en memoria sobre las variantes activas. Si la base crece mucho, conviene pasarla a SQL.
 
 Sin base de datos la API responde 503 (`BASE_NO_CONFIGURADA`). No hay modo demo: el contenido siempre sale de la base.
 

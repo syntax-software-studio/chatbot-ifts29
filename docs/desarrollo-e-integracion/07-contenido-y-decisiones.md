@@ -31,6 +31,7 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | `preguntas` | intencion, pregunta, prioridad, umbral |
 | `variantes` | intencion, pregunta, texto, peso |
 | `contactos` | clave, nombre, area, comision, email, perfil, motivo, orden, opcion |
+| `alias` | alias, expansion |
 
 La sincronización valida los encabezados y las referencias entre pestañas antes de escribir. Si hay un error, muestra todos y **no cambia nada**.
 
@@ -86,6 +87,7 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 8. **Sin `ALTER` en el esquema.** `001_schema.sql` describe el estado final; una base nueva queda igual que una creada desde cero.
 9. **`db:push` aplica sólo el esquema.** El contenido entra por la sincronización.
 10. **Sin modo demo.** No existe un catálogo semilla: sin base de datos la API responde 503. Una sola fuente de datos.
+11. **Normalización de consultas.** Las siglas de la pestaña `alias` se expanden y las palabras vacías se quitan, en la consulta y en las variantes. La búsqueda combina trigramas con comparación por palabras, tolerante a transposiciones.
 
 ## Pendientes
 

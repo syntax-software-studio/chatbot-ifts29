@@ -34,7 +34,22 @@ node --import tsx --test test/api.test.ts             # un archivo
 
 Las pruebas de integración verifican el recorrido que ve el estudiante: menú, texto libre, derivación y documentos. Cada una usa datos conocidos y comprueba la respuesta exacta, no sólo que el servicio responda.
 
-## 6.6 Pendientes
+## 6.6 Evaluación del texto libre
+
+Además de las pruebas automáticas, hay dos scripts en `backend/test/` que miden la calidad del texto libre contra la base configurada:
+
+```bash
+npm run casos:generar --workspace backend    # genera casos a partir de las variantes (test/casos/salida/casos.json)
+npm run casos:evaluar --workspace backend    # evalúa cada caso y muestra un resumen por transformación
+```
+
+El generador aplica transformaciones típicas a cada variante: sin tildes, mayúsculas, con un error de tipeo (transposición de dos letras), sin palabras vacías y con el orden de las palabras invertido. Cada caso conserva la opción que debería responder.
+
+El evaluador clasifica cada caso como **acierto**, **aclaración que incluye la opción correcta**, **aclaración sin la opción**, **no disponible** u **opción incorrecta**. Los fallos quedan en `test/casos/salida/fallos.json`. Los archivos de salida no se versionan.
+
+Limitación: los casos salen de las variantes cargadas, así que miden robustez frente a errores mecánicos, no cómo escribe realmente un estudiante.
+
+## 6.7 Pendientes
 
 - **Conjunto dorado:** un archivo de consultas con respuesta esperada, para medir aciertos y falsos positivos del texto libre y calibrar los umbrales. Hoy las pruebas verifican casos puntuales, no la calidad del motor.
 - **Fixtures desde la planilla:** una forma de tomar una copia de la planilla como fixture versionado, para que las pruebas reflejen el contenido real sin depender de la red.

@@ -5,14 +5,14 @@
  *   npm run casos:evaluar --workspace backend
  *
  * Clasifica cada caso y muestra un resumen por tipo de transformación. Los
- * fallos quedan en `scripts/salida/fallos.json`.
+ * fallos quedan en `test/casos/salida/fallos.json`.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { closePool } from '../src/db/pool.js';
-import { interpretarConsulta } from '../src/services/nl.service.js';
+import { closePool } from '../../src/db/pool.js';
+import { interpretarConsulta } from '../../src/services/nl.service.js';
 import type { Caso } from './generar-casos.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
