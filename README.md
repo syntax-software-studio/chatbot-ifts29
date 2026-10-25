@@ -126,16 +126,16 @@ postgresql://USUARIO:PASSWORD@ep-xxxx-pooler.REGION.neon.tech/ifts29?sslmode=req
                                                                    ^^^^^^ base
 ```
 
-La URL debe ser la **pooled connection** de Neon (*Connection Details → Pooled
-connection*), porque el driver `@neondatabase/serverless` habla HTTP y no
-sockets TCP. El nombre de la rama (`main`, `dev`, …) es indistinto.
+La misma `DATABASE_URL` sirve para Neon y para el PostgreSQL de Docker. El driver
+es `pg` (node-postgres), que soporta SCRAM-SHA-256 y SSL, así que no hay un
+driver distinto por entorno. El nombre de la rama (`main`, `dev`, …) es
+indistinto.
 
-### ¿Por qué `@neondatabase/serverless` y no `pg`?
+Para Docker local:
 
-Neon autentica con SCRAM-SHA-256, que `node-postgres` no soporta, y un runtime
-serverless no necesita sockets TCP persistentes. El driver serverless habla
-HTTP directo y resuelve SCRAM con WebCrypto. No hay pool que configurar: cada
-consulta es una petición HTTPS.
+```
+postgresql://postgres:password123@localhost:5432/ifts29
+```
 
 ## 5. Base de datos
 

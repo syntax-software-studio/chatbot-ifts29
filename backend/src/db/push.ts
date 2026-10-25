@@ -159,10 +159,9 @@ async function ejecutar(sql: string, etiqueta: string): Promise<void> {
     await s.query(sql);
     console.log(`[db] ${etiqueta} OK`);
   } catch (err) {
-    // El driver HTTP de Neon no admite varias sentencias en una consulta
-    // preparada ("cannot insert multiple commands into a prepared statement"),
-    // asi que el camino por separado es el normal con este driver; el mensaje
-    // queda como informativo para no confundir un error con un reintento.
+    // Respaldo: si una consulta multi-sentencia falla, se aplica sentencia por
+    // sentencia para nombrar cuál falló. Con `pg` el camino rápido normalmente
+    // funciona; este respaldo se puede retirar cuando se confirme.
     const sentencias = sinEnvoltorioTransaccional(dividirSentencias(sql));
     console.log(
       `[db] ${etiqueta}: se aplica sentencia por sentencia (${sentencias.length})...` +

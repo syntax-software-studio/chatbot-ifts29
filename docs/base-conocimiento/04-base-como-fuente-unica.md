@@ -68,9 +68,9 @@ Crear un conjunto chico de datos en `backend/test/fixtures/` (3 o 4 documentos f
 Armar el archivo de consultas con respuesta esperada y un script que reporte aciertos y falsos positivos por umbral. Se corre contra la base.
 *Salida:* línea base medida del motor actual.
 
-**Paso 5. Menú desde la base.**
-Mover la carga del árbol del menú a una fuente definida, y dejar `002_seed.sql` como única definición.
-*Salida:* el menú se levanta sin `backend/src/seed/catalogo.ts`.
+**Paso 5. Menú y conocimiento sin seed.**
+Definir de dónde sale el árbol del menú y los sinónimos de la base de conocimiento (ver "Preguntas abiertas"). Los archivos `002_seed.sql` y `005_kb_seed.sql` también son seed: no pueden ser la fuente, porque un reset los vuelve a aplicar y el contenido vuelve a depender del repo. Se dejan sólo como esquema o se retiran.
+*Salida:* `db:push` aplica sólo el esquema (`001_schema.sql`), y el contenido se carga con la sync desde una fuente que no es el repo.
 
 **Paso 6. Retiro.**
 Eliminar `backend/src/seed/`, `generar-kb-seed.ts`, `solo-semilla.ts` y las ramas `getPool() ? ... : seed` del código. Actualizar la documentación listada arriba y marcar `fuente()` como neon-only.
@@ -79,7 +79,8 @@ Eliminar `backend/src/seed/`, `generar-kb-seed.ts`, `solo-semilla.ts` y las rama
 ## Preguntas abiertas
 
 - **Formato de autoría del contenido.** ¿Drive con una convención de nombres, una planilla, o un archivo de índice por materia? Las dos convenciones actuales (`<Materia>_<Tipo>.pdf` y `condiciones__<materia>.pdf`) no coinciden.
-- **Fuente del menú.** ¿El árbol se edita en la base directamente, en una planilla, o en un archivo versionado en el repo?
+- **Fuente del menú y de los sinónimos.** Como `002_seed.sql` y `005_kb_seed.sql` son seed, no pueden ser la fuente. Opciones: (a) una planilla de Google en Drive, con su historial de versiones, que la sync lee; (b) editarlos directamente en la base, y en ese caso `db:reset` destruye la definición, así que hay que exportarla antes. Recomendamos (a): mantiene el contenido fuera de Neon sin volver a depender del repo.
+- **Métricas antes de un reset.** `db:reset` borra `metrica_opcion` y `sesion_contexto`, y no hay copia. Hace falta exportarlas o excluirlas del reset antes de usarlo.
 - **Modo demo.** ¿Se necesita una demo sin Neon ni Postgres local? Si sí, la alternativa es un volcado de la base a un archivo, no el seed en código.
 - **Quién ejecuta la sync.** Hoy es `POST /api/sync` para personal autorizado. ¿Se programa, o se ejecuta a mano al inicio de cada cuatrimestre?
 - **Textos escritos a mano.** Varias respuestas (por ejemplo, "Estas son las condiciones oficiales…") son texto del bot. ¿Quedan en la base como plantilla, o salen del documento?
