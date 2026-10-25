@@ -76,6 +76,8 @@ export const env = {
     clientEmail: str('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
     privateKey: str('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     sharedFolderId: str('GOOGLE_SHARED_FOLDER_ID'),
+    /** ID de la planilla de contenido ("Bot IFTS29 - Contenido"). Sólo lectura. */
+    sheetId: str('GOOGLE_SHEET_ID'),
     /**
      * Crear el permiso "cualquiera con el enlace" es una escritura en Drive:
      * el alcance `drive.readonly` siempre devuelve 403. Por eso el default es

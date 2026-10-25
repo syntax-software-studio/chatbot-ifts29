@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"test/*.test.ts\"",
     "db:push": "tsx src/db/push.ts",
-    "db:kb": "tsx src/db/generar-kb-seed.ts"
+    "db:kb": "tsx src/db/generar-kb-seed.ts",
+    "db:contenido": "tsx src/db/cargar-contenido.ts"
   },
   "dependencies": {
     "@types/pg": "^8.23.1",
