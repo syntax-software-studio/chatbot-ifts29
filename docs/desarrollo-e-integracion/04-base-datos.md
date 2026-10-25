@@ -376,7 +376,7 @@ psql "postgresql://usuario:password@ep-xxxx-pooler.region.neon.tech/ifts29?sslmo
 \i db/005_kb_seed.sql
 ```
 
-**Opción 2: Desde Node.js (usando @neondatabase/serverless):**
+**Opción 2: Desde Node.js (usando el driver `pg`, con la misma `DATABASE_URL`):**
 
 ```bash
 cd backend

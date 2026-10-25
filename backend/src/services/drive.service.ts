@@ -192,7 +192,7 @@ export function enlaceDeDescarga(fileId: string): string {
 
 export interface ResultadoSync {
   ejecutada: boolean;
-  origen: 'neon' | 'seed';
+  origen: 'base' | 'seed';
   dryRun: boolean;
   archivosVistos: number;
   actualizados: number;
@@ -237,7 +237,7 @@ export async function sincronizar(opciones: { carpetaId?: string; dryRun?: boole
   const mensajes: string[] = [];
   const resultado: ResultadoSync = {
     ejecutada: false,
-    origen: getPool() ? 'neon' : 'seed',
+    origen: getPool() ? 'base' : 'seed',
     dryRun: opciones.dryRun ?? false,
     archivosVistos: 0,
     actualizados: 0,

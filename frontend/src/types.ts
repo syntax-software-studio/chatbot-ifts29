@@ -109,4 +109,4 @@ export interface PreguntaContexto {
   opciones: OpcionContexto[];
 }
 
-export type FuenteDatos = 'neon' | 'seed';
+export type FuenteDatos = 'base' | 'seed';

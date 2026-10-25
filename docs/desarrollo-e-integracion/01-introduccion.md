@@ -32,7 +32,7 @@ El objetivo principal de esta etapa es:
    - Dos modos: semilla (demo) y PostgreSQL (producción)
 
 3. **Persistencia de Datos**
-   - PostgreSQL (Neon) serverless
+   - PostgreSQL: Neon en producción y Postgres local con Docker en desarrollo
    - 6 tablas: categoria, opcion_menu, respuesta, documento, contacto, conocimiento
    - Índices B-tree y GIN trigram para búsqueda
    - Catálogo semilla en memoria (idéntico a BD)

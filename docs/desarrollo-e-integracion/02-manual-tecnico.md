@@ -72,7 +72,7 @@ La aplicación fue diseñada para integrarse en el campus virtual (Moodle) del I
 │  • /api/system  • drive.service     • Error Handler │
 │                 • metricas.service                  │
 └────────────────────┬────────────────────────────────┘
-                     │ (SQL vía @neondatabase/serverless)
+                     │ (SQL vía pg, PostgreSQL local o Neon)
 ┌────────────────────▼────────────────────────────────┐
 │     DATABASE (PostgreSQL - Neon)                    │
 ├─────────────────────────────────────────────────────┤
@@ -232,7 +232,7 @@ asistente-virtual-ifts29/
 
 ### 4.1 Resumen de BD
 
-**Sistema:** PostgreSQL en Neon (serverless, HTTP pooler)  
+**Sistema:** PostgreSQL: Neon en producción, Postgres local con Docker en desarrollo (driver `pg`)  
 **Modo demo:** Catálogo semilla en memoria (Node.js, idéntico a BD). *Deprecado en propuesta: ver [base-conocimiento/04-base-como-fuente-unica.md](../base-conocimiento/04-base-como-fuente-unica.md).*  
 **Esquema:** 6 tablas principales + vistas + triggers + índices
 
@@ -390,7 +390,7 @@ CREATE TABLE usuarios (
 **Backend:**
 ```
 express@5.x                    - Framework HTTP
-@neondatabase/serverless@1.x   - Cliente PostgreSQL serverless
+pg@8.x                         - Cliente PostgreSQL (local y Neon)
 typescript@5.9.3               - Compilador TypeScript
 zod@3.24.1                     - Validación de esquemas
 googleapis@144.x               - Sincronización Google Drive

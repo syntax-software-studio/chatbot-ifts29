@@ -27,9 +27,9 @@ import type {
 
 export const CATEGORIA_RAIZ = 'RAIZ';
 
-/** ¿Estamos usando PostgreSQL o el catálogo semilla? */
+/** ¿Estamos usando la base PostgreSQL o el catálogo semilla? */
 export function fuente(): FuenteDatos {
-  return getPool() ? 'neon' : 'seed';
+  return getPool() ? 'base' : 'seed';
 }
 
 /* ==========================================================================

@@ -17,3 +17,6 @@ service-account*.json
 docs/desarrollo-e-integracion
 docs/base-conocimiento/02-*.md
 docs/base-conocimiento/03-*.md
+
+# Archivos temporales para cargar la planilla de Google Sheets (no versionar)
+planilla-import/

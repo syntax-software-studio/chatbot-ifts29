@@ -118,7 +118,7 @@ const ES_COMMIT = /^(COMMIT|END|ROLLBACK)$/i;
 const describeError = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
-/** Limitacion conocida del driver HTTP de Neon, no un error del script. */
+/** Detecta el error de "varias sentencias en una consulta preparada" (driver HTTP anterior). */
 const esErrorDeVariasSentencias = (err: unknown): boolean =>
   /cannot insert multiple commands into a prepared statement/i.test(describeError(err));
 
