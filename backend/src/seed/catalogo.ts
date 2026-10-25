@@ -586,7 +586,7 @@ const definiciones: OpcionSeedDef[] = [
   { clave: 'RAIZ_OP_SIUC', cat: 'RAIZ', etiqueta: 'SIU y campus', tipo: 'navegar', destino: 'SIUCAMPUS', orden: 2 },
   { clave: 'RAIZ_OP_TRAM', cat: 'RAIZ', etiqueta: 'Trámites', tipo: 'navegar', destino: 'TRAMITES', orden: 3 },
   { clave: 'RAIZ_OP_NORM', cat: 'RAIZ', etiqueta: 'Normativa', tipo: 'navegar', destino: 'NORMATIVA', orden: 4 },
-  { clave: 'RAIZ_OP_NOFUE', cat: 'RAIZ', etiqueta: 'No encontre lo que busco', tipo: 'derivar', resp: 'DERIVACION_GENERAL', orden: 5 },
+  { clave: 'RAIZ_OP_NOENCONTRE', cat: 'RAIZ', etiqueta: 'No encontre lo que busco', tipo: 'derivar', resp: 'DERIVACION_GENERAL', orden: 5 },
 
   // --- TRAMITES
   { clave: 'ADM_OP_VOLVER', cat: 'TRAMITES', etiqueta: '< Volver al menu anterior', tipo: 'navegar', destino: 'RAIZ', volver: true, orden: 1 },
@@ -647,7 +647,7 @@ const opciones: SeedOpcion[] = definiciones.map((d, i) => ({
 /* ==========================================================================
  * 7. Contactos por opción (derivación)
  * ======================================================================== */
-const noEncontradoOpcion = opciones.find((o) => o.clave === 'RAIZ_OP_NOFUE')!;
+const noEncontradoOpcion = opciones.find((o) => o.clave === 'RAIZ_OP_NOENCONTRE')!;
 const opcionContacto: SeedOpcionContacto[] = contactos.map((c, i) => ({
   opcion_id: noEncontradoOpcion.id,
   contacto_id: c.id,

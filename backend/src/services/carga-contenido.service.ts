@@ -92,6 +92,8 @@ export interface Contacto {
   perfil: string | null;
   motivo: string | null;
   orden: number;
+  /** Opción de tipo 'derivar' a la que pertenece el contacto. */
+  opcion: string;
 }
 
 export interface DatosContenido {
@@ -279,16 +281,24 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   }
 
   // --- Contactos ---
-  const contactos: Contacto[] = filas('contactos').map((f) => ({
-    clave: f.clave!,
-    nombre: f.nombre!,
-    area: opcional(f.area!),
-    comision: opcional(f.comision!),
-    email: opcional(f.email!),
-    perfil: opcional(f.perfil!),
-    motivo: opcional(f.motivo!),
-    orden: entero(f.orden!, `contactos "${f.clave}" orden`),
-  }));
+  const tipoPorOpcion = new Map(opciones.map((o) => [o.clave, o.tipo]));
+  const contactos: Contacto[] = filas('contactos').map((f) => {
+    const donde = `contactos "${f.clave}"`;
+    if (tipoPorOpcion.get(f.opcion!) !== 'derivar') {
+      errores.push(`${donde}: opcion "${f.opcion}" no existe o no es de tipo derivar.`);
+    }
+    return {
+      clave: f.clave!,
+      nombre: f.nombre!,
+      area: opcional(f.area!),
+      comision: opcional(f.comision!),
+      email: opcional(f.email!),
+      perfil: opcional(f.perfil!),
+      motivo: opcional(f.motivo!),
+      orden: entero(f.orden!, `${donde} orden`),
+      opcion: f.opcion!,
+    };
+  });
 
   if (errores.length > 0) return { ok: false, errores };
   return {
@@ -424,19 +434,16 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   }
   await client.query('DELETE FROM contacto WHERE NOT (clave = ANY($1::text[]))', [claves(datos.contactos)]);
 
-  // Derivación: todo contacto se asocia a toda opción de tipo 'derivar'.
+  // Derivación: cada contacto pertenece a una sola opción de tipo 'derivar'.
   const contactoId = await ids('contacto');
   const opcionMenuId = await ids('opcion_menu');
-  let opcionContacto = 0;
-  for (const o of datos.opciones.filter((op) => op.tipo === 'derivar')) {
-    for (const c of datos.contactos) {
-      await client.query(
-        'INSERT INTO opcion_contacto (opcion_id, contacto_id, orden) VALUES ($1, $2, $3)',
-        [opcionMenuId.get(o.clave), contactoId.get(c.clave), c.orden],
-      );
-      opcionContacto += 1;
-    }
+  for (const c of datos.contactos) {
+    await client.query(
+      'INSERT INTO opcion_contacto (opcion_id, contacto_id, orden) VALUES ($1, $2, $3)',
+      [opcionMenuId.get(c.opcion), contactoId.get(c.clave), c.orden],
+    );
   }
+  const opcionContacto = datos.contactos.length;
 
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const i of datos.intenciones) {

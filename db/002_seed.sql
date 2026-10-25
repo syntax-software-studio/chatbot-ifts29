@@ -267,7 +267,7 @@ INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_
  (SELECT id FROM categoria WHERE clave='TRAMITES'), NULL, FALSE, 3),
 ('RAIZ_OP_NORM', (SELECT id FROM categoria WHERE clave='RAIZ'), 'Normativa', 'navegar',
  (SELECT id FROM categoria WHERE clave='NORMATIVA'), NULL, FALSE, 4),
-('RAIZ_OP_NOFUE', (SELECT id FROM categoria WHERE clave='RAIZ'), 'No encontre lo que busco', 'navegar',
+('RAIZ_OP_NOENCONTRE', (SELECT id FROM categoria WHERE clave='RAIZ'), 'No encontre lo que busco', 'navegar',
  (SELECT id FROM categoria WHERE clave='NOENCONTRE'), NULL, FALSE, 5),
 
 -- --- NO ENCONTRE (tipo de consulta -> derivacion)
@@ -390,9 +390,9 @@ ON CONFLICT (clave) DO UPDATE SET
 -- ---------------------------------------------------------------------------
 -- OPCION_CONTACTO  (derivaciones - RF04)
 -- ---------------------------------------------------------------------------
--- Los vinculos viejos de RAIZ_OP_NOFUE (ahora navega) se quitan antes de cargar los nuevos.
+-- Los vinculos viejos de RAIZ_OP_NOENCONTRE (ahora navega) se quitan antes de cargar los nuevos.
 DELETE FROM opcion_contacto
- WHERE opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOFUE');
+ WHERE opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOENCONTRE');
 
 INSERT INTO opcion_contacto (opcion_id, contacto_id, orden)
 SELECT o.id, c.id, x.orden

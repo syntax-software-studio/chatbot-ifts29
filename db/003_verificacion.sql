@@ -63,7 +63,7 @@ SELECT c.id, c.clave, c.nombre, c.area, c.email,
        c.url_perfil, c.motivo
   FROM opcion_contacto oc
   JOIN contacto c ON c.id = oc.contacto_id
- WHERE oc.opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOFUE') AND c.activo
+ WHERE oc.opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'RAIZ_OP_NOENCONTRE') AND c.activo
  ORDER BY oc.orden, c.id;
 
 \echo ''

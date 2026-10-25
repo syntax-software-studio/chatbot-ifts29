@@ -22,7 +22,7 @@ const contenidoValido = (): Hojas => ({
   opciones: [
     { clave: 'RAIZ_OP_ACAD', categoria: 'RAIZ', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE' },
     { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'ABD', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE' },
-    { clave: 'RAIZ_OP_NOFUE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
+    { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
   intenciones: [{ clave: 'programa_ABD', nombre: 'Programa de ABD', dominio: 'academico', opcion: 'ACAD_OP_ABD' }],
@@ -31,7 +31,7 @@ const contenidoValido = (): Hojas => ({
     { intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto: 'Programa de ABD', peso: '1' },
   ],
   contactos: [
-    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', perfil: '', motivo: 'Trámites', orden: '3' },
+    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
   ],
 });
 
@@ -39,7 +39,7 @@ test('un contenido válido se convierte sin errores', () => {
   const r = convertirContenido(contenidoValido());
   assert.equal(r.ok, true, r.errores.join('\n'));
   assert.equal(r.datos?.categorias[0]?.esRaiz, true);
-  assert.equal(r.datos?.opciones.find((o) => o.clave === 'RAIZ_OP_NOFUE')?.tipo, 'derivar');
+  assert.equal(r.datos?.opciones.find((o) => o.clave === 'RAIZ_OP_NOENCONTRE')?.tipo, 'derivar');
 });
 
 test('el umbral con coma decimal se convierte a número', () => {
@@ -138,4 +138,20 @@ test('todos los errores se reportan juntos', () => {
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.length >= 3, `se esperaban al menos 3 errores, hay ${r.errores.length}`);
+});
+
+test('un contacto que apunta a una opción que no es de derivación es un error', () => {
+  const h = contenidoValido();
+  h.contactos![0]!.opcion = 'ACAD_OP_ABD';
+  const r = convertirContenido(h);
+  assert.equal(r.ok, false);
+  assert.ok(r.errores.some((e) => e.includes('bedelia') && e.includes('derivar')));
+});
+
+test('un contacto sin opción de derivación existente es un error', () => {
+  const h = contenidoValido();
+  h.contactos![0]!.opcion = 'NO_EXISTE';
+  const r = convertirContenido(h);
+  assert.equal(r.ok, false);
+  assert.ok(r.errores.some((e) => e.includes('NO_EXISTE')));
 });

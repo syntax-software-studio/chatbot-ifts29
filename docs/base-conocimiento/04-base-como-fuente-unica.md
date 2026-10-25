@@ -103,7 +103,7 @@ Aplica a los documentos de materia (`ABD`, `EAM`, `LC`, `TP`):
 
 ### Derivación por motivo
 
-La opción de tipo `derivar` (hoy `RAIZ_OP_NOFUE`, "No encontré lo que busco") pregunta por el **motivo** de la consulta. Cada motivo lleva al contacto que corresponde. Después se filtra por comisión: los contactos con comisión `A` o `B` aparecen sólo para esa comisión, y los de comisión `General` aparecen para todas.
+La opción de tipo `derivar` (hoy `RAIZ_OP_NOENCONTRE`, "No encontré lo que busco") pregunta por el **motivo** de la consulta. Cada motivo lleva al contacto que corresponde. Después se filtra por comisión: los contactos con comisión `A` o `B` aparecen sólo para esa comisión, y los de comisión `General` aparecen para todas.
 
 - Las etiquetas de los motivos son la columna `motivo` de `contactos`: "Orientación cursada" (Tutorías, comisiones A y B), "Trámites, certificados, etc." (Bedelía) y "Entrega de documentación".
 - La lógica exacta de qué motivo lleva a qué contacto se ajusta más adelante, con consultas reales.
