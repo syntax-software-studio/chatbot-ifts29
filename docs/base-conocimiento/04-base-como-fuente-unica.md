@@ -1,6 +1,6 @@
 # 04 · La base de datos como fuente única (deprecar el seed)
 
-**Estado:** en implementación. Paso 1 completado; paso 2 en curso. Rama de trabajo: `feat/base-fuente-unica`.
+**Estado:** en implementación. Pasos 1 y 2 completados; sigue el paso 3. Rama de trabajo: `feat/base-fuente-unica`.
 
 **Para quién:** equipo del proyecto (decisión de arquitectura y plan de migración).
 
@@ -19,7 +19,6 @@ La base de datos PostgreSQL es la **única fuente** del menú y de la base de co
 - **Origen de datos renombrado** de `neon` a `base`, porque el nombre anterior no describía lo que indica (hay base de datos, sea local o Neon).
 
 **Pendiente:**
-- Sincronización de contenido desde la planilla y de documentos desde Drive (paso 2).
 - Submenú por comisión y derivación por motivo (código nuevo, ver más abajo).
 - Schema sin `ALTER` y protección de métricas frente al reset.
 
@@ -43,7 +42,7 @@ No es un respaldo ante caídas: con `DATABASE_URL` configurada, si la base falla
 |---|---|---|---|
 | `backend/src/db/catalogo.ts` | `seedData` como rama de cada función | Se quitan las ramas; los tests que dependen de `seedData` dejan de funcionar | Sólo consultas a la base |
 | `backend/src/db/conocimiento.ts` | `seedKb` en `candidatosSeed` | Desaparece el camino en memoria del matching | Sólo SQL (`buscarExacto`, `buscarSimilares`) |
-| `backend/src/services/drive.service.ts` | `getPool() ? 'base' : 'seed'` en `sincronizar()` | Sin base, la sync no tiene dónde escribir (ya lo informa) | Sin cambios de fondo |
+| `backend/src/services/drive.service.ts` | `getPool() ? 'base' : 'seed'` en `sincronizarDocumentos()` | Sin base, la sync no tiene dónde escribir (ya lo informa) | Sin cambios de fondo |
 | `backend/src/db/generar-kb-seed.ts` | `seedKb` como autoría | Se pierde el generador de `005_kb_seed.sql` | El contenido entra por la sync desde la planilla |
 | `backend/src/db/push.ts` | Aplica `001`, `002`, `005` | Sigue funcionando, pero `005` ya no se regenera | Sólo esquema, cuando `002` y `005` se retiren |
 | `backend/test/solo-semilla.ts` | Vacía `DATABASE_URL` para forzar el seed | Los tests necesitan otra fuente | Fixtures o base local de prueba |
@@ -119,12 +118,15 @@ Cada paso tiene un criterio de salida. No se avanza al siguiente sin cumplirlo.
 Docker levanta la base con los tres archivos SQL. La API corre contra esa base: `/api/health` responde `ok`, el menú y el texto libre salen de la base.
 *Salida cumplida:* el backend responde desde Postgres local, con `origen: "base"`.
 
-**Paso 2. Sync de contenido.** En curso.
-1. Lector de la planilla: lee las ocho pestañas con la API de Sheets (sólo lectura), valida los encabezados y devuelve las filas tipadas.
-2. Carga a la base: upsert por clave de las tablas `categorias`, `opciones`, `respuestas`, `respuesta_documentos`, `intenciones`, `preguntas`, `variantes` y `contactos`. No toca `metrica_opcion` ni `sesion_contexto`.
-3. Documentos: crea o actualiza las fichas de `documento` a partir de los nombres de archivo en Drive, y enlaza `respuesta_documentos`.
-4. Prueba local: cargar la planilla en la base de Docker y verificar menú, texto libre y documentos.
-*Salida:* con la sync sobre la planilla y la carpeta de prueba, la base tiene el contenido de la planilla y sin datos del seed.
+**Paso 2. Sync de contenido.** ✅ Completado.
+1. Lector de la planilla (`fuente-contenido.service.ts`): lee las ocho pestañas con la API de Sheets, en sólo lectura, y valida los encabezados.
+2. Conversión y carga (`carga-contenido.service.ts`): convierte y valida todo antes de escribir; si hay errores, no escribe nada. La escritura es una sola transacción.
+3. Documentos: la ficha se crea por nombre de archivo, y la sync con Drive completa enlaces e IDs.
+4. Prueba local: verificada contra Postgres de Docker (menú, texto libre, derivación y documentos).
+
+Un solo comando sincroniza todo: `POST /api/sync` o `npm run sync --workspace backend`. Primero carga el contenido de la planilla y después sincroniza los documentos.
+
+*Salida cumplida:* la base tiene sólo el contenido de la planilla. Lo que no está en la planilla se borra en cada sync (el seed se retiró como fuente y ya no tiene filas en la base). Las métricas no se tocan.
 
 **Paso 3. Fixtures de test.**
 Conjunto chico de datos en `backend/test/fixtures/` (3 o 4 documentos ficticios) y un repositorio inyectable en `interpretarConsulta`. Los tests de comportamiento dejan de importar el seed.

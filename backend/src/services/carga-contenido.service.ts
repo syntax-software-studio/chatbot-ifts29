@@ -7,14 +7,15 @@
  *     no se escribe nada.
  *  2. `aplicarContenido`: escribe todo en una sola transacción.
  *
- * Reglas de escritura:
- *  - Menú (`categoria`, `opcion_menu`, `respuesta`): upsert por clave. Lo que
- *    deja de estar en la planilla se desactiva (`activo = false`), no se borra.
+ * Reglas de escritura. La planilla es la única fuente: lo que no está en ella
+ * no se conserva en la base.
  *  - Base de conocimiento (`kb_*`), `respuesta_documento` y `opcion_contacto`:
- *    se reemplazan completos. No tienen historial propio.
- *  - Documentos: se crean o actualizan por clave, a partir del nombre de archivo.
- *    La sincronización con Drive completa el resto de la ficha.
- *  - Contactos: upsert por clave; los que dejan de estar se desactivan.
+ *    se vacían y se vuelven a cargar. No tienen historial propio.
+ *  - Menú (`categoria`, `opcion_menu`, `respuesta`), contactos y documentos:
+ *    upsert por clave, y se borra lo que ya no está en la planilla.
+ *  - Documentos: la ficha se crea por nombre de archivo; la sincronización con
+ *    Drive completa el resto (enlaces, IDs, MD5).
+ *  - Las métricas (`metrica_opcion`, `sesion_contexto`) no se tocan.
  */
 
 import type { PoolClient } from 'pg';
@@ -333,7 +334,15 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   };
   const claves = (xs: { clave: string }[]) => xs.map((x) => x.clave);
 
-  // Menú: upsert y desactivación de lo que ya no está.
+  // Primero se vacían las tablas que dependen de otras, para que no bloqueen
+  // los borrados de menú, respuestas y documentos que vienen después.
+  await client.query('DELETE FROM kb_pregunta_variante');
+  await client.query('DELETE FROM kb_pregunta');
+  await client.query('DELETE FROM kb_intencion');
+  await client.query('DELETE FROM respuesta_documento');
+  await client.query('DELETE FROM opcion_contacto');
+
+  // Menú: upsert por clave; lo que ya no está en la planilla se borra.
   for (const c of datos.categorias) {
     await client.query(
       `INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz, activo)
@@ -344,8 +353,6 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       [c.clave, c.nombre, c.mensaje, c.orden, c.esRaiz],
     );
   }
-  await client.query('UPDATE categoria SET activo = FALSE WHERE NOT (clave = ANY($1::text[]))', [claves(datos.categorias)]);
-
   for (const r of datos.respuestas) {
     await client.query(
       `INSERT INTO respuesta (clave, texto, orden, activo)
@@ -354,9 +361,9 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       [r.clave, r.texto, r.orden],
     );
   }
-  await client.query('UPDATE respuesta SET activo = FALSE WHERE NOT (clave = ANY($1::text[]))', [claves(datos.respuestas)]);
 
   // Opciones: necesitan los ids de categoría y respuesta.
+  await client.query('DELETE FROM opcion_menu WHERE NOT (clave = ANY($1::text[]))', [claves(datos.opciones)]);
   const categoriaId = await ids('categoria');
   const respuestaId = await ids('respuesta');
   for (const o of datos.opciones) {
@@ -379,7 +386,8 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       ],
     );
   }
-  await client.query('UPDATE opcion_menu SET activo = FALSE WHERE NOT (clave = ANY($1::text[]))', [claves(datos.opciones)]);
+  await client.query('DELETE FROM categoria WHERE NOT (clave = ANY($1::text[]))', [claves(datos.categorias)]);
+  await client.query('DELETE FROM respuesta WHERE NOT (clave = ANY($1::text[]))', [claves(datos.respuestas)]);
 
   // Documentos: fichas por nombre de archivo. Drive completa el resto.
   for (const d of datos.documentos) {
@@ -390,15 +398,11 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       [d.clave, d.nombreArchivo],
     );
   }
-  // Fichas que la planilla ya no referencia (por ejemplo, las del seed): se archivan.
-  await client.query(
-    "UPDATE documento SET vigente = FALSE, estado = 'archivado' WHERE NOT (clave = ANY($1::text[]))",
-    [claves(datos.documentos)],
-  );
+  // Fichas que la planilla ya no referencia se borran: el historial vive en la planilla.
+  await client.query('DELETE FROM documento WHERE NOT (clave = ANY($1::text[]))', [claves(datos.documentos)]);
   const documentoId = await ids('documento');
 
-  // Adjuntos: se reemplazan completos.
-  await client.query('DELETE FROM respuesta_documento');
+  // Adjuntos: ya se borraron al inicio; se insertan de nuevo.
   for (const rd of datos.respuestaDocumentos) {
     await client.query(
       'INSERT INTO respuesta_documento (respuesta_id, documento_id, orden) VALUES ($1, $2, $3)',
@@ -418,12 +422,11 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden],
     );
   }
-  await client.query('UPDATE contacto SET activo = FALSE WHERE NOT (clave = ANY($1::text[]))', [claves(datos.contactos)]);
+  await client.query('DELETE FROM contacto WHERE NOT (clave = ANY($1::text[]))', [claves(datos.contactos)]);
 
   // Derivación: todo contacto se asocia a toda opción de tipo 'derivar'.
   const contactoId = await ids('contacto');
   const opcionMenuId = await ids('opcion_menu');
-  await client.query('DELETE FROM opcion_contacto');
   let opcionContacto = 0;
   for (const o of datos.opciones.filter((op) => op.tipo === 'derivar')) {
     for (const c of datos.contactos) {
@@ -435,11 +438,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     }
   }
 
-  // Base de conocimiento: se reemplaza completa, en orden de dependencia.
-  await client.query('DELETE FROM kb_pregunta_variante');
-  await client.query('DELETE FROM kb_pregunta');
-  await client.query('DELETE FROM kb_intencion');
-
+  // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const i of datos.intenciones) {
     await client.query(
       'INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',

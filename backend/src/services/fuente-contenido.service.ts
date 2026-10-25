@@ -13,7 +13,7 @@
  * ignoran, para que el equipo pueda tener hojas de trabajo sin romper la carga.
  */
 
-import { google } from 'googleapis';
+import { clienteSheets } from '../client/sheets.client.js';
 import { env, hasGoogleDrive } from '../utils/env.js';
 
 /** Encabezados esperados por pestaña, en el orden de la planilla. */
@@ -99,12 +99,7 @@ export async function leerContenido(): Promise<ResultadoContenido> {
     };
   }
 
-  const auth = new google.auth.JWT({
-    email: env.google.clientEmail,
-    key: env.google.privateKey,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-  });
-  const sheets = google.sheets({ version: 'v4', auth });
+  const sheets = clienteSheets();
 
   const meta = await sheets.spreadsheets.get({
     spreadsheetId,
