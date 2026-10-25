@@ -1,576 +1,132 @@
 # 4. Base de Datos
 
-## Documentación de Persistencia de Datos
+**Estado:** vigente. Describe el esquema y el flujo de carga actuales.
 
-Esta sección describe la estructura de la base de datos, sus tablas, relaciones y los scripts de creación necesarios para poner en funcionamiento el sistema de persistencia de datos.
+## 4.1 Resumen
 
----
+- **Motor:** PostgreSQL 16. Neon en producción; Docker local (`docker compose up`) en desarrollo.
+- **Driver:** `pg` (node-postgres). La misma `DATABASE_URL` sirve para ambos.
+- **Extensiones:** `pgcrypto`, `pg_trgm` (similitud para el texto libre).
+- **Contenido:** no se escribe a mano en la base. Entra por la sincronización desde la planilla y Drive (ver [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md)).
+- **Datos personales:** ninguno. Las métricas son agregados anónimos.
 
-## 1. Diagrama Entidad-Relación (DER)
+## 4.2 Tablas
+
+### Menú
+
+| Tabla | Descripción | Claves relevantes |
+|---|---|---|
+| `categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
+| `opcion_menu` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
+| `respuesta` | Texto institucional validado | `clave` (única) |
+| `documento` | Ficha de un archivo de Drive | `clave` (única), `drive_file_id` (única), `drive_nombre_archivo` |
+| `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
+| `contacto` | Persona o área de derivación | `clave` (única), `comision`, `motivo` |
+| `opcion_contacto` | Contacto de una opción de derivación | (`opcion_id`, `contacto_id`) |
+
+El campo `opcion_menu.tipo` define qué hace la opción:
+
+- `navegar`: abre otra categoría (subpregunta). Requiere `categoria_destino_id`.
+- `responder`: muestra una respuesta y sus documentos. Requiere `respuesta_id`.
+- `derivar`: muestra los contactos asociados. No tiene destino ni respuesta propia.
+
+Una restricción de la tabla impide combinaciones inválidas.
+
+### Base de conocimiento (texto libre)
+
+| Tabla | Descripción |
+|---|---|
+| `kb_intencion` | Qué tipo de consulta responde una opción del menú (`opcion_clave`) |
+| `kb_pregunta` | Formulación canónica de una intención, con prioridad y umbral |
+| `kb_pregunta_variante` | Redacciones posibles, ya normalizadas (`normalized_text`), con peso |
+
+Índices: B-tree sobre `normalized_text` (coincidencia exacta) y GIN con `gin_trgm_ops` (similitud).
+
+### Métricas
+
+| Tabla | Descripción |
+|---|---|
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. |
+
+### Vistas
+
+- `v_arbol_menu`: el árbol completo con sus respuestas y documentos, para revisión.
+- `v_kb_resolucion`: cobertura de la base de conocimiento por intención y pregunta.
+
+## 4.3 Diagrama
 
 ```mermaid
 erDiagram
     CATEGORIA ||--o{ OPCION_MENU : contiene
-    OPCION_MENU ||--o{ CATEGORIA : navega_a
-    OPCION_MENU ||--o{ RESPUESTA : muestra
-    RESPUESTA ||--o{ RESPUESTA_DOCUMENTO : tiene
-    DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : adjunto_en
-    OPCION_MENU ||--o{ OPCION_CONTACTO : deriva_a
-    CONTACTO ||--o{ OPCION_CONTACTO : recibe
-    OPCION_MENU ||--o{ OPCION_CONTEXTO : requiere
-    CONTEXTO ||--o{ OPCION_CONTEXTO : ofrece
-    CONOCIMIENTO }o--|| OPCION_MENU : mapea_a
-
-    CATEGORIA {
-        int id PK
-        text clave UK
-        text nombre
-        text mensaje
-        int orden
-        boolean es_raiz
-        boolean activo
-    }
-
-    OPCION_MENU {
-        int id PK
-        text clave UK
-        int categoria_id FK
-        text etiqueta
-        text tipo
-        int categoria_destino_id FK
-        int respuesta_id FK
-        boolean es_volver
-    }
-
-    RESPUESTA {
-        int id PK
-        text clave UK
-        text texto
-        int orden
-        boolean activo
-    }
-
-    DOCUMENTO {
-        int id PK
-        text clave UK
-        text nombre
-        text tipo
-        text drive_file_id
-        text mime_type
-        boolean vigente
-        text estado
-    }
-
-    RESPUESTA_DOCUMENTO {
-        int respuesta_id FK "PK"
-        int documento_id FK "PK"
-        int orden
-    }
-
-    CONTACTO {
-        int id PK
-        text clave UK
-        text nombre
-        text rol
-        text email
-        text telefono
-        boolean activo
-    }
-
-    OPCION_CONTACTO {
-        int opcion_id FK "PK"
-        int contacto_id FK "PK"
-    }
-
-    CONTEXTO {
-        int id PK
-        text clave
-        text nombre
-        text valor
-        text ambito_tipo
-        boolean activo
-    }
-
-    OPCION_CONTEXTO {
-        int opcion_id FK "PK"
-        int contexto_id FK "PK"
-    }
-
-    CONOCIMIENTO {
-        int id PK
-        text opcion_clave FK
-        text normalized_text
-        text tipo
-    }
+    CATEGORIA ||--o{ OPCION_MENU : "destino de navegar"
+    RESPUESTA ||--o{ OPCION_MENU : muestra
+    RESPUESTA ||--o{ RESPUESTA_DOCUMENTO : adjunta
+    DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : "es adjunto de"
+    OPCION_MENU ||--o{ OPCION_CONTACTO : deriva
+    CONTACTO ||--o{ OPCION_CONTACTO : "es derivado por"
+    OPCION_MENU ||--o{ KB_INTENCION : "emite"
+    KB_INTENCION ||--o{ KB_PREGUNTA : tiene
+    KB_PREGUNTA ||--o{ KB_PREGUNTA_VARIANTE : tiene
+    OPCION_MENU ||--o{ METRICA_OPCION : "se registra en"
 ```
 
-**Leyenda:** 
-- `||--o{` = Relación 1:N (uno a muchos)
-- `}o--||` = Relación N:1 (muchos a uno)
-- **PK** = Primary Key | **FK** = Foreign Key | **UK** = Unique Key
+## 4.4 Carga y sincronización
 
----
-
-## 2. Tablas y Campos
-
-### 2.1 Tabla: `categoria` - Nodos del árbol conversacional
-
-**Descripción:** Estructura jerárquica del menú (categorías y subcategorías)
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL, UNIQUE | Identificador único (ej: "RAIZ", "ADM") |
-| `nombre` | TEXT | NOT NULL | Nombre visible en interfaz |
-| `mensaje` | TEXT | NULL | Mensaje del bot al entrar a categoría |
-| `orden` | INTEGER | NOT NULL, DEFAULT 0 | Orden de presentación |
-| `es_raiz` | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE solo para categoría inicial |
-| `activo` | BOOLEAN | NOT NULL, DEFAULT TRUE | Visibilidad |
-| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-
----
-
-### 2.2 Tabla: `opcion_menu` - Opciones seleccionables (botones)
-
-**Descripción:** Botones que el usuario puede tocar en cada categoría
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL, UNIQUE | Identificador (ej: "ADM_OP_ADMISIONES") |
-| `categoria_id` | INTEGER | NOT NULL, FK → categoria | Categoría padre |
-| `etiqueta` | TEXT | NOT NULL | Texto del botón |
-| `descripcion` | TEXT | NULL | Descripción (tooltip) |
-| `tipo` | TEXT | CHECK IN ('navegar', 'responder', 'derivar') | navegar: subcategoría / responder: respuesta / derivar: contactos |
-| `categoria_destino_id` | INTEGER | FK → categoria | Para tipo='navegar' |
-| `respuesta_id` | INTEGER | FK → respuesta | Para tipo='responder' |
-| `es_volver` | BOOLEAN | DEFAULT FALSE | TRUE para "< Volver" |
-| `icono` | TEXT | NULL | Código de icono SVG |
-| `orden` | INTEGER | DEFAULT 0 | Orden en menú |
-| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
-| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-
----
-
-### 2.3 Tabla: `respuesta` - Contenido institucional
-
-**Descripción:** Texto validado que devuelve el sistema (única fuente de contenido)
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL, UNIQUE | Identificador único |
-| `texto` | TEXT | NOT NULL | Contenido (puede incluir markdown) |
-| `orden` | INTEGER | NOT NULL, DEFAULT 0 | Orden |
-| `activo` | BOOLEAN | NOT NULL, DEFAULT TRUE | Visibilidad |
-| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-
----
-
-### 2.4 Tabla: `documento` - Archivos desde Google Drive
-
-**Descripción:** Metadatos de documentos sincronizados desde Drive (solo lectura)
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL, UNIQUE | Identificador |
-| `nombre` | TEXT | NOT NULL | Nombre del archivo |
-| `descripcion` | TEXT | NULL | Descripción breve |
-| `tipo` | TEXT | CHECK IN (...) | Categoría: 'programa', 'cronograma', 'instructivo', 'planilla', etc. |
-| `drive_file_id` | TEXT | UNIQUE | ID en Google Drive |
-| `drive_nombre_archivo` | TEXT | NULL | Nombre original en Drive |
-| `mime_type` | TEXT | NOT NULL | MIME type (application/pdf, etc.) |
-| `drive_url` | TEXT | NULL | URL de acceso |
-| `drive_view_url` | TEXT | NULL | URL pública |
-| `drive_md5` | TEXT | NULL | Hash para detectar cambios |
-| `vigente` | BOOLEAN | NOT NULL, DEFAULT TRUE | ¿Aún válido? |
-| `estado` | TEXT | CHECK IN (...) | Ciclo: 'borrador' → 'revision' → 'vigente' → 'reemplazado'/'archivado' |
-| `vigencia_desde` | DATE | NULL | Fecha inicio validez |
-| `vigencia_hasta` | DATE | NULL | Fecha fin validez |
-| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `sincronizado_en` | TIMESTAMPTZ | NULL | Última sincronización |
-
-**Índices:**
-```sql
-CREATE INDEX documento_vigente_idx ON documento(vigente, estado);
-CREATE INDEX documento_tipo_idx ON documento(tipo);
-```
-
----
-
-### 2.5 Tabla: `respuesta_documento` - Relación M:N
-
-**Descripción:** Documentos adjuntos a cada respuesta
-
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| `respuesta_id` | INTEGER | PK + FK → respuesta (CASCADE) |
-| `documento_id` | INTEGER | PK + FK → documento (CASCADE) |
-| `orden` | INTEGER | DEFAULT 0 |
-
----
-
-### 2.6 Tabla: `contacto` - Derivación asincrónica
-
-**Descripción:** Personas/áreas a las que derivar consultas
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL, UNIQUE | Identificador |
-| `nombre` | TEXT | NOT NULL | Nombre del contacto |
-| `rol` | TEXT | NULL | Cargo (ej: "Secretario de Admisiones") |
-| `area` | TEXT | NULL | Departamento |
-| `email` | TEXT | NULL | Email de contacto |
-| `telefono` | TEXT | NULL | Teléfono |
-| `url_perfil` | TEXT | NULL | Enlace a perfil |
-| `motivo` | TEXT | NULL | Por qué contactar (mostrado al usuario) |
-| `horario` | TEXT | NULL | Horario de atención |
-| `orden` | INTEGER | DEFAULT 0 | Orden |
-| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
-| `creado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-
----
-
-### 2.7 Tabla: `opcion_contacto` - Relación M:N
-
-**Descripción:** Contactos asociados a cada opción
-
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| `opcion_id` | INTEGER | PK + FK → opcion_menu (CASCADE) |
-| `contacto_id` | INTEGER | PK + FK → contacto (CASCADE) |
-| `orden` | INTEGER | DEFAULT 0 |
-
----
-
-### 2.8 Tabla: `contexto` - Datos contextuales
-
-**Descripción:** Valores que varían por materia, comisión, cuatrimestre, etc.
-
-| Campo | Tipo | Restricciones | Descripción |
-|-------|------|---------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | ID único |
-| `clave` | TEXT | NOT NULL | Identificador (ej: "dias_cursada") |
-| `nombre` | TEXT | NOT NULL | Nombre visible |
-| `valor` | TEXT | NULL | Valor (ej: "Lunes y Miércoles 18:00-21:00") |
-| `ambito_tipo` | TEXT | CHECK IN (...) | Alcance: global / materia / comision / cuatrimestre / area |
-| `ambito_clave` | TEXT | NULL | Clave del ámbito |
-| `grupo` | TEXT | NULL | Agrupamiento |
-| `orden` | INTEGER | DEFAULT 0 | Orden |
-| `activo` | BOOLEAN | DEFAULT TRUE | Visibilidad |
-| `actualizado_en` | TIMESTAMPTZ | DEFAULT now() | Auditoría |
-
----
-
-### 2.9 Tabla: `opcion_contexto` - Relación M:N
-
-**Descripción:** Contextos que aplican a cada opción
-
-| Campo | Tipo | Restricciones |
-|-------|------|---------------|
-| `opcion_id` | INTEGER | PK + FK → opcion_menu (CASCADE) |
-| `contexto_id` | INTEGER | PK + FK → contexto (CASCADE) |
-
----
-
-### 2.10 Tabla: `conocimiento` - Base de conocimiento (Knowledge Base)
-
-**Descripción:** Preguntas, variantes y texto normalizado para búsqueda por similitud
-
-Tabla derivada/generada automáticamente. Contiene:
-- Preguntas base (de `respuesta.texto` normalizado)
-- Variantes (preguntas alternativas que mapean a respuestas)
-- `normalized_text`: sin acentos, minúsculas, para búsqueda exacta y trigram
-
----
-
-## 3. Relaciones entre Tablas
-
-### 3.1 Jerarquía del menú
-
-```
-categoria (raíz)
-  ├── opcion_menu (tipo='navegar')
-  │   └── categoria (destino)
-  │       └── opcion_menu
-  │           └── categoria
-  │
-  ├── opcion_menu (tipo='responder')
-  │   └── respuesta
-  │       └── respuesta_documento
-  │           └── documento
-  │
-  └── opcion_menu (tipo='derivar')
-      └── opcion_contacto
-          └── contacto
-```
-
-### 3.2 Relación específica: categoria ↔ opcion_menu
-
-- **Tipo:** 1:N (una categoría tiene muchas opciones)
-- **Campos:** `categoria.id` ← `opcion_menu.categoria_id`
-- **ON DELETE:** CASCADE (si borra categoría, borra opciones)
-- **Índices:** `opcion_menu(categoria_id, orden)`
-
-### 3.3 Relación: opcion_menu ↔ respuesta
-
-- **Tipo:** M:1 (muchas opciones pueden linkear una respuesta)
-- **Campos:** `respuesta.id` ← `opcion_menu.respuesta_id`
-- **ON DELETE:** SET NULL (si borra respuesta, la opción queda sin respuesta)
-- **Restricción:** Solo si `tipo='responder'`
-
-### 3.4 Relación: respuesta ↔ documento
-
-- **Tipo:** M:N (muchos documentos por respuesta)
-- **Tabla junction:** `respuesta_documento`
-- **ON DELETE:** CASCADE (si borra respuesta o documento, se limpia la relación)
-- **Índices:** `respuesta_documento(respuesta_id, documento_id)`
-
-### 3.5 Relación: opcion_menu ↔ contacto
-
-- **Tipo:** M:N (una opción puede derivar a varios contactos)
-- **Tabla junction:** `opcion_contacto`
-- **ON DELETE:** CASCADE
-- **Restricción:** Solo si `tipo='derivar'`
-
-### 3.6 Relación: opcion_menu ↔ contexto
-
-- **Tipo:** M:N (una opción puede tener múltiples contextos)
-- **Tabla junction:** `opcion_contexto`
-- **ON DELETE:** CASCADE
-- **Uso:** Para submenús que dependen de comisión, cuatrimestre, etc.
-
----
-
-## 4. Scripts de Creación
-
-### 4.1 Scripts en el Repositorio
-
-Los scripts SQL están en `/db/`:
-
-| Archivo | Propósito |
-|---------|-----------|
-| **001_schema.sql** | DDL: creación de tablas, índices, constraints, triggers, vistas |
-| **002_seed.sql** | DML: datos iniciales del menú (idempotente) |
-| **003_verificacion.sql** | Scripts de verificación (para testing) |
-| **005_kb_seed.sql** | Base de conocimiento: preguntas, variantes, intenciones |
-
-### 4.2 Cómo Ejecutar Scripts en Neon
-
-**Opción 1: Desde CLI SQL (pgAdmin o psql):**
+El contenido se carga con un solo proceso, que valida antes de escribir:
 
 ```bash
-# Conectar a Neon
-psql "postgresql://usuario:password@ep-xxxx-pooler.region.neon.tech/ifts29?sslmode=require"
-
-# Ejecutar scripts
-\i db/001_schema.sql
-\i db/002_seed.sql
-\i db/005_kb_seed.sql
+npm run sync --workspace backend      # o POST /api/sync con SYNC_SECRET
 ```
 
-**Opción 2: Desde Node.js (usando el driver `pg`, con la misma `DATABASE_URL`):**
+1. Lee las ocho pestañas de la planilla y valida encabezados y referencias. Si hay errores, muestra todos y **no escribe nada**.
+2. Escribe en una sola transacción. La base de conocimiento, los adjuntos y la asociación de contactos se reemplazan completos. Menú, respuestas, contactos y documentos se actualizan por clave, y lo que ya no está en la planilla se borra.
+3. Sincroniza los documentos con Drive: completa enlaces, IDs y MD5 de cada ficha.
+
+Las métricas no se tocan en ningún paso.
+
+## 4.5 Esquema y reset
+
+| Comando | Qué hace |
+|---|---|
+| `npm run db:push --workspace backend` | Aplica sólo `db/001_schema.sql`. Es idempotente. No carga contenido. |
+| `node --import tsx src/db/push.ts --reset` (desde `backend/`) | Borra el esquema `public` y lo vuelve a crear con `001`. Después hay que correr la sincronización. |
+
+> **Advertencia:** `--reset` borra `metrica_opcion`. Hasta que esté resuelto, exportar las métricas antes de resetear (`pg_dump -a -t metrica_opcion`).
+
+Nunca correr `--reset` contra Neon sin respaldo.
+
+## 4.6 Archivos SQL
+
+| Archivo | Uso |
+|---|---|
+| `db/001_schema.sql` | Esquema completo, estado final, sin `ALTER`. Lo aplican `db:push`, `--reset` y el arranque de Docker. |
+| `db/003_verificacion.sql` | Consultas de verificación del esquema. Se ejecuta a mano con `psql`. |
+
+El contenido no tiene archivos SQL: viene de la planilla.
+
+## 4.7 Desarrollo local con Docker
 
 ```bash
-cd backend
-npm run db:push     # Ejecuta 001_schema.sql + 002_seed.sql
-npm run db:kb       # Regenera 005_kb_seed.sql desde datos
+docker compose up -d --build
 ```
 
-### 4.3 Extensiones PostgreSQL Requeridas
-
-```sql
--- Requeridas por 001_schema.sql:
-CREATE EXTENSION IF NOT EXISTS pgcrypto;    -- Para UUIDs y encriptación
-CREATE EXTENSION IF NOT EXISTS pg_trgm;     -- Para búsqueda por similitud (trigram)
-```
-
-### 4.4 Catálogo Semilla (Alternativa a BD)
-
-> **Deprecado (propuesta en discusión).** La base de datos pasaría a ser la única fuente. Ver [base-conocimiento/04-base-como-fuente-unica.md](../base-conocimiento/04-base-como-fuente-unica.md). Esta sección describe el estado actual, no el objetivo.
-
-Si no hay `DATABASE_URL`:
-- Backend usa catálogo en memoria (`backend/src/seed/catalogo.ts`)
-- Contenido idéntico a `db/002_seed.sql` + `db/005_kb_seed.sql`
-- Perfecto para desarrollo y demostración sin infraestructura
-
-**Ubicación:**
-```
-backend/src/seed/
-├── catalogo.ts       # Menú, respuestas, documentos, contactos
-└── conocimiento.ts   # Base de intenciones (preguntas)
-```
-
----
-
-## 5. Operaciones CRUD
-
-**IMPORTANTE:** El sistema es **de solo lectura** desde la perspectiva del usuario final. No hay creación, actualización o eliminación de datos por parte de los usuarios.
-
-### 5.1 Read (Leer) - Única operación soportada
-
-**Obtener menú raíz:**
-
-```sql
-SELECT * FROM categoria WHERE es_raiz = TRUE;
-```
-
-**Obtener opciones de una categoría:**
-
-```sql
-SELECT * FROM opcion_menu 
-WHERE categoria_id = 1 AND activo = TRUE
-ORDER BY orden;
-```
-
-**Obtener respuesta para una opción:**
-
-```sql
-SELECT r.* FROM respuesta r
-INNER JOIN opcion_menu om ON r.id = om.respuesta_id
-WHERE om.clave = 'ADM_OP_ADMISIONES' AND r.activo = TRUE;
-```
-
-**Obtener documentos de una respuesta:**
-
-```sql
-SELECT d.* FROM documento d
-INNER JOIN respuesta_documento rd ON d.id = rd.documento_id
-WHERE rd.respuesta_id = 1 AND d.vigente = TRUE AND d.estado = 'vigente'
-ORDER BY rd.orden;
-```
-
-**Buscar en base de conocimiento (similitud trigram):**
-
-```sql
-SELECT * FROM conocimiento
-WHERE normalized_text % 'acceso siu'    -- % es operador trigram
-ORDER BY similarity(normalized_text, 'acceso siu') DESC
-LIMIT 5;
-```
-
-### 5.2 Create / Update / Delete - NO DISPONIBLES
-
-Estas operaciones **no existen** en el API público:
-
-- ❌ POST /api/categorias (no existe)
-- ❌ PUT /api/respuesta/123 (no existe)  
-- ❌ DELETE /api/contacto/5 (no existe)
-
-**Razón:** El sistema es anónimo y de solo lectura por diseño (RF05, RNF05)
-
-### 5.3 Administración de Datos (interno)
-
-La institución administra datos a través de:
-- **Google Drive:** Sincronización de documentos
-- **BD PostgreSQL:** Scripts SQL directos o herramientas admin (pgAdmin)
-- **No hay UI de administración:** Se asume que personal técnico gestiona la BD
-
-**Cómo actualizar contenido:**
-1. Modificar datos en PostgreSQL (Neon dashboard)
-2. O modificar semilla en `backend/src/seed/` y regenerar
-3. Reiniciar API para aplicar cambios
-
----
-
-## 6. Validaciones y Restricciones
-
-### 6.1 Validaciones a Nivel de Base de Datos
-
-| Campo | Validación | Descripción |
-|-------|-----------|-------------|
-| `email` | UNIQUE | No puede haber emails duplicados |
-| `nombre` | NOT NULL | El nombre es obligatorio |
-| `contraseña` | NOT NULL | La contraseña es obligatoria |
-| `estado` | ENUM | Solo valores específicos permitidos |
-
-### 6.2 Validaciones a Nivel de Aplicación
-
-- **Email válido:** Verificar formato de correo electrónico
-- **Contraseña:** Mínimo 8 caracteres, incluir números y caracteres especiales
-- **Registros duplicados:** Verificar antes de insertar
-- **Campos requeridos:** Validar antes de guardar
-
----
-
-## 7. Copia de Seguridad y Recuperación
-
-### 7.1 Crear Respaldo (Backup)
+Levanta PostgreSQL 16 en `localhost:5432` con la base `ifts29` y el esquema `001`. Después, para cargar el contenido:
 
 ```bash
-# En MySQL
-mysqldump -u root -p pp4_bot_ifts29 > backup_pp4_$(date +%Y%m%d).sql
+DATABASE_URL=postgresql://postgres:password123@localhost:5432/ifts29 npm run sync --workspace backend
 ```
 
-### 7.2 Restaurar desde Respaldo
+Si el volumen ya existía con una versión anterior del esquema, el arranque no vuelve a ejecutar `001`. Para empezar de cero: `docker compose down -v` y después `up`.
 
-```bash
-# En MySQL
-mysql -u root -p pp4_bot_ifts29 < backup_pp4_YYYYMMDD.sql
-```
+## 4.8 Configuración
 
----
+| Variable | Uso |
+|---|---|
+| `DATABASE_URL` | Conexión PostgreSQL (Neon o Docker local). Vacía: la API usa el catálogo semilla en memoria (modo demo), que se retira en un paso pendiente. |
+| `GOOGLE_SHEET_ID` | ID de la planilla de contenido. |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHARED_FOLDER_ID` | Acceso de lectura a la planilla y a Drive. |
 
-## 8. Consideraciones de Seguridad
+## 4.9 Pendientes
 
-- **Contraseñas:** Siempre almacenar encriptadas (bcrypt, scrypt o similar)
-- **SQL Injection:** Usar prepared statements en consultas parametrizadas
-- **Integridad referencial:** Mantener ON DELETE/UPDATE configuradas correctamente
-- **Auditoría:** Registrar cambios importantes en tablas críticas
-- **Acceso:** Limitar permisos de base de datos según roles
-
----
-
-## 9. Optimización
-
-### 9.1 Índices Creados
-
-| Tabla | Campo | Razón |
-|-------|-------|-------|
-| usuarios | email | Búsquedas frecuentes por email |
-| usuarios | estado | Filtrados frecuentes por estado |
-| [tabla] | [campo] | [Razón] |
-
-### 9.2 Consultas Optimizadas
-
-Usar índices en:
-- Búsquedas por email o ID de usuario
-- Filtros por estado o rol
-- Ordenamientos frecuentes
-
----
-
-## 10. Herramientas de Gestión
-
-### 10.1 Software Recomendado
-
-- **MySQL Workbench:** Para visualizar y administrar la BD
-- **DBeaver:** Administrador universal de bases de datos
-- **PhpMyAdmin:** Interfaz web (si aplica)
-- **HeidiSQL:** Cliente ligero para MySQL
-
-### 10.2 Conexiones de Prueba
-
-```
-Host: localhost
-Puerto: 3306
-Usuario: [usuario_bd]
-Contraseña: [contraseña]
-Base de datos: pp4_bot_ifts29
-```
-
----
-
-## 11. Soporte y Mantenimiento
-
-Para consultas sobre la base de datos:
-- Revisar los scripts en `/database/scripts/`
-- Consultar el Manual Técnico (02-manual-tecnico.md)
-- Contactar con los desarrolladores
+- Preservar `metrica_opcion` en `--reset`.
+- Migración de Neon: el esquema sin contexto y el contenido nuevo todavía no se aplicaron en producción.

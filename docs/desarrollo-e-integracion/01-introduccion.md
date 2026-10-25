@@ -1,83 +1,62 @@
 # 1. Introducción - Etapa 4: Desarrollo e Integración
 
-## Descripción General
+## Descripción general
 
-Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**. En esta etapa se integran todos los componentes del sistema en una aplicación completamente funcional que cumple con los requerimientos establecidos en las etapas anteriores.
+Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema en una aplicación funcional, coherente con las etapas anteriores.
 
 ## Objetivo
 
-El objetivo principal de esta etapa es:
-
-- **Desarrollar e integrar** una aplicación SPA (React) + API REST (Express) funcional y coherente
-- **Garantizar coherencia** con los diagramas, prototipos y documentación de las etapas previas
-- **Implementar la persistencia de datos** mediante PostgreSQL (Neon) con catálogo semilla local
-- **Realizar pruebas exhaustivas** mediante tests de integración (Node.js test, sin dependencias externas)
-- **Documentar completamente** el sistema para facilitar su uso, mantenimiento y despliegue
+- **Desarrollar e integrar** una aplicación SPA (React) y una API REST (Express), conectadas a PostgreSQL.
+- **Garantizar la coherencia** con los diagramas y prototipos de las etapas previas.
+- **Gestionar el contenido** desde herramientas que usa el equipo institucional: una planilla de Google para menú y respuestas, y una carpeta de Drive para los documentos.
+- **Verificar el sistema** con pruebas automatizadas, sin dependencias externas.
+- **Documentar** el sistema para su uso, mantenimiento y despliegue.
 
 ## Alcance
 
-### Componentes Implementados
+### Componentes
 
-1. **Frontend (React + Vite)**
-   - Widget embebible en Moodle mediante iframe
-   - Componentes: ChatWidget, ChatLauncher, MessageBubble, OptionList, DocumentCard, ContactCard
-   - Estados gestionados con hook useChat
-   - Estilos responsive y accesibles
+1. **Frontend (React + Vite).** Widget embebible en el campus virtual mediante `iframe`. Muestra el menú guiado, el texto libre, las respuestas con sus documentos y las tarjetas de contacto.
+2. **Backend (Express + TypeScript).** API REST con el menú, el motor de texto libre, la sincronización de contenido y las métricas anónimas. Ver [02-manual-tecnico.md](02-manual-tecnico.md).
+3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo. Ver [04-base-datos.md](04-base-datos.md).
+4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
 
-2. **Backend (Express + TypeScript)**
-   - Endpoints: GET /api/menu, POST /api/chat, GET /api/system/*
-   - Motor NL (lenguaje natural controlado): exacto, variantes, similitud trigram
-   - Servicios: chat, nl (interpretación), drive (sincronización), metricas
-   - Middleware: CORS, rate limiting, manejo de errores
-   - Dos modos: semilla (demo) y PostgreSQL (producción)
+### Características principales
 
-3. **Persistencia de Datos**
-   - PostgreSQL: Neon en producción y Postgres local con Docker en desarrollo
-   - 6 tablas: categoria, opcion_menu, respuesta, documento, contacto, conocimiento
-   - Índices B-tree y GIN trigram para búsqueda
-   - Catálogo semilla en memoria (idéntico a BD)
+- **Menú guiado:** categorías y opciones. Las preguntas y sub-preguntas son pantallas de botones.
+- **Texto libre:** consultas escritas que se ubican en la base de conocimiento, con aclaración cuando hay ambigüedad.
+- **Derivación:** por motivo y, cuando corresponde, por comisión, con el contacto asociado.
+- **Documentos:** enlazados a Google Drive, con su vigencia.
+- **Sin modelos de lenguaje:** las respuestas son siempre texto validado institucionalmente.
 
-4. **Gestión de Errores**
-   - Validación de entrada (longitud, formato)
-   - Rate limiting (120 req/min por IP)
-   - Manejo de excepciones con códigos HTTP
-   - Mensajes claros al cliente
+## Tecnologías
 
-## Tecnologías Utilizadas
+| Componente | Tecnología |
+|---|---|
+| Frontend | React, Vite, TypeScript |
+| Backend | Express 5, TypeScript |
+| Base de datos | PostgreSQL 16 (Neon en producción, Docker en desarrollo) |
+| Integraciones | Google Sheets y Drive (cuenta de servicio, solo lectura) |
+| Tests | `node:test` con `tsx` |
+| Despliegue | Vercel (serverless) para la API, con base en Neon |
 
-| Componente | Tecnología | Versión |
-|-----------|-----------|---------|
-| Frontend | React | 18+ |
-| Build | Vite | 5.x |
-| Backend | Express | 5.x |
-| Lenguaje | TypeScript | 5.9.3+ |
-| Base de datos | PostgreSQL (Neon) | 15+ |
-| Runtime | Node.js | 20+ |
-| Testing | node:test (nativo) | - |
-| Deployment | Vercel | serverless |
-| Control de versiones | Git | 2.0+ |
+## Entregables de esta etapa
 
-## Entregables de Esta Etapa
+1. Aplicación funcional (frontend y backend).
+2. Manual técnico.
+3. Manual de usuario, con capturas.
+4. Documentación de base de datos y de contenido.
+5. Documentación de pruebas unitarias e integración, con evidencias.
+6. Repositorio Git actualizado.
 
-1. Aplicación completamente funcional (frontend + backend)
-2. Manual Técnico detallado
-3. Manual de Usuario con capturas
-4. Scripts SQL de creación y seed
-5. Pruebas documentadas (6 test files, 40+ casos)
-6. Evidencias de ejecución
-7. Repositorio Git actualizado
-8. Proyecto comprimido (.zip)
-9. Documentación compilada en PDF
+## Estado actual
 
-## Estado Actual
+- Menú guiado, texto libre y derivación funcionando contra la base local de Docker.
+- Contenido cargado desde la planilla y los documentos sincronizados con Drive.
+- Tests del backend pasando.
+- Pendientes: retiro del catálogo semilla, conjunto dorado de consultas, preservación de métricas en el reset y despliegue en Neon.
 
-- Desarrollo completado
-- Aplicación ejecutándose en modo demo (sin BD) y producción (Neon)
-- Tests implementados y pasando
-- Faltaría: capturas, documentación final, evidencias
-
-## Fechas Clave
+## Fechas clave
 
 - **Inicio de etapa:** 27 de octubre de 2026
 - **Fecha de entrega:** 19 de noviembre de 2026
-- **Duración:** 3 semanas

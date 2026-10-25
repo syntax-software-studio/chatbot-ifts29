@@ -17,7 +17,6 @@ El Asistente Virtual es un **chatbot inteligente** integrado en el campus virtua
 - También entiende **preguntas escritas** en lenguaje natural
 - Devuelve **respuestas oficiales validadas** por la institución
 - Puede derivar tu consulta a contactos administrativos cuando sea necesario
-- Funciona **sin conexión a Internet** (en modo demo)
 - **100% anónimo** (no almacena datos personales)
 
 ### 1.2 ¿Para quién es?
@@ -93,7 +92,7 @@ Puedes acceder a una versión de demostración sin iniciar sesión:
 
 - Haz clic en el **ícono X** (esquina superior derecha)
 - El botón flotante permanece en Moodle para volver a abrir
-- En modo demostración, cierra la ventana o pestaña del navegador
+- Para cerrar la conversación, cierra la ventana o pestaña del navegador
 
 ---
 
@@ -114,7 +113,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 │                              │
 ├──────────────────────────────┤
 │  [Opción 1]  [Opción 2]      │  ← Botones de opciones
-│  [Opción 3]  [Opción 4]      │    (varían según contexto)
+│  [Opción 3]  [Opción 4]      │    (cambian según la pantalla)
 ├──────────────────────────────┤
 │ Escribe tu pregunta...   [→] │  ← Campo de texto + botón enviar
 └──────────────────────────────┘
@@ -196,27 +195,20 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ---
 
-### 5.3 Flujo 3: Derivación a Contactos
+### 5.3 Flujo 3: Derivación a un área
 
-**Objetivo:** Ser contactado por un área específica
+**Objetivo:** Hablar con el área que puede resolver tu consulta.
 
 **Pasos:**
 
-1. Navega hasta una sección que tenga **contactos administrativos**
-   (ej: "Solicitar cambio de plan de estudio")
-2. Se muestra información de **contacto directo:**
-   - Nombre del responsable
-   - Email
-   - Teléfono
-   - Horario de atención
-3. Haz clic en el **email** o llama por teléfono según convenga
-4. Describe tu consulta al contacto
-5. Ellos te responderán en el horario especificado
+1. En el menú principal, elige **"No encontré lo que busco"**.
+2. Elige el motivo de tu consulta: **Orientación cursada**, **Trámites, certificados, etc.** o **Entrega de documentación**.
+3. Si elegiste *Orientación cursada*, elige tu **comisión** (A o B).
+4. Se muestra el contacto del área: nombre, área, motivo y email.
+5. Escribe a esa persona o área con tu consulta.
 
 **Resultado esperado:**
-- Contacto con el área competente
-- Seguimiento personalizado de tu consulta
-- Respuesta en el plazo indicado
+- Contacto con el área competente.
 
 ---
 
@@ -283,7 +275,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### P: ¿Puedo usar el Asistente sin conectarme a Internet?
 
-**R:** En la demostración (https://chatbot-ifts29.vercel.app), funciona sin conexión. En Moodle, necesitas conexión porque está integrado en el campus virtual. El Asistente usa muy poco ancho de banda.
+**R:** Necesitas conexión a Internet, tanto en la demostración (https://chatbot-ifts29.vercel.app) como en Moodle. El Asistente usa muy poco ancho de banda.
 
 ---
 
@@ -304,7 +296,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### P: ¿El Asistente me puede ayudar con un problema urgente?
 
-**R:** El Asistente solo devuelve información. Si tu consulta es urgente, usa el menú para encontrar contactos administrativos directos y comunícate por teléfono o email.
+**R:** El Asistente solo devuelve información. Si tu consulta es urgente, elige "No encontré lo que busco" en el menú para ver el contacto del área y comunícate por email.
 
 ---
 
@@ -358,7 +350,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 - **Sé específico:** Cuanto más clara sea tu pregunta, mejor respuesta obtendrás
 - **Intenta ambas formas:** Experimenta con menú guiado y preguntas escritas
 - **Lee documentos completos:** Si descarga un PDF, léelo completamente antes de hacer otras preguntas
-- **Guarda contactos útiles:** Anota los emails/teléfonos que el Asistente te ofrece
+- **Guarda contactos útiles:** Anota los emails que el Asistente te muestra
 - **Explora el menú:** Familiarízate con la estructura para futuras consultas
 - **No es urgente:** Para asuntos urgentes, llama directamente al área correspondiente
 
@@ -374,5 +366,5 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 **Para preguntas académicas/administrativas:**
 
-- Usa el menú "Contactos" dentro del Asistente para llegar al área correcta
+- Usa la opción "No encontré lo que busco" dentro del Asistente para llegar al área correcta
 - O accede directamente a: https://www.ifts29.edu.ar (sitio oficial)
