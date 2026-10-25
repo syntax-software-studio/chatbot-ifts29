@@ -146,11 +146,11 @@ npm run db:push     # aplica esquema + contenido (idempotente)
 npm run db:reset    # borra el esquema public y lo vuelve a crear
 ```
 
-`db:push` aplica, en orden, `001_schema.sql`, `002_seed.sql` y `005_kb_seed.sql`,
-y al final muestra los conteos de cada tabla. Es
-**idempotente** (`CREATE ... IF NOT EXISTS` y `ON CONFLICT DO UPDATE`), así que
-se puede reejecutar sin romper nada: es la forma normal de actualizar el catálogo
-cuando cambia un texto del menú o se agrega una variante.
+`db:push` aplica sólo `001_schema.sql` (el esquema) y es idempotente. El contenido
+(menú, base de conocimiento, contactos y documentos) no sale del repo: se carga desde la
+planilla de Google con `npm run sync --workspace backend`, que también sincroniza los
+documentos de Drive. Para cambiar un texto o agregar una variante se edita la planilla y
+se vuelve a sincronizar.
 
 `db/001_schema.sql` define el esquema completo, las dos mitades del sistema:
 
@@ -172,19 +172,14 @@ reutiliza.
 
 ### Ampliar la base de conocimiento
 
-El contenido de la KB vive en `backend/src/seed/conocimiento.ts` y
-`db/005_kb_seed.sql` es su espejo generado. Para sumar una redacción nueva:
+El contenido vive en la planilla de Google "Bot IFTS29 - Contenido", no en el código. Para sumar una redacción nueva:
 
-1. Agregar el texto en `conMateria` del tema correspondiente, o crear un tema
-   nuevo si la consulta es administrativa.
-2. `npm run db:kb --workspace backend` → regenera `db/005_kb_seed.sql`.
-3. `npm test --workspace backend` → falla si el SQL y el TypeScript se
-   desalinean, si una variante queda repetida o si falta el `ON CONFLICT`.
-4. `npm run db:push` → sube el cambio a Neon.
+1. Agregar la fila en la pestaña `variantes` (y, si hace falta, en `preguntas` o `intenciones`).
+2. Ejecutar `npm run sync --workspace backend`. Valida la planilla antes de escribir: si hay un error, lo muestra y no cambia nada.
 
 ```bash
-npm run db:kb --workspace backend   # regenera db/005_kb_seed.sql
-npm test --workspace backend        # valida paridad e idempotencia
+npm run sync --workspace backend   # carga el contenido y sincroniza los documentos
+npm test --workspace backend       # valida el código
 ```
 
 ### Verificación contra PostgreSQL real
@@ -406,7 +401,8 @@ Los mensajes entre el iframe y la página padre usan un `targetOrigin` explícit
 | `npm run build` | Compila backend y frontend |
 | `npm run typecheck` | Chequeo de tipos de ambos workspaces |
 | `npm test --workspace backend` | Tests del backend (`node --test`, sin dependencias extra) |
-| `npm run db:push` | Aplica `001_schema.sql` + `002_seed.sql` + `005_kb_seed.sql` en Neon |
+| `npm run db:push` | Aplica sólo `001_schema.sql` (esquema) |
+| `npm run sync --workspace backend` | Carga el contenido de la planilla y sincroniza los documentos de Drive |
 | `npm run db:reset` | Borra el esquema y lo vuelve a crear |
 | `npm run db:kb --workspace backend` | Regenera `db/005_kb_seed.sql` desde el seed de TypeScript |
 

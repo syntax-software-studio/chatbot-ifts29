@@ -9,8 +9,6 @@ ENV POSTGRES_USER=postgres
 
 # Copia los scripts SQL de inicialización
 COPY db/001_schema.sql /docker-entrypoint-initdb.d/01-schema.sql
-COPY db/002_seed.sql /docker-entrypoint-initdb.d/02-seed.sql
-COPY db/005_kb_seed.sql /docker-entrypoint-initdb.d/03-kb-seed.sql
 
 # Expone el puerto
 EXPOSE 5432
