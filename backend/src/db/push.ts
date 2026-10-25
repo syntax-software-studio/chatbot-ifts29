@@ -183,6 +183,40 @@ async function ejecutar(sql: string, etiqueta: string): Promise<void> {
   }
 }
 
+interface FilaMetrica {
+  opcion_clave: string;
+  categoria_clave: string | null;
+  evento: string;
+  fecha: string;
+  total: number;
+}
+
+/** Lee las métricas existentes. Si la tabla todavía no existe, no hay nada que rescatar. */
+async function rescatarMetricas(): Promise<FilaMetrica[]> {
+  const existe = await query<{ existe: boolean }>(
+    "SELECT to_regclass('public.metrica_opcion') IS NOT NULL AS existe",
+  );
+  if (!existe.rows[0]?.existe) return [];
+  const r = await query<FilaMetrica>(
+    'SELECT opcion_clave, categoria_clave, evento, fecha::text AS fecha, total FROM metrica_opcion',
+  );
+  console.log(`[db] métricas a preservar: ${r.rows.length} filas`);
+  return r.rows;
+}
+
+/** Vuelve a insertar las métricas rescatadas, sumando si ya hubiera una fila igual. */
+async function restaurarMetricas(filas: FilaMetrica[]): Promise<void> {
+  for (const f of filas) {
+    await query(
+      `INSERT INTO metrica_opcion (opcion_clave, categoria_clave, evento, fecha, total)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (opcion_clave, evento, fecha)
+       DO UPDATE SET total = metrica_opcion.total + EXCLUDED.total`,
+      [f.opcion_clave, f.categoria_clave, f.evento, f.fecha, f.total],
+    );
+  }
+}
+
 async function main(): Promise<void> {
   if (!env.databaseUrl) {
     console.error(
@@ -194,12 +228,19 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Las métricas son datos históricos: se rescatan antes del reset y se restauran después.
+  const metricas = reset ? await rescatarMetricas() : [];
   if (reset) {
     console.log('[db] --reset: eliminando el esquema public...');
     await ejecutar('DROP SCHEMA public CASCADE; CREATE SCHEMA public;', 'reset');
   }
 
   await ejecutar(await readFile(join(carpetaSql, '001_schema.sql'), 'utf8'), '001_schema.sql');
+
+  if (metricas.length > 0) {
+    await restaurarMetricas(metricas);
+    console.log(`[db] métricas restauradas: ${metricas.length} filas`);
+  }
 
   const r = await query<{
     categoria: number;
