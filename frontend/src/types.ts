@@ -35,13 +35,6 @@ export interface Contacto {
   motivo: string | null;
 }
 
-export interface OpcionContexto {
-  contextoId: number;
-  clave: string;
-  etiqueta: string;
-  valor: string | null;
-}
-
 export interface OpcionMenu {
   clave: string;
   etiqueta: string;
@@ -98,15 +91,8 @@ export type TurnoChat =
   | { origen: FuenteDatos; tipo: 'nodo'; nodo: NodoMenu; meta?: MetaInterpretacion }
   | { origen: FuenteDatos; tipo: 'respuesta'; claveOpcion: string; respuesta: Respuesta; nodoActual: string; meta?: MetaInterpretacion }
   | { origen: FuenteDatos; tipo: 'derivacion'; claveOpcion: string; derivacion: Derivacion; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'contexto'; claveOpcion: string; pregunta: PreguntaContexto }
   | { origen: FuenteDatos; tipo: 'aclaracion'; aclaracion: Aclaracion; meta?: MetaInterpretacion }
   | { origen: FuenteDatos; tipo: 'no_disponible'; mensaje: string; meta?: MetaInterpretacion }
   | { origen: FuenteDatos; tipo: 'error'; mensaje: string };
-
-export interface PreguntaContexto {
-  texto: string;
-  clave: string;
-  opciones: OpcionContexto[];
-}
 
 export type FuenteDatos = 'base' | 'seed';

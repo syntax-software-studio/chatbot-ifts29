@@ -12,8 +12,8 @@
  *    información autorizada se informa que no se dispone de ella (D06/D08).
  *  - Toda respuesta proviene de contenido cargado por la institución y, si
  *    aplica, viene acompañada del documento vigente de Drive (RF07).
- *  - Cuando la información depende del contexto (comisión, cuatrimestre), se
- *    pregunta con opciones del menú, sin pedir datos personales (RF06).
+ *  - Cuando la información depende de un dato (comisión, cuatrimestre), el
+ *    menú lo resuelve con pantallas de opciones, sin pedir datos personales (RF06).
  *  - La derivación es siempre asincrónica: se muestran datos de contacto, el
  *    bot no escribe ni gestiona trámites (RF04).
  */
@@ -23,7 +23,6 @@ import {
   obtenerOpcion,
   obtenerRespuesta,
   obtenerContactos,
-  obtenerContextosDeOpcion,
   textoDerivacion,
   CATEGORIA_RAIZ,
 } from '../db/catalogo.js';
@@ -51,8 +50,6 @@ export interface EntradaChat {
   opcion?: string;
   /** Categoría a la que navega (alternativa explícita a `opcion`). */
   categoria?: string;
-  /** Valor de un submenú contextual, cuando la opción lo pidió. */
-  contexto?: number;
 }
 
 /**
@@ -91,20 +88,6 @@ export async function procesarSeleccion(
     return { tipo: 'nodo', nodo };
   }
 
-  // 2.b. Submenú contextual: la respuesta depende de un dato (comisión, etc.).
-  const contextos = await obtenerContextosDeOpcion(opcion.opcionId);
-  if (contextos.length > 0 && entrada.contexto === undefined) {
-    return {
-      tipo: 'contexto',
-      claveOpcion: opcion.clave,
-      pregunta: {
-        texto: '¿Sobre qué comisión necesitás la información?',
-        clave: contextos[0]!.clave,
-        opciones: contextos,
-      },
-    };
-  }
-
   // 2.c. Respuesta con contenido y documentos adjuntos.
   if (opcion.tipo === 'responder') {
     if (opcion.respuestaId === null) {
@@ -112,25 +95,15 @@ export async function procesarSeleccion(
     }
     const respuesta = await obtenerRespuesta(opcion.respuestaId);
 
-    // Si venía de un submenú contextual, se agrega el dato elegido.
-    if (entrada.contexto !== undefined && contextos.length > 0) {
-      const elegido = contextos.find((c) => c.contextoId === entrada.contexto);
-      if (elegido?.valor) {
-        respuesta.texto = `Sobre ${elegido.etiqueta}:\n${elegido.valor}`;
-      }
-    }
-
     await registrarMetrica(opcion.clave, evento);
     return { tipo: 'respuesta', claveOpcion: opcion.clave, respuesta, nodoActual: '' };
   }
 
   // 2.d. Derivación asincrónica con contactos (RF04).
   if (opcion.tipo === 'derivar') {
-    // Si el submenu contextual eligio una comision, solo se derivan sus contactos.
-    const comision = contextos.find((c) => c.contextoId === entrada.contexto)?.ambitoClave ?? null;
     const [texto, contactos] = await Promise.all([
       textoDerivacion(opcion.respuestaId),
-      obtenerContactos(opcion.opcionId, comision),
+      obtenerContactos(opcion.opcionId),
     ]);
     await registrarMetrica(opcion.clave, evento);
     return { tipo: 'derivacion', claveOpcion: opcion.clave, derivacion: { texto, contactos } };
@@ -167,9 +140,8 @@ export async function procesarConsulta(texto: string): Promise<TurnoChat> {
   switch (resolucion.clase) {
     case 'opcion': {
       const turno = await procesarSeleccion({ opcion: resolucion.opcionClave }, resolucion.evento);
-      // Un turno de contexto o de error no lleva metadatos de interpretación:
-      // todavía no se emitió una respuesta de conocimiento.
-      if (turno.tipo === 'contexto' || turno.tipo === 'error') return turno;
+      // Un turno de error no lleva metadatos de interpretación.
+      if (turno.tipo === 'error') return turno;
       return { ...turno, meta: resolucion.meta };
     }
 

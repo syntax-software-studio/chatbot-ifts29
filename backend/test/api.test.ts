@@ -80,7 +80,7 @@ test('una consulta ambigua devuelve aclaración con opciones del menú', async (
   const clave = json.aclaracion.opciones[0].clave;
   const elegida = await post({ opcion: clave });
   assert.equal(elegida.status, 200);
-  assert.ok(['respuesta', 'nodo', 'contexto'].includes(elegida.json.tipo));
+  assert.ok(['respuesta', 'nodo', 'derivacion'].includes(elegida.json.tipo));
 });
 
 test('una consulta fuera del dominio devuelve el aviso institucional', async () => {

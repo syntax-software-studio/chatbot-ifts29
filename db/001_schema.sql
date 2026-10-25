@@ -1,6 +1,6 @@
 -- ============================================================================
 --  Asistente Virtual Institucional - IFTS N.29 (Syntax SRL)
---  001_schema.sql - Esquema relacional completo para Neon PostgreSQL
+--  001_schema.sql - Esquema relacional para PostgreSQL (Neon y Docker local)
 --
 --  Contiene las dos mitades del sistema, que son un solo sistema:
 --    * el menu guiado (categorias, opciones, respuestas, documentos, contactos)
@@ -9,17 +9,20 @@
 --  opcion del menu y a una respuesta ya validada, asi que el texto libre solo
 --  localiza lo que ya existe.
 --
+--  Este archivo es ESTRUCTURA. No contiene datos: el contenido entra por la
+--  sincronizacion desde la planilla de Google (npm run sync). Es el estado
+--  final del esquema, sin ALTER: una base nueva queda igual que una base
+--  creada desde cero.
+--
 --  Principios de diseño:
 --   * No se almacenan datos personales ni identificadores de estudiantes.
 --     El sistema es público, anónimo y de solo lectura (RNF05).
---   * Todo el contenido institucional es versionable: cada tabla tiene
---     activo / vigencia para distinguir contenido vigente del histórico (RF07).
---   * El menú es un árbol genérico (categoria -> opcion -> respuesta) para
---     poder sumar materias, cuatrimestres o carreras sin rehacer el
---     esquema (RNF10).
+--   * El menú es un árbol genérico (categoria -> opcion -> respuesta o
+--     subcategoria). Una pregunta es una categoria; una subpregunta es una
+--     opcion que abre otra categoria (RNF10).
 --   * `normalized_text` (KB) es el texto ya normalizado por el MISMO
 --     normalizador que usa la API, para que el indice y los umbrales de
---     similitud sean comparables con los del modo local.
+--     similitud sean comparables.
 --
 --  Indices de la base de conocimiento:
 --   * B-tree sobre `normalized_text` para la coincidencia EXACTA (Nivel A).
@@ -50,10 +53,27 @@ COMMENT ON COLUMN categoria.mensaje       IS 'Mensaje del bot que se muestra al 
 COMMENT ON COLUMN categoria.es_raiz       IS 'TRUE solo para la categoria inicial que muestra el saludo.';
 
 -- ---------------------------------------------------------------------------
--- 2. OPCION_MENU  ->  botones que el estudiante puede tocar
---    tipo = 'navegar'   -> abre otra categoria (subnivel)
+-- 2. RESPUESTA  ->  texto institucional validado que muestra el bot
+--    Unico lugar donde vive el contenido institucional: ni el menu ni el
+--    texto libre guardan texto propio.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS respuesta (
+    id              SERIAL PRIMARY KEY,
+    clave           TEXT        NOT NULL UNIQUE,
+    texto           TEXT        NOT NULL,
+    orden           INTEGER     NOT NULL DEFAULT 0,
+    activo          BOOLEAN     NOT NULL DEFAULT TRUE,
+    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE respuesta IS 'Respuestas predefinidas validadas por la institucion.';
+
+-- ---------------------------------------------------------------------------
+-- 3. OPCION_MENU  ->  botones que el estudiante puede tocar
+--    tipo = 'navegar'   -> abre otra categoria (subpregunta)
 --    tipo = 'responder'  -> muestra el texto de una RESPUESTA (+ documentos)
---    tipo = 'derivar'    -> muestra contactos de derivacion asincronica (RF04)
+--    tipo = 'derivar'    -> muestra contactos de derivacion (RF04)
 --    Una opcion 'responder' es tambien el destino de las consultas escritas:
 --    la base de conocimiento la ubica y devuelve exactamente su respuesta.
 -- ---------------------------------------------------------------------------
@@ -66,7 +86,7 @@ CREATE TABLE IF NOT EXISTS opcion_menu (
     tipo                TEXT        NOT NULL DEFAULT 'navegar'
                             CHECK (tipo IN ('navegar', 'responder', 'derivar')),
     categoria_destino_id INTEGER    REFERENCES categoria (id) ON DELETE RESTRICT,
-    respuesta_id        INTEGER,
+    respuesta_id        INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     es_volver           BOOLEAN     NOT NULL DEFAULT FALSE,
     icono               TEXT,
     orden               INTEGER     NOT NULL DEFAULT 0,
@@ -88,34 +108,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS opcion_menu_navegar_uniq
     WHERE tipo = 'navegar' AND categoria_destino_id IS NOT NULL;
 
 COMMENT ON TABLE  opcion_menu               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
-COMMENT ON COLUMN opcion_menu.tipo            IS 'navegar = subnivel; responder = respuesta con adjuntos; derivar = contactos (RF04).';
+COMMENT ON COLUMN opcion_menu.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
 COMMENT ON COLUMN opcion_menu.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
-COMMENT ON COLUMN opcion_menu.categoria_destino_id IS 'Subnivel al que navega la opcion.';
+COMMENT ON COLUMN opcion_menu.categoria_destino_id IS 'Categoria a la que navega la opcion.';
 COMMENT ON COLUMN opcion_menu.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
-
--- ---------------------------------------------------------------------------
--- 3. RESPUESTA  ->  texto institucional validado que muestra el bot
---    Unico lugar donde vive el contenido institucional: ni el menu ni el
---    texto libre guardan texto propio.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS respuesta (
-    id              SERIAL PRIMARY KEY,
-    clave           TEXT        NOT NULL UNIQUE,
-    texto           TEXT        NOT NULL,
-    orden           INTEGER     NOT NULL DEFAULT 0,
-    activo          BOOLEAN     NOT NULL DEFAULT TRUE,
-    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-COMMENT ON TABLE respuesta IS 'Respuestas predefinidas validadas por la institucion.';
-
--- FK diferida: se agrega despues de crear respuesta para mantener el DDL lineal.
-ALTER TABLE opcion_menu
-    DROP CONSTRAINT IF EXISTS opcion_menu_respuesta_fk;
-ALTER TABLE opcion_menu
-    ADD CONSTRAINT opcion_menu_respuesta_fk
-    FOREIGN KEY (respuesta_id) REFERENCES respuesta (id) ON DELETE SET NULL;
 
 -- ---------------------------------------------------------------------------
 -- 4. DOCUMENTO  ->  ficha del archivo institucional alojado en Google Drive
@@ -172,8 +168,10 @@ CREATE INDEX IF NOT EXISTS respuesta_documento_doc_idx ON respuesta_documento (d
 COMMENT ON TABLE respuesta_documento IS 'Adjuntos (PDF/planilla/slide) vinculados a una respuesta.';
 
 -- ---------------------------------------------------------------------------
--- 6. CONTACTO  ->  derivacion asincronica (RF04)
+-- 6. CONTACTO  ->  derivacion (RF04)
 --    El sistema solo MUESTRA los datos; no envia nada ni gestiona tramites.
+--    `comision` indica a que comision responde el contacto ('A', 'B', ... o
+--    'General').
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS contacto (
     id          SERIAL PRIMARY KEY,
@@ -190,14 +188,6 @@ CREATE TABLE IF NOT EXISTS contacto (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Comision a la que responde el contacto ('A', 'B', ... o 'General').
--- ADD COLUMN IF NOT EXISTS: la base ya creada no recibe cambios de CREATE TABLE.
-ALTER TABLE contacto ADD COLUMN IF NOT EXISTS comision TEXT;
--- La columna horario se quitó del modelo: los contactos ya no muestran horario.
-ALTER TABLE contacto DROP COLUMN IF EXISTS horario;
-ALTER TABLE contacto DROP COLUMN IF EXISTS rol;
-ALTER TABLE contacto DROP COLUMN IF EXISTS telefono;
-
 COMMENT ON TABLE  contacto            IS 'Persona o area a la que se deriva la consulta (RF04).';
 COMMENT ON COLUMN contacto.motivo     IS 'Motivo de la derivacion, mostrado junto al contacto.';
 
@@ -211,72 +201,13 @@ CREATE TABLE IF NOT EXISTS opcion_contacto (
 CREATE INDEX IF NOT EXISTS opcion_contacto_contacto_idx ON opcion_contacto (contacto_id);
 
 -- ---------------------------------------------------------------------------
--- 7. CONTEXTO  ->  datos contextuales versionados (RF06 / RNF10)
---    Store clave/valor con ambito opcional (materia, comision, cuatrimestre).
---    Ej: dias_cursada | comision_a  -> "Lunes y Miercoles de 18:00 a 21:00 hs ..."
---    Se usa para (a) completar textos y (b) armar submenus de seleccion
---    cuando la respuesta depende de la comision o del momento de la cursada.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS contexto (
-    id            SERIAL PRIMARY KEY,
-    clave         TEXT        NOT NULL,
-    nombre        TEXT        NOT NULL,
-    valor         TEXT,
-    ambito_tipo   TEXT        CHECK (ambito_tipo IN ('global', 'materia', 'comision', 'cuatrimestre', 'area')),
-    ambito_clave  TEXT,
-    grupo         TEXT,
-    orden         INTEGER     NOT NULL DEFAULT 0,
-    activo        BOOLEAN     NOT NULL DEFAULT TRUE,
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-    CONSTRAINT contexto_ambito_ck
-        CHECK ((ambito_tipo IS NULL AND ambito_clave IS NULL) OR (ambito_tipo IS NOT NULL))
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS contexto_ambito_uniq
-    ON contexto (clave, COALESCE(ambito_tipo, 'global'), COALESCE(ambito_clave, ''));
-
-CREATE INDEX IF NOT EXISTS contexto_grupo_idx ON contexto (grupo, orden);
-
-COMMENT ON TABLE  contexto            IS 'Datos contextuales (comisiones, cuatrimestre, URLs y contacts institucionales).';
-COMMENT ON COLUMN contexto.ambito_tipo IS 'NULL/global = institucional; materia/comision/cuatrimestre = acotado.';
-
--- ---------------------------------------------------------------------------
--- 8. OPCION_CONTEXTO  ->  valores de contexto ofrecidos como submenu
---    Si la opcion tiene contextos, la API responde con una pregunta y la
---    lista de valores; al elegir uno se resuelve la respuesta final.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS opcion_contexto (
-    opcion_id   INTEGER NOT NULL REFERENCES opcion_menu (id) ON DELETE CASCADE,
-    contexto_id INTEGER NOT NULL REFERENCES contexto (id)  ON DELETE CASCADE,
-    PRIMARY KEY (opcion_id, contexto_id)
-);
-
-CREATE INDEX IF NOT EXISTS opcion_contexto_ctx_idx ON opcion_contexto (contexto_id);
-
--- ---------------------------------------------------------------------------
--- 9. CONTEXTO_OPCION  ->  opciones del submenu contextual
---    Para una misma opcion se ofrecen varias etiquetas (comision, cuatrimestre).
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS contexto_opcion (
-    id            SERIAL PRIMARY KEY,
-    opcion_id     INTEGER NOT NULL REFERENCES opcion_menu (id) ON DELETE CASCADE,
-    contexto_id   INTEGER NOT NULL REFERENCES contexto (id)  ON DELETE CASCADE,
-    etiqueta      TEXT        NOT NULL,
-    orden         INTEGER     NOT NULL DEFAULT 0,
-
-    CONSTRAINT contexto_opcion_uniq UNIQUE (opcion_id, contexto_id)
-);
-
-COMMENT ON TABLE contexto_opcion IS 'Opciones del submenu contextual (comision, cuatrimestre) con su etiqueta visible.';
-
--- ---------------------------------------------------------------------------
--- 10. METRICA_OPCION  ->  contadores agregados, sin datos personales (RNF05)
+-- 7. METRICA_OPCION  ->  contadores agregados, sin datos personales (RNF05)
 --     Solo se guarda la opcion alcanzada y el desenlace del turno. No hay IP,
 --     ni DNI, ni legajo, ni texto de la consulta.
 --     `evento` distingue la navegacion del menu del flujo escrito: los cinco
 --     valores `texto_*` / `aclaracion` / `no_disponible` dicen si la consulta
 --     se resolvio y como, que es lo que permite calibrar la base de conocimiento.
+--     Es una tabla de datos historicos: ningun reset debe tocarla.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS metrica_opcion (
     opcion_clave    TEXT        NOT NULL,
@@ -294,57 +225,9 @@ CREATE TABLE IF NOT EXISTS metrica_opcion (
 
 COMMENT ON TABLE metrica_opcion IS 'Metricas agregadas y anonimas para detectar vacios en la base de conocimiento.';
 
--- Actualizacion idempotente del CHECK de `metrica_opcion.evento`.
--- `CREATE TABLE IF NOT EXISTS` no toca la tabla si ya existe, asi que en una base
--- creada antes del flujo escrito el CHECK de arriba no se aplicaria y las
--- metricas del texto libre fallarian con una violacion de restriccion. Por eso
--- se borra cualquier CHECK existente sobre la columna y se vuelve a crear el
--- vigente, aunque la base este completa.
-DO $$
-DECLARE
-    c TEXT;
-    att SMALLINT;
-BEGIN
-    SELECT attnum INTO att
-      FROM pg_attribute
-     WHERE attrelid = 'metrica_opcion'::regclass
-       AND attname  = 'evento';
-
-    FOR c IN
-        SELECT conname
-          FROM pg_constraint
-         WHERE conrelid = 'metrica_opcion'::regclass
-           AND contype   = 'c'
-           AND conkey    = ARRAY[att]
-    LOOP
-        EXECUTE format('ALTER TABLE metrica_opcion DROP CONSTRAINT %I', c);
-    END LOOP;
-END $$;
-
-ALTER TABLE metrica_opcion
-    ADD CONSTRAINT metrica_opcion_evento_ck
-    CHECK (evento IN (
-        'seleccion', 'documento_abierto', 'derivacion', 'reinicio', 'error',
-        'texto_exacto', 'texto_similar', 'texto_regla', 'aclaracion', 'no_disponible'
-    ));
-
 COMMENT ON COLUMN metrica_opcion.evento IS
     'Resultado del turno: navegacion del menu o desenlace de una consulta escrita '
     '(texto_exacto, texto_similar, texto_regla, aclaracion, no_disponible).';
-
--- ---------------------------------------------------------------------------
--- 11. SESION_CONTEXTO  ->  selections del estudiante dentro de una sesion
---     Solo claves de opcion; se purga periodicamente. Nunca PII.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS sesion_contexto (
-    id            SERIAL PRIMARY KEY,
-    sesion_id     TEXT        NOT NULL,
-    clave         TEXT        NOT NULL,
-    valor         TEXT,
-    creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS sesion_contexto_sesion_idx ON sesion_contexto (sesion_id, creado_en);
 
 -- ===========================================================================
 --  BASE DE CONOCIMIENTO  ->  consultas escritas
@@ -362,8 +245,8 @@ CREATE INDEX IF NOT EXISTS sesion_contexto_sesion_idx ON sesion_contexto (sesion
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
--- 12. KB_INTENCION  ->  a que tipo de consulta responde cada opcion del menu
---     `clave` es la identidad estable (no el id) para que el seed sea
+-- 8. KB_INTENCION  ->  a que tipo de consulta responde cada opcion del menu
+--     `clave` es la identidad estable (no el id) para que la carga sea
 --     idempotente y para poder comparar con el catalogo local.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS kb_intencion (
@@ -386,7 +269,7 @@ COMMENT ON COLUMN kb_intencion.opcion_clave   IS 'Opcion del menu que emite la r
 COMMENT ON COLUMN kb_intencion.activo         IS 'FALSE = fuera de la busqueda, sin borrar el registro.';
 
 -- ---------------------------------------------------------------------------
--- 13. KB_PREGUNTA  ->  la formulacion canonica de la consulta
+-- 9. KB_PREGUNTA  ->  la formulacion canonica de la consulta
 --     Una intencion puede tener varias preguntas (por ejemplo, una por materia
 --     o una version corta y una larga); el ranking usa `priority`.
 -- ---------------------------------------------------------------------------
@@ -413,7 +296,7 @@ COMMENT ON COLUMN kb_pregunta.priority       IS 'Orden de presentacion cuando ha
 COMMENT ON COLUMN kb_pregunta.minimum_threshold IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
 
 -- ---------------------------------------------------------------------------
--- 14. KB_PREGUNTA_VARIANTE  ->  las formas en que se puede escribir
+-- 10. KB_PREGUNTA_VARIANTE  ->  las formas en que se puede escribir
 --     Una misma pregunta admite varias redacciones; `weight` pondera la
 --     variante en el ranking. Las variantes genericas (sin materia, por
 --     ejemplo "dias de cursada") se repiten en varias preguntas a proposito:
@@ -441,11 +324,11 @@ CREATE INDEX IF NOT EXISTS kb_variante_normalized_idx
 CREATE INDEX IF NOT EXISTS kb_variante_trgm_idx
     ON kb_pregunta_variante USING GIN (normalized_text gin_trgm_ops);
 
-COMMENT ON TABLE  kb_pregunta_variante         IS 'Redacciones alternate de una pregunta, ya normalizadas.';
+COMMENT ON TABLE  kb_pregunta_variante         IS 'Redacciones alternativas de una pregunta, ya normalizadas.';
 COMMENT ON COLUMN kb_pregunta_variante.weight IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
 
 -- ---------------------------------------------------------------------------
--- 15. Trigger de mantenimiento: actualizado_en
+-- 11. Trigger de mantenimiento: actualizado_en
 --     Una sola funcion para todas las tablas con columna `actualizado_en`,
 --     del menu y de la base de conocimiento.
 -- ---------------------------------------------------------------------------
@@ -462,7 +345,7 @@ DECLARE
 BEGIN
     FOREACH t IN ARRAY ARRAY[
         'categoria', 'opcion_menu', 'respuesta',
-        'documento', 'contacto', 'contexto',
+        'documento', 'contacto',
         'kb_intencion', 'kb_pregunta', 'kb_pregunta_variante'
     ] LOOP
         EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_touch ON %1$I', t);
@@ -473,7 +356,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 16. Vista de lectura del menu para el equipo de mantenimiento (RNF09)
+-- 12. Vista de lectura del menu para el equipo de mantenimiento (RNF09)
 --     Un solo SELECT muestra el arbol completo con sus adjuntos.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW v_arbol_menu AS
@@ -504,7 +387,7 @@ WHERE o.activo AND c.activo
 ORDER BY c.orden, o.orden, rd.orden;
 
 -- ---------------------------------------------------------------------------
--- 17. Vista de mantenimiento de la base de conocimiento
+-- 13. Vista de mantenimiento de la base de conocimiento
 --     Que consultas se resuelven y cuales no. No guarda texto de los
 --     estudiantes: solo el origen del acierto.
 -- ---------------------------------------------------------------------------

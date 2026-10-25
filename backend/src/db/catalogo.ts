@@ -19,7 +19,6 @@ import type {
   FuenteDatos,
   NodoMenu,
   OpcionMenu,
-  OpcionContexto,
   Respuesta,
   Derivacion,
   TipoOpcion,
@@ -164,23 +163,13 @@ const SQL_DOCUMENTOS_DE_RESPUESTA = `
    WHERE rd.respuesta_id = $1 AND d.estado <> 'archivado'
    ORDER BY rd.orden, d.id`;
 
-/* Si `$2` viene (comision elegida), se filtran los contactos de esa comision.
- * Los contactos sin comision o con "General" se muestran siempre. */
 const SQL_CONTACTOS_DE_OPCION = `
   SELECT c.id, c.clave, c.nombre, c.area, c.email,
          c.url_perfil, c.motivo
     FROM opcion_contacto oc
     JOIN contacto c ON c.id = oc.contacto_id
    WHERE oc.opcion_id = $1 AND c.activo
-     AND ($2::text IS NULL OR c.comision IS NULL OR c.comision = 'General' OR c.comision = $2)
    ORDER BY oc.orden, c.id`;
-
-const SQL_CONTEXTOS_DE_OPCION = `
-  SELECT ctx.id AS contexto_id, ctx.clave, ctx.nombre AS etiqueta, ctx.valor, ctx.ambito_clave
-    FROM contexto_opcion co
-    JOIN contexto ctx ON ctx.id = co.contexto_id
-   WHERE co.opcion_id = $1 AND ctx.activo
-   ORDER BY co.orden, ctx.id`;
 /* ==========================================================================
  * Lectura del árbol - Seed
  * ======================================================================== */
@@ -309,63 +298,12 @@ export async function obtenerRespuesta(respuestaId: number): Promise<Respuesta> 
 }
 
 /** Contactos de derivación de una opción. */
-export async function obtenerContactos(opcionId: number, comision?: string | null): Promise<Contacto[]> {
+export async function obtenerContactos(opcionId: number): Promise<Contacto[]> {
   if (getPool()) {
-    const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId, comision ?? null]);
+    const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId]);
     return r.rows.map(toContacto);
   }
   return seedContactosDeOpcion(opcionId);
-}
-
-/** Valores de contexto que la opción ofrece como submenú (RF06). */
-export async function obtenerContextosDeOpcion(opcionId: number): Promise<OpcionContexto[]> {
-  if (getPool()) {
-    const r = await query<{
-      contexto_id: number;
-      clave: string;
-      etiqueta: string;
-      valor: string | null;
-      ambito_clave: string | null;
-    }>(SQL_CONTEXTOS_DE_OPCION, [opcionId]);
-    return r.rows.map((row) => ({
-      contextoId: row.contexto_id,
-      clave: row.clave,
-      etiqueta: row.etiqueta,
-      valor: row.valor,
-      ambitoClave: row.ambito_clave,
-    }));
-  }
-
-  // El catálogo semilla no usa submenús contextuales: la respuesta de días de
-  // cursada ya lista las tres comisiones (comportamiento validado en el
-  // prototipo). Se deja el hook listo para cuando se carguen en la base.
-  return (seedData.opcionContexto ?? [])
-    .filter((oc) => oc.opcion_id === opcionId)
-    .map((oc) => {
-      const ctx = seedData.contextos.find((c) => c.id === oc.contexto_id);
-      if (!ctx) return null;
-      return {
-        contextoId: ctx.id,
-        clave: ctx.clave,
-        etiqueta: ctx.nombre,
-        valor: ctx.valor,
-        ambitoClave: ctx.ambito_clave ?? null,
-      };
-    })
-    .filter((x): x is OpcionContexto => x !== null);
-}
-
-/** Valores de un contexto global, para interpolar en textos. */
-export async function obtenerContextoGlobal(clave: string): Promise<string | null> {
-  if (getPool()) {
-    const r = await query<{ valor: string | null }>(
-      'SELECT valor FROM contexto WHERE clave = $1 AND ambito_tipo IS NULL AND activo LIMIT 1',
-      [clave],
-    );
-    return r.rows[0]?.valor ?? null;
-  }
-  const ctx = seedData.contextos.find((c) => c.clave === clave && c.ambito_tipo === null && c.activo);
-  return ctx?.valor ?? null;
 }
 
 /** Categorías hoja del árbol, útil para el mapa de navegación y las pruebas. */

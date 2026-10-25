@@ -67,33 +67,6 @@ SELECT c.id, c.clave, c.nombre, c.area, c.email,
  ORDER BY oc.orden, c.id;
 
 \echo ''
-\echo '=== 8. SQL_CONTEXTOS_DE_OPCION (submenu contextual) ==='
--- En el MVP validado no hay submenu contextual: la respuesta de dias de
--- cursada lista las tres comisiones en un solo mensaje. Se verifica aqui que
--- el mecanismo de RF06 funciona si el contenido decide usarlo.
-INSERT INTO contexto_opcion (opcion_id, contexto_id, etiqueta, orden)
-SELECT o.id, ctx.id, ctx.nombre, ctx.orden
-  FROM opcion_menu o, contexto ctx
- WHERE o.clave = 'ABD_OP_DIAS' AND ctx.clave = 'dias_cursada'
-ON CONFLICT (opcion_id, contexto_id) DO UPDATE SET orden = EXCLUDED.orden;
-
-SELECT ctx.id AS contexto_id, ctx.clave, ctx.nombre AS etiqueta, ctx.valor
-  FROM contexto_opcion co
-  JOIN contexto ctx ON ctx.id = co.contexto_id
- WHERE co.opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'ABD_OP_DIAS') AND ctx.activo
- ORDER BY co.orden, ctx.id;
-
--- Se retira la fila de prueba para no cambiar el comportamiento del MVP.
-DELETE FROM contexto_opcion
- WHERE opcion_id = (SELECT id FROM opcion_menu WHERE clave = 'ABD_OP_DIAS')
-   AND contexto_id IN (SELECT id FROM contexto WHERE clave = 'dias_cursada');
-
-\echo ''
-\echo '=== 9. Contexto global (interpolacion de textos) ==='
-SELECT clave, valor FROM contexto
- WHERE clave = 'email_bedelia' AND ambito_tipo IS NULL AND activo LIMIT 1;
-
-\echo ''
 \echo '=== 10. Metrica anonima: UPSERT ==='
 INSERT INTO metrica_opcion (opcion_clave, categoria_clave, evento, total)
 VALUES ('RAIZ_OP_ADMIN', NULL, 'seleccion', 1)

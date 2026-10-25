@@ -29,7 +29,6 @@ const cuerpoSchema = z
   .object({
     opcion: z.string().min(1).max(64).optional(),
     categoria: z.string().min(1).max(64).optional(),
-    contexto: z.number().int().positive().optional(),
     /** Consulta escrita. Validada a mano para poder dar mensajes en castellano. */
     message: z.string().optional(),
     /** Reservado para una fase futura de memoria conversacional (D10). */

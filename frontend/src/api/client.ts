@@ -74,7 +74,6 @@ export const obtenerMenu = (categoria?: string): Promise<NodoMenu> =>
 export interface EntradaChat {
   opcion?: string;
   categoria?: string;
-  contexto?: number;
   /** Consulta escrita. Mutuamente excluyente con `opcion`/`categoria`. */
   message?: string;
   /** Reservado para una fase futura de memoria conversacional (D10). */
