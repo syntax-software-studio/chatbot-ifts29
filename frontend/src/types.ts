@@ -45,7 +45,6 @@ export interface OpcionMenu {
 }
 
 export interface NodoMenu {
-  origen: FuenteDatos;
   categoria: Categoria;
   mensaje: string;
   opciones: OpcionMenu[];
@@ -88,11 +87,10 @@ export interface Aclaracion {
 }
 
 export type TurnoChat =
-  | { origen: FuenteDatos; tipo: 'nodo'; nodo: NodoMenu; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'respuesta'; claveOpcion: string; respuesta: Respuesta; nodoActual: string; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'derivacion'; claveOpcion: string; derivacion: Derivacion; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'aclaracion'; aclaracion: Aclaracion; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'no_disponible'; mensaje: string; meta?: MetaInterpretacion }
-  | { origen: FuenteDatos; tipo: 'error'; mensaje: string };
+  | { tipo: 'nodo'; nodo: NodoMenu; meta?: MetaInterpretacion }
+  | { tipo: 'respuesta'; claveOpcion: string; respuesta: Respuesta; nodoActual: string; meta?: MetaInterpretacion }
+  | { tipo: 'derivacion'; claveOpcion: string; derivacion: Derivacion; meta?: MetaInterpretacion }
+  | { tipo: 'aclaracion'; aclaracion: Aclaracion; meta?: MetaInterpretacion }
+  | { tipo: 'no_disponible'; mensaje: string; meta?: MetaInterpretacion }
+  | { tipo: 'error'; mensaje: string };
 
-export type FuenteDatos = 'base' | 'seed';

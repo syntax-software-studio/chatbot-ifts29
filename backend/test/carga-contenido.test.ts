@@ -2,7 +2,7 @@
  * Tests de la conversión y validación del contenido (`convertirContenido`).
  *
  * Función pura: no hay base ni red. El contenido de prueba es chico y se arma
- * acá, sin depender del seed ni de la planilla real.
+ * acá, sin depender de la planilla real.
  */
 
 import { test } from 'node:test';

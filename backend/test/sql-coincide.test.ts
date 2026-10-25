@@ -1,13 +1,6 @@
 /**
  * El SQL de la aplicación debe existir en el esquema.
  *
- * El modo demo lee de `seed/catalogo.ts` y `seed/conocimiento.ts`, donde los
- * campos se llaman `key`, `name`, `question`. El esquema PostgreSQL los llama
- * `clave`, `nombre`, `pregunta`. Como son dos Interfaces distintas para los
- * mismos datos, una deriva entre ellas solo se manifiesta cuando corre contra
- * Neon: el menu (mismo SQL desde el inicio) funciona y la base de conocimiento
- * responde "column i.key does not exist" y el chatbot cae al aviso de error.
- *
  * Estos tests cruzan el SQL de `db/*.ts` contra los DDL de `db/*.sql` para que
  * ese error aparezca en `npm test`, sin base de datos.
  */
@@ -106,7 +99,7 @@ test('cada columna usada por el SQL de la app existe en el esquema', async () =>
 
 test('el DDL y las migraciones no tienen BOM', async () => {
   // Un BOM invisible rompe `psql -f` con un error de sintaxis.
-  for (const archivo of ['db/001_schema.sql', 'db/002_seed.sql', 'db/003_verificacion.sql', 'db/005_kb_seed.sql']) {
+  for (const archivo of ['db/001_schema.sql', 'db/003_verificacion.sql']) {
     const sql = await leer(archivo);
     assert.equal(sql.charCodeAt(0) === 0xfeff, false, `${archivo} arranca con BOM`);
   }

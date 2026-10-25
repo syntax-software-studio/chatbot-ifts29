@@ -64,7 +64,6 @@ backend/src/
 │   ├── conocimiento.ts              # Consultas de la base de conocimiento
 │   ├── push.ts                      # Aplica el esquema (y --reset)
 │   └── sincronizar.ts               # Comando npm run sync
-├── seed/                            # Catálogo semilla (pendiente de retiro, ver 2.9)
 └── utils/                           # env, errores, normalización del texto
 ```
 
@@ -88,7 +87,7 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
 4. Si no hay exacta, similitud trigram (`pg_trgm`) contra las variantes.
 5. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
 
-Toda respuesta incluye `origen` (`base` o `seed`), que indica de dónde salieron los datos.
+Sin base de datos la API responde 503 (`BASE_NO_CONFIGURADA`). No hay modo demo: el contenido siempre sale de la base.
 
 ## 2.5 API
 
@@ -113,7 +112,7 @@ Las variables se leen de `.env` en la raíz del repo (plantilla: `.env.example`)
 
 | Variable | Obligatoria | Uso |
 |---|---|---|
-| `DATABASE_URL` | Sí, en producción | Conexión PostgreSQL. Vacía: modo demo con el seed (ver 2.9) |
+| `DATABASE_URL` | Sí | Conexión PostgreSQL. Vacía: la API responde 503 |
 | `GOOGLE_SHEET_ID` | Para sincronizar | ID de la planilla de contenido |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Para Google | Cuenta de servicio |
 | `GOOGLE_PRIVATE_KEY` | Para Google | Clave privada de la cuenta (con `\n` escapados) |
@@ -138,7 +137,7 @@ npm run dev:api                               # API en el puerto 3000
 npm run dev:web                               # Widget en desarrollo
 ```
 
-Para verificar: `GET /api/health` debe responder `"estado":"ok"`, con `"origen":"base"` en las respuestas.
+Para verificar: `GET /api/health` debe responder `"estado":"ok"`, y el menú debe responder con datos.
 
 ## 2.8 Pruebas
 
@@ -151,7 +150,6 @@ Los tests del backend no necesitan base ni red. Ver [05-pruebas-unitarias.md](05
 
 ## 2.9 Pendientes técnicos
 
-- **Retiro del catálogo semilla.** `backend/src/seed/`, `db/002_seed.sql`, `db/005_kb_seed.sql` y el generador de la KB siguen en el repo. Sólo los usa el modo demo y las pruebas de paridad. Se retiran al migrar los tests a fixtures.
 - **Conjunto dorado** para medir el motor de texto libre.
 - **Métricas en `db:reset`.** Ver [04-base-datos.md](04-base-datos.md), sección 4.5.
 - **Despliegue en Neon.** Pendiente de revisión.

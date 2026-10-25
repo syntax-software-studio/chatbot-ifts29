@@ -1,24 +1,16 @@
 /**
- * Acceso a la base de conocimiento conversacional.
+ * Acceso a la base de conocimiento conversacional (tablas `kb_*` de PostgreSQL).
  *
- * Mismo patron que `db/catalogo.ts`: dos origenes con la misma interfaz.
- *   - `neon` : tablas `kb_*` reales (indice trigram de `pg_trgm`).
- *   - `seed` : espejo en memoria (`src/seed/conocimiento.ts`).
- *
- * Que la consulta se resuelva en Neon o en el catalogo local no cambia el
- * resultado: `similarity()` de `pg_trgm` y `similitudTrigram()` implementan el
- * mismo coeficiente sobre los mismos trigramas, de modo que los umbrales se
- * comportan igual en ambos modos.
+ * El índice trigram de `pg_trgm` (`similarity()`) implementa el mismo
+ * coeficiente que `similitudTrigram()` del normalizador, así que los umbrales
+ * se comportan igual en la búsqueda y en las pruebas.
  *
  * Ninguna consulta de este archivo devuelve texto de respuesta: solo claves.
- * El texto se recupera despues con `obtenerRespuesta()` / `obtenerOpcion()`,
- * que son las unicas vias autorizadas para emitir contenido institucional.
+ * El texto se recupera después con `obtenerRespuesta()` / `obtenerOpcion()`,
+ * que son las únicas vías autorizadas para emitir contenido institucional.
  */
 
-import { query, getPool } from './pool.js';
-import { seedData } from './catalogo.js';
-import { seedKb } from '../seed/conocimiento.js';
-import { similitudTrigram } from '../utils/normalizar.js';
+import { query } from './pool.js';
 
 /** Intencion + pregunta + variante que casan con la consulta. */
 export interface CandidatoKb {
@@ -68,9 +60,6 @@ const LIMITE_CANDIDATOS = 12;
  * Neon
  * ======================================================================== */
 
-// El esquema usa nombres en castellano (`clave`, `nombre`, `pregunta`) y el
-// seed de TypeScript nombres en ingles (`key`, `name`, `question`): se aliasea
-// en el SELECT para que `RawCandidato` sea el mismo en los dos origenes.
 const SQL_EXACTO = `
   SELECT i.clave    AS intent_key,
          i.nombre  AS intent_name,
@@ -132,69 +121,6 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
 });
 
 /* ==========================================================================
- * Seed
- * ======================================================================== */
-
-/** Respuestas del catalogo local, para traducir `respuesta.clave` a id. */
-function idRespuestaLocal(respuestaClave: string | null): number | null {
-  if (!respuestaClave) return null;
-  const r = seedData.respuestas.find((x) => x.clave === respuestaClave && x.activo);
-  return r?.id ?? null;
-}
-
-/**
- * Ranqueo en memoria.
- *
- * `soloExactos` replica el `WHERE v.normalized_text = $1` de Neon. No se puede
- * implementarlo como "similitud >= 1": dos textos distintos con los mismos
- * trigramas dan 1 (p. ej. "tecnicas de programacion" y "programacion de
- * tecnicas"), y en Neon eso NO es una coincidencia exacta.
- */
-function candidatosSeed(
-  normalizado: string,
-  minimo: number,
-  soloExactos = false,
-): CandidatoKb[] {
-  const preguntasPorId = new Map(seedKb.preguntas.map((p) => [p.id, p]));
-  const intencionesPorId = new Map(seedKb.intenciones.map((i) => [i.id, i]));
-
-  const salida: CandidatoKb[] = [];
-  for (const v of seedKb.variantes) {
-    if (!v.activo) continue;
-    const esExacto = v.normalized_text === normalizado;
-    if (soloExactos && !esExacto) continue;
-
-    const p = preguntasPorId.get(v.pregunta_id);
-    if (!p || !p.activo) continue;
-    const i = intencionesPorId.get(p.intencion_id);
-    if (!i || !i.activo) continue;
-
-    const similarity = esExacto ? 1 : similitudTrigram(normalizado, v.normalized_text);
-    if (!soloExactos && similarity < minimo) continue;
-
-    salida.push({
-      intentKey: i.key,
-      intentName: i.name,
-      domain: i.domain,
-      opcionClave: i.opcion_clave,
-      respuestaId: idRespuestaLocal(p.respuesta_clave),
-      preguntaId: p.id,
-      question: p.question,
-      priority: p.priority,
-      minimumThreshold: p.minimum_threshold,
-      originalText: v.original_text,
-      normalizedText: v.normalized_text,
-      weight: v.weight,
-      similarity,
-    });
-  }
-
-  return salida.sort(
-    (a, b) => b.similarity - a.similarity || b.priority - a.priority || b.weight - a.weight,
-  );
-}
-
-/* ==========================================================================
  * API publica
  * ======================================================================== */
 
@@ -207,13 +133,8 @@ function candidatosSeed(
  */
 export async function buscarExacto(normalizado: string): Promise<CandidatoKb[]> {
   if (normalizado.length === 0) return [];
-
-  if (getPool()) {
-    const r = await query<RawCandidato>(SQL_EXACTO, [normalizado, LIMITE_CANDIDATOS]);
-    return r.rows.map(toCandidato);
-  }
-
-  return candidatosSeed(normalizado, 0, true).slice(0, LIMITE_CANDIDATOS);
+  const r = await query<RawCandidato>(SQL_EXACTO, [normalizado, LIMITE_CANDIDATOS]);
+  return r.rows.map(toCandidato);
 }
 
 /**
@@ -226,11 +147,6 @@ export async function buscarSimilares(
   limite = LIMITE_CANDIDATOS,
 ): Promise<CandidatoKb[]> {
   if (normalizado.length === 0) return [];
-
-  if (getPool()) {
-    const r = await query<RawCandidato>(SQL_SIMILARES, [normalizado, minimo, limite]);
-    return r.rows.map(toCandidato);
-  }
-
-  return candidatosSeed(normalizado, minimo).slice(0, limite);
+  const r = await query<RawCandidato>(SQL_SIMILARES, [normalizado, minimo, limite]);
+  return r.rows.map(toCandidato);
 }

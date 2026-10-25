@@ -85,12 +85,12 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 7. **Contacto de derivación con motivo corto.** El texto que ve el estudiante es la etiqueta corta; el texto largo del PDF de contactos queda como respaldo fuera de la carpeta de documentos.
 8. **Sin `ALTER` en el esquema.** `001_schema.sql` describe el estado final; una base nueva queda igual que una creada desde cero.
 9. **`db:push` aplica sólo el esquema.** El contenido entra por la sincronización.
+10. **Sin modo demo.** No existe un catálogo semilla: sin base de datos la API responde 503. Una sola fuente de datos.
 
 ## Pendientes
 
 - **Submenú por comisión para documentos** (por ejemplo, horarios o condiciones por comisión). Hoy el documento se muestra sin preguntar la comisión. Hay que definir cómo se asocia a la respuesta y construirlo en el menú.
 - **Métricas en `db:reset`.** El reset borra `metrica_opcion`. Hace falta preservarla o exportarla antes.
-- **Retiro del seed.** `db/002_seed.sql`, `db/005_kb_seed.sql`, `backend/src/seed/`, el generador de la KB y los tests que dependen del seed. Los tests se reescriben sobre fixtures propios.
 - **Conjunto dorado.** Consultas con respuesta esperada para medir el motor de texto libre y calibrar los umbrales.
 - **Documento sin archivo.** `EAM_condiciones` está en la planilla pero no existe en Drive; el bot no le muestra enlace hasta que aparezca.
 - **Producción (Neon).** Los cambios de esquema y de contenido todavía no se aplicaron en Neon. Requieren migración y revisión.

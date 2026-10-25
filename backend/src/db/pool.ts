@@ -6,8 +6,7 @@
  * SSL, `?sslmode=require`). `pg` soporta SCRAM-SHA-256, que es el método de
  * autenticación de Neon.
  *
- * Si no hay `DATABASE_URL`, `getPool()` devuelve `null` y la capa de datos usa
- * el catálogo semilla local (modo demo).
+ * Sin `DATABASE_URL` no hay base: la API responde 503 (ver app.ts).
  */
 
 import { Pool } from 'pg';
@@ -44,7 +43,7 @@ export async function query<T = Record<string, unknown>>(
 ): Promise<Resultado<T>> {
   const p = getPool();
   if (!p) {
-    throw new Error('DATABASE_URL no configurada: se debe usar la capa de catálogo con semilla.');
+    throw new Error('DATABASE_URL no configurada: no hay base de datos.');
   }
 
   const resultado = await p.query(text, params);
@@ -54,7 +53,7 @@ export async function query<T = Record<string, unknown>>(
 /** Comprueba conectividad y existencia del esquema. */
 export async function checkDatabase(): Promise<{ ok: boolean; detalle?: string }> {
   const p = getPool();
-  if (!p) return { ok: false, detalle: 'DATABASE_URL no configurada (modo semilla)' };
+  if (!p) return { ok: false, detalle: 'DATABASE_URL no configurada' };
 
   try {
     await p.query('SELECT 1');
@@ -62,13 +61,13 @@ export async function checkDatabase(): Promise<{ ok: boolean; detalle?: string }
       `SELECT count(*)::int AS n
          FROM information_schema.tables
         WHERE table_schema = 'public'
-          AND table_name IN ('categoria','opcion_menu','respuesta','documento','contacto','contexto')`,
+          AND table_name IN ('categoria','opcion_menu','respuesta','documento','contacto','kb_intencion')`,
     );
     const total = r.rows[0]?.n ?? 0;
     if (total < 6) {
       return {
         ok: true,
-        detalle: `Esquema incompleto: ${total}/6 tablas. Ejecutar db/001_schema.sql y db/002_seed.sql.`,
+        detalle: `Esquema incompleto: ${total}/6 tablas. Ejecutar db/001_schema.sql.`,
       };
     }
     return { ok: true, detalle: 'Esquema completo' };
@@ -90,6 +89,6 @@ export function logDbMode(): void {
     console.log('[db] origen de datos: PostgreSQL (pg)');
   } else if (!warned) {
     warned = true;
-    console.warn('[db] DATABASE_URL no configurada -> usando catálogo semilla local (modo demo).');
+    console.warn('[db] DATABASE_URL no configurada: la API responde 503 en las rutas que necesitan base.');
   }
 }

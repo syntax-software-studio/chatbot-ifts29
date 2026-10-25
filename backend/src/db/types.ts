@@ -110,5 +110,3 @@ export type TurnoChat =
   | { tipo: 'no_disponible'; mensaje: string; meta?: MetaInterpretacion }
   | { tipo: 'error'; mensaje: string };
 
-/** Origen de los datos: base PostgreSQL (local o Neon) o catalogo semilla local. */
-export type FuenteDatos = 'base' | 'seed';

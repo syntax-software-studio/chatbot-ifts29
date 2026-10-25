@@ -4,19 +4,17 @@
  *
  * `/api/sync` es la rutina que ejecuta el personal autorizado tras actualizar
  * la carpeta de Drive (RF08). Está protegida con `SYNC_SECRET` cuando está
- * definido; en el modo demo sin secreto se acepta, para que el equipo pueda
- * probarlo localmente.
+ * definido.
  */
 
 import { Router } from 'express';
 import { z } from 'zod';
 import { checkDatabase } from '../db/pool.js';
-import { fuente } from '../db/catalogo.js';
 import { verificarDrive } from '../services/drive.service.js';
 import { sincronizar } from '../services/sincronizacion.service.js';
 import { topOpciones } from '../services/metricas.service.js';
 import { asyncHandler } from '../middleware/error.js';
-import { env, hasDatabase, hasGoogleDrive } from '../utils/env.js';
+import { env, hasGoogleDrive } from '../utils/env.js';
 import { unauthorized } from '../utils/errors.js';
 
 export const healthRouter = Router();
@@ -29,12 +27,12 @@ healthRouter.get(
       ? await verificarDrive()
       : { ok: false, detalle: 'Google Drive no configurado' };
 
-    const sano = db.ok || !hasDatabase();
+    const sano = db.ok;
 
     res.status(sano ? 200 : 503).json({
       estado: sano ? 'ok' : 'degradado',
       version: process.env.npm_package_version ?? '1.0.0',
-      datos: { origen: fuente(), baseDeDatos: db },
+      datos: { baseDeDatos: db },
       drive,
       uptimeSegundos: Math.round(process.uptime()),
     });
@@ -80,6 +78,6 @@ healthRouter.post(
 healthRouter.get(
   '/metricas',
   asyncHandler(async (_req, res) => {
-    res.json({ origen: fuente(), top: await topOpciones() });
+    res.json({ top: await topOpciones() });
   }),
 );

@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { menuDeCategoria, menuInicial } from '../services/chat.service.js';
-import { listarCategorias, obtenerNodo, obtenerOpcion, fuente, CATEGORIA_RAIZ } from '../db/catalogo.js';
+import { listarCategorias, obtenerNodo, obtenerOpcion, CATEGORIA_RAIZ } from '../db/catalogo.js';
 import { asyncHandler } from '../middleware/error.js';
 import { notFound } from '../utils/errors.js';
 
@@ -38,7 +38,7 @@ menuRouter.get(
           return { categoria: c.clave, mensaje: nodo.mensaje, opciones: nodo.opciones };
         }),
       );
-      res.json({ origen: fuente(), raiz: CATEGORIA_RAIZ, categorias: arbol });
+      res.json({ raiz: CATEGORIA_RAIZ, categorias: arbol });
       return;
     }
 
@@ -46,7 +46,7 @@ menuRouter.get(
       ? await menuDeCategoria(categoria)
       : await menuInicial();
 
-    res.json({ origen: fuente(), ...nodo });
+    res.json(nodo);
   }),
 );
 
@@ -57,6 +57,6 @@ menuRouter.get(
     const clave = String(req.params.clave ?? '');
     const opcion = await obtenerOpcion(clave).catch(() => null);
     if (!opcion) throw notFound(`Opción no encontrada: ${clave}`);
-    res.json({ origen: fuente(), ...opcion });
+    res.json(opcion);
   }),
 );

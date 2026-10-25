@@ -43,11 +43,10 @@ const chat = async (cuerpo: unknown): Promise<{ status: number; json: any }> => 
 
 const claves = (opciones: Array<{ clave: string }>): string[] => opciones.map((o) => o.clave);
 
-test('health responde ok y con origen de base de datos', async () => {
+test('health responde ok con la base de datos', async () => {
   const res = await fetch(`${base}/api/health`);
   const json = (await res.json()) as any;
   assert.equal(json.estado, 'ok');
-  assert.equal(json.datos.origen, 'base');
 });
 
 test('el menú raíz trae sus opciones desde la base', async () => {
@@ -96,7 +95,6 @@ test('una consulta escrita responde con la misma respuesta del menú', async () 
   const r = await chat({ message: 'programa de ABD' });
   assert.equal(r.status, 200);
   assert.equal(r.json.tipo, 'respuesta');
-  assert.equal(r.json.origen, 'base');
   assert.equal(r.json.claveOpcion, 'ABD_OP_PROG');
 });
 

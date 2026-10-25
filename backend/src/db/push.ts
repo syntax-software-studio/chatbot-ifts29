@@ -126,7 +126,7 @@ const esErrorDeVariasSentencias = (err: unknown): boolean =>
  * Saca el envoltorio transaccional de un script para poder aplicar sus
  * sentencias de forma independiente.
  *
- * `002_seed.sql` viene envuelto en `BEGIN; ... COMMIT;`. Si una sentencia
+ * Un script que viene envuelto en `BEGIN; ... COMMIT;`. Si una sentencia
  * fallara dentro de una transacción explícita, PostgreSQL aborta el resto de la
  * transacción y cada sentencia posterior fallaría con "current transaction is
  * aborted", enmascarando el error real. En el camino de diagnóstico cada

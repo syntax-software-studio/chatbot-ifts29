@@ -55,8 +55,8 @@ export function esConsultaUtil(entrada: string): boolean {
 /* ==========================================================================
  * Similitud trigram
  * --------------------------------------------------------------------------
- * Réplica exacta de `similarity()` de PostgreSQL `pg_trgm`, para que el modo
- * semilla (sin `DATABASE_URL`) aplique los MISMOS umbrales que la base real.
+ * Réplica exacta de `similarity()` de PostgreSQL `pg_trgm`, para que las pruebas
+ * de la similitud apliquen los MISMOS umbrales que la base real.
  *
  * Réplica de `contrib/pg_trgm` (`generate_trgm_only` + `cnt_sml`):
  *   1. el texto se parte por palabras (los trigramas NO cruzan espacios);

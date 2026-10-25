@@ -122,10 +122,10 @@ Si el volumen ya existía con una versión anterior del esquema, el arranque no 
 
 | Variable | Uso |
 |---|---|
-| `DATABASE_URL` | Conexión PostgreSQL (Neon o Docker local). Vacía: la API usa el catálogo semilla en memoria (modo demo), que se retira en un paso pendiente. |
+| `DATABASE_URL` | Conexión PostgreSQL (Neon o Docker local). Vacía: la API responde 503. |
 | `GOOGLE_SHEET_ID` | ID de la planilla de contenido. |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHARED_FOLDER_ID` | Acceso de lectura a la planilla y a Drive. |
 
 ## 4.9 Pendientes
 
-- Migración de Neon: el esquema sin contexto y el contenido nuevo todavía no se aplicaron en producción.
+- Migración de Neon: el esquema y el contenido nuevos todavía no se aplicaron en producción.

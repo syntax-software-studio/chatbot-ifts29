@@ -48,7 +48,7 @@
 - [x] Documentos enlazados a Google Drive, con sincronización de enlaces e IDs
 - [x] Validación de entrada, límite de peticiones por IP y CORS para el embebido
 - [x] Sin datos personales: las métricas son agregados anónimos
-- [ ] Retiro del catálogo semilla (`backend/src/seed/`, `db/002_seed.sql`, `db/005_kb_seed.sql`), que todavía existe en el repo
+- [x] Retiro del catálogo semilla y del modo demo: sin base de datos, la API responde 503
 
 ---
 

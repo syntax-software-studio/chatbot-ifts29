@@ -17,7 +17,7 @@
 
 import { clienteDrive } from '../client/drive.client.js';
 import { env, hasGoogleDrive } from '../utils/env.js';
-import { query, getPool } from '../db/pool.js';
+import { query } from '../db/pool.js';
 
 /** Verifica si las credenciales de Drive pueden autenticarse. */
 export async function verificarDrive(): Promise<{ ok: boolean; detalle: string }> {
@@ -165,7 +165,6 @@ export function enlaceDeDescarga(fileId: string): string {
 
 export interface ResultadoSync {
   ejecutada: boolean;
-  origen: 'base' | 'seed';
   dryRun: boolean;
   archivosVistos: number;
   actualizados: number;
@@ -210,7 +209,6 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
   const mensajes: string[] = [];
   const resultado: ResultadoSync = {
     ejecutada: false,
-    origen: getPool() ? 'base' : 'seed',
     dryRun: opciones.dryRun ?? false,
     archivosVistos: 0,
     actualizados: 0,
@@ -220,10 +218,6 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
 
   if (!hasGoogleDrive()) {
     mensajes.push('Google Drive no configurado: se omite la sincronización.');
-    return resultado;
-  }
-  if (!getPool()) {
-    mensajes.push('Sin base de datos configurada: la sincronización no tiene dónde escribir.');
     return resultado;
   }
 

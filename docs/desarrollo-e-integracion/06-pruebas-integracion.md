@@ -28,7 +28,7 @@ node --import tsx --test test/api.test.ts             # un archivo
 |---|---|---|
 | `conocimiento.test.ts` | 6 | Búsqueda en la base de conocimiento: coincidencia exacta, variantes compartidas por dos intenciones (ambigüedad), búsqueda por similitud con error de tipeo, mínimo de similitud, y que cada candidato apunte a su opción del menú. |
 | `nl.service.test.ts` | 5 | Motor de texto libre: coincidencia exacta, error de tipeo resuelto por similitud, aclaración con opciones reales, saludo al menú raíz, y consulta fuera de dominio. |
-| `api.test.ts` | 13 | Contrato HTTP: health con origen de base de datos, menú raíz, navegación a una materia, respuesta con texto y documentos, pantalla de motivos de derivación, contacto asociado a una opción de derivación, consulta escrita, aclaración, validación del cuerpo (400), opción inexistente, y métricas. |
+| `api.test.ts` | 13 | Contrato HTTP: health con la base de datos, menú raíz, navegación a una materia, respuesta con texto y documentos, pantalla de motivos de derivación, contacto asociado a una opción de derivación, consulta escrita, aclaración, validación del cuerpo (400), opción inexistente, y métricas. |
 
 ## 6.5 Criterio
 

@@ -2,7 +2,7 @@
  * Tests de la validación de la fuente de contenido (`interpretarContenido`).
  *
  * Son funciones puras: no hay red ni credenciales. Los datos son chicos y se
- * arman acá, sin depender del seed ni de la planilla real.
+ * arman acá, sin depender de la planilla real.
  */
 
 import { test } from 'node:test';
