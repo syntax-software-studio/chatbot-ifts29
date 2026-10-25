@@ -57,7 +57,7 @@ test('el documento se identifica por el nombre sin .pdf, y conserva el nombre de
 
 test('las variantes se guardan normalizadas con el mismo normalizador del bot', () => {
   const r = convertirContenido(contenidoValido());
-  assert.equal(r.datos?.variantes[0]?.normalizado, 'programa de abd');
+  assert.equal(r.datos?.variantes[0]?.normalizado, 'programa abd');
 });
 
 test('las celdas vacías de opcionales quedan en null', () => {

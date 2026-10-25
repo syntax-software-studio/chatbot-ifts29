@@ -11,6 +11,7 @@
  */
 
 import { query } from './pool.js';
+import { similitudPorPalabras } from '../utils/normalizar.js';
 
 /** Intencion + pregunta + variante que casan con la consulta. */
 export interface CandidatoKb {
@@ -120,6 +121,25 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
   similarity: num(r.similarity),
 });
 
+const SQL_TODAS_VARIANTES = `
+  SELECT i.clave    AS intent_key,
+         i.nombre  AS intent_name,
+         i.domain,
+         i.opcion_clave,
+         p.id      AS pregunta_id,
+         p.pregunta AS question,
+         p.priority,
+         p.minimum_threshold,
+         p.respuesta_id,
+         v.original_text,
+         v.normalized_text,
+         v.weight,
+         0::float8 AS similarity
+    FROM kb_pregunta_variante v
+    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+   WHERE v.activo`;
+
 /* ==========================================================================
  * API publica
  * ======================================================================== */
@@ -131,10 +151,30 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
  * genericas se repiten en las cuatro materias): se devuelven TODAS para que el
  * motor pueda pedir aclaracion en vez de elegir una.
  */
+/** Siglas de la consulta con su expansión, para normalizar antes de buscar. */
+export async function obtenerAlias(): Promise<Map<string, string>> {
+  const r = await query<{ alias: string; expansion: string }>('SELECT alias, expansion FROM kb_alias');
+  return new Map(r.rows.map((x) => [x.alias, x.expansion] as const));
+}
+
 export async function buscarExacto(normalizado: string): Promise<CandidatoKb[]> {
   if (normalizado.length === 0) return [];
   const r = await query<RawCandidato>(SQL_EXACTO, [normalizado, LIMITE_CANDIDATOS]);
   return r.rows.map(toCandidato);
+}
+
+/**
+ * Candidatos por comparación de palabras, tolerante a transposiciones.
+ * Se calcula en memoria sobre todas las variantes activas: son pocas, y así no
+ * hace falta una extensión adicional en la base.
+ */
+export async function buscarPorPalabras(normalizado: string, minimo: number): Promise<CandidatoKb[]> {
+  if (normalizado.length === 0) return [];
+  const r = await query<RawCandidato>(SQL_TODAS_VARIANTES);
+  return r.rows
+    .map((row) => ({ ...toCandidato(row), similarity: similitudPorPalabras(normalizado, row.normalized_text) }))
+    .filter((c) => c.similarity >= minimo)
+    .sort((a, b) => b.similarity - a.similarity || b.priority - a.priority || b.weight - a.weight);
 }
 
 /**

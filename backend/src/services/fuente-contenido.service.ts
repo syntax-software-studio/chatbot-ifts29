@@ -26,6 +26,7 @@ export const ESQUEMA_CONTENIDO = {
   preguntas: ['intencion', 'pregunta', 'prioridad', 'umbral'],
   variantes: ['intencion', 'pregunta', 'texto', 'peso'],
   contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'perfil', 'motivo', 'orden', 'opcion'],
+  alias: ['alias', 'expansion'],
 } as const;
 
 export type Pestana = keyof typeof ESQUEMA_CONTENIDO;

@@ -25,6 +25,7 @@ const contenidoValido = (): Record<string, Valores> => ({
   preguntas: pestana('preguntas', ['programa_ABD', '¿Cuál es el programa?', '30', '0.7']),
   variantes: pestana('variantes', ['programa_ABD', '¿Cuál es el programa?', 'programa de abd', '1']),
   contactos: pestana('contactos', ['bedelia', 'Bedelía', 'Bedelía', 'General', 'bedelia@bue.edu.ar', '', 'Trámites', '3', 'DERIVACION_OP_TRAMITES']),
+  alias: pestana('alias'),
 });
 
 test('un contenido válido se interpreta completo y sin errores', () => {

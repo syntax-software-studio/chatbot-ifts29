@@ -17,3 +17,6 @@ service-account*.json
 
 # Archivos temporales para cargar la planilla de Google Sheets (no versionar)
 planilla-import/
+
+# Casos generados para evaluar el texto libre (se regeneran)
+backend/scripts/salida/

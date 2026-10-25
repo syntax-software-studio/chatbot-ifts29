@@ -9,7 +9,7 @@
  *
  * Reglas de escritura. La planilla es la única fuente: lo que no está en ella
  * no se conserva en la base.
- *  - Base de conocimiento (`kb_*`), `respuesta_documento` y `opcion_contacto`:
+ *  - Base de conocimiento (`kb_*`, incluidos los alias), `respuesta_documento` y `opcion_contacto`:
  *    se vacían y se vuelven a cargar. No tienen historial propio.
  *  - Menú (`categoria`, `opcion_menu`, `respuesta`), contactos y documentos:
  *    upsert por clave, y se borra lo que ya no está en la planilla.
@@ -20,7 +20,7 @@
 
 import type { PoolClient } from 'pg';
 import { getPool } from '../db/pool.js';
-import { normalizar } from '../utils/normalizar.js';
+import { normalizar, normalizarConsulta } from '../utils/normalizar.js';
 import type { Fila, Pestana } from './fuente-contenido.service.js';
 
 export interface Categoria {
@@ -96,6 +96,12 @@ export interface Contacto {
   opcion: string;
 }
 
+/** Sigla o abreviatura de la consulta y su expansión (ambas ya normalizadas). */
+export interface Alias {
+  alias: string;
+  expansion: string;
+}
+
 export interface DatosContenido {
   categorias: Categoria[];
   respuestas: Respuesta[];
@@ -106,6 +112,7 @@ export interface DatosContenido {
   preguntas: Pregunta[];
   variantes: Variante[];
   contactos: Contacto[];
+  alias: Alias[];
 }
 
 export interface ResultadoConversion {
@@ -228,6 +235,19 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     respuestaDocumentos.map((rd) => [rd.documento, { clave: rd.documento, nombreArchivo: `${rd.documento}.pdf` }]),
   ).values()];
 
+  // --- Alias (siglas) ---
+  const alias: Alias[] = filas('alias').map((f) => ({
+    alias: normalizar(f.alias!),
+    expansion: normalizar(f.expansion!),
+  }));
+  const aliasVistos = new Set<string>();
+  for (const a of alias) {
+    if (!a.alias || !a.expansion) errores.push('alias: hay una fila sin sigla o sin expansión.');
+    if (aliasVistos.has(a.alias)) errores.push(`alias "${a.alias}" está repetido.`);
+    aliasVistos.add(a.alias);
+  }
+  const mapaAlias = new Map(alias.map((a) => [a.alias, a.expansion] as const));
+
   // --- Base de conocimiento ---
   const intenciones: Intencion[] = filas('intenciones').map((f) => {
     const donde = `intenciones "${f.clave}"`;
@@ -267,7 +287,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       intencion: f.intencion!,
       pregunta: f.pregunta!,
       texto: f.texto!,
-      normalizado: normalizar(f.texto!),
+      normalizado: normalizarConsulta(f.texto!, mapaAlias),
       peso: decimal(f.peso!, `${donde} peso`),
     };
   });
@@ -314,6 +334,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       preguntas,
       variantes,
       contactos,
+      alias,
     },
   };
 }
@@ -346,6 +367,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
 
   // Primero se vacían las tablas que dependen de otras, para que no bloqueen
   // los borrados de menú, respuestas y documentos que vienen después.
+  await client.query('DELETE FROM kb_alias');
   await client.query('DELETE FROM kb_pregunta_variante');
   await client.query('DELETE FROM kb_pregunta');
   await client.query('DELETE FROM kb_intencion');
@@ -446,6 +468,9 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   const opcionContacto = datos.contactos.length;
 
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
+  for (const a of datos.alias) {
+    await client.query('INSERT INTO kb_alias (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
+  }
   for (const i of datos.intenciones) {
     await client.query(
       'INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',

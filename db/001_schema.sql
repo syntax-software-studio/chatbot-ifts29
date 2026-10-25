@@ -328,6 +328,18 @@ COMMENT ON TABLE  kb_pregunta_variante         IS 'Redacciones alternativas de u
 COMMENT ON COLUMN kb_pregunta_variante.weight IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
 
 -- ---------------------------------------------------------------------------
+-- 10b. KB_ALIAS  ->  siglas y abreviaturas que se expanden antes de buscar
+--     Por ejemplo "abd" -> "administracion de bases de datos". Se cargan desde
+--     la pestaña `alias` de la planilla.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS kb_alias (
+    alias       TEXT PRIMARY KEY,
+    expansion   TEXT NOT NULL
+);
+
+COMMENT ON TABLE kb_alias IS 'Siglas y abreviaturas de la consulta, ya normalizadas, con su expansion.';
+
+-- ---------------------------------------------------------------------------
 -- 11. Trigger de mantenimiento: actualizado_en
 --     Una sola funcion para todas las tablas con columna `actualizado_en`,
 --     del menu y de la base de conocimiento.
