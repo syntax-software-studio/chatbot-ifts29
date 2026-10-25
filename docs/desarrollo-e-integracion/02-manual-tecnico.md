@@ -233,7 +233,7 @@ asistente-virtual-ifts29/
 ### 4.1 Resumen de BD
 
 **Sistema:** PostgreSQL en Neon (serverless, HTTP pooler)  
-**Modo demo:** Catálogo semilla en memoria (Node.js, idéntico a BD)  
+**Modo demo:** Catálogo semilla en memoria (Node.js, idéntico a BD). *Deprecado en propuesta: ver [base-conocimiento/04-base-como-fuente-unica.md](../base-conocimiento/04-base-como-fuente-unica.md).*  
 **Esquema:** 6 tablas principales + vistas + triggers + índices
 
 ### 4.2 Tablas Principales

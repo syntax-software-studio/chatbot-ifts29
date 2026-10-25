@@ -394,6 +394,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;     -- Para búsqueda por similitud (tri
 
 ### 4.4 Catálogo Semilla (Alternativa a BD)
 
+> **Deprecado (propuesta en discusión).** La base de datos pasaría a ser la única fuente. Ver [base-conocimiento/04-base-como-fuente-unica.md](../base-conocimiento/04-base-como-fuente-unica.md). Esta sección describe el estado actual, no el objetivo.
+
 Si no hay `DATABASE_URL`:
 - Backend usa catálogo en memoria (`backend/src/seed/catalogo.ts`)
 - Contenido idéntico a `db/002_seed.sql` + `db/005_kb_seed.sql`
