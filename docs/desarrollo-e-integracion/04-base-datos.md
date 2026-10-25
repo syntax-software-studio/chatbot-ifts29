@@ -91,7 +91,7 @@ Las métricas no se tocan en ningún paso.
 | `npm run db:push --workspace backend` | Aplica sólo `db/001_schema.sql`. Es idempotente. No carga contenido. |
 | `node --import tsx src/db/push.ts --reset` (desde `backend/`) | Borra el esquema `public` y lo vuelve a crear con `001`. Después hay que correr la sincronización. |
 
-> **Advertencia:** `--reset` borra `metrica_opcion`. Hasta que esté resuelto, exportar las métricas antes de resetear (`pg_dump -a -t metrica_opcion`).
+> **Métricas:** `--reset` rescata las filas de `metrica_opcion` antes de borrar el esquema y las restaura después de aplicar `001`. Si ya había una fila con la misma clave, se suman los totales.
 
 Nunca correr `--reset` contra Neon sin respaldo.
 
@@ -128,5 +128,4 @@ Si el volumen ya existía con una versión anterior del esquema, el arranque no 
 
 ## 4.9 Pendientes
 
-- Preservar `metrica_opcion` en `--reset`.
 - Migración de Neon: el esquema sin contexto y el contenido nuevo todavía no se aplicaron en producción.
