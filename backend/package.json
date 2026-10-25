@@ -10,7 +10,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test \"test/*.test.ts\"",
+    "test": "node --import tsx --test --test-concurrency=1 \"test/*.test.ts\"",
     "db:push": "tsx src/db/push.ts",
     "db:kb": "tsx src/db/generar-kb-seed.ts",
     "sync": "tsx src/db/sincronizar.ts"

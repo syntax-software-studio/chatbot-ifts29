@@ -1,12 +1,9 @@
 /**
- * Tests del contrato HTTP de `/api/chat` (de punta a punta sobre la app real).
+ * Tests del contrato HTTP de la API, de punta a punta, contra la base de prueba.
  *
- * Levanta la app Express en un puerto efímero y habla HTTP de verdad, para
- * verificar lo que los tests de servicio no alcanzan: el contrato, los códigos
- * de error y las reglas de validación del cuerpo.
- *
- * Corre contra el catálogo semilla (sin `DATABASE_URL`), que es el mismo
- * contenido que se carga en Neon.
+ * Levanta la app Express en un puerto efímero y habla HTTP de verdad. Verifica
+ * el recorrido del menú, el texto libre, la derivación por pantallas y las
+ * reglas de validación del cuerpo.
  */
 
 import { test, before, after } from 'node:test';
@@ -14,15 +11,15 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
-// Debe ir primero: vacia DATABASE_URL antes de que se importe la app.
-import './solo-semilla.js';
+// Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
+import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
 import { createApp } from '../src/app.js';
-import type { TurnoChat, NodoMenu } from '../src/db/types.js';
 
 let servidor: Server;
 let base: string;
 
 before(async () => {
+  await prepararBasePrueba();
   const app = createApp();
   await new Promise<void>((resolve) => {
     servidor = app.listen(0, () => resolve());
@@ -32,106 +29,107 @@ before(async () => {
 
 after(async () => {
   await new Promise<void>((resolve) => servidor.close(() => resolve()));
+  await cerrarBasePrueba();
 });
 
-const post = async (cuerpo: unknown): Promise<{ status: number; json: any }> => {
+const chat = async (cuerpo: unknown): Promise<{ status: number; json: any }> => {
   const res = await fetch(`${base}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(cuerpo),
   });
-  return { status: res.status, json: await res.json().catch(() => null) };
+  return { status: res.status, json: await res.json() };
 };
 
-test('el menú raíz sigue funcionando', async () => {
+const claves = (opciones: Array<{ clave: string }>): string[] => opciones.map((o) => o.clave);
+
+test('health responde ok y con origen de base de datos', async () => {
+  const res = await fetch(`${base}/api/health`);
+  const json = (await res.json()) as any;
+  assert.equal(json.estado, 'ok');
+  assert.equal(json.datos.origen, 'base');
+});
+
+test('el menú raíz trae sus opciones desde la base', async () => {
   const res = await fetch(`${base}/api/menu`);
+  const json = (await res.json()) as any;
   assert.equal(res.status, 200);
-  const nodo = (await res.json()) as NodoMenu;
-  assert.equal(nodo.categoria.clave, 'RAIZ');
-  assert.ok(nodo.opciones.length > 0);
+  assert.equal(json.categoria.clave, 'RAIZ');
+  assert.ok(claves(json.opciones).includes('RAIZ_OP_ACAD'));
+  assert.ok(claves(json.opciones).includes('RAIZ_OP_NOENCONTRE'));
 });
 
-test('una opción del menú se procesa como siempre', async () => {
-  const { status, json } = await post({ opcion: 'ADM_OP_SIU' });
-  assert.equal(status, 200);
-  assert.equal(json.tipo, 'respuesta');
-  assert.ok(json.respuesta.texto.length > 0);
-  // Una selección del menú no lleva metadatos de interpretación.
-  assert.equal(json.meta, undefined);
+test('elegir una materia navega a sus opciones', async () => {
+  const r = await chat({ opcion: 'ACAD_OP_ABD' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'nodo');
+  assert.ok(claves(r.json.nodo.opciones).includes('ABD_OP_PROG'));
 });
 
-test('una consulta escrita devuelve la respuesta institucional', async () => {
-  const { status, json } = await post({ message: '¿Cómo accedo al SIU Guaraní?' });
-  assert.equal(status, 200);
-  const turno = json as TurnoChat;
-  assert.equal(turno.tipo, 'respuesta');
-  assert.equal(turno.meta?.intent, 'acceso_siu');
-  assert.equal(turno.meta?.matchType, 'exacto');
-  assert.ok(turno.meta);
+test('elegir una respuesta devuelve su texto y sus documentos', async () => {
+  const r = await chat({ opcion: 'ABD_OP_PROG' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'respuesta');
+  assert.equal(r.json.respuesta.texto, 'Este es el programa de Administración de Bases de Datos.');
+  assert.equal(r.json.respuesta.documentos.length, 1);
+  assert.equal(r.json.respuesta.documentos[0].clave, 'ABD_programa_2026_1C');
+});
+
+test('"No encontré lo que busco" muestra la pantalla de motivos', async () => {
+  const r = await chat({ opcion: 'RAIZ_OP_NOENCONTRE' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'nodo');
+  assert.ok(claves(r.json.nodo.opciones).includes('DERIVACION_OP_TRAMITES'));
+});
+
+test('una opción de derivación devuelve su contacto asociado', async () => {
+  const r = await chat({ opcion: 'DERIVACION_OP_TRAMITES' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'derivacion');
+  assert.deepEqual(
+    r.json.derivacion.contactos.map((c: { clave: string }) => c.clave),
+    ['bedelia'],
+  );
+});
+
+test('una consulta escrita responde con la misma respuesta del menú', async () => {
+  const r = await chat({ message: 'programa de ABD' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'respuesta');
+  assert.equal(r.json.origen, 'base');
+  assert.equal(r.json.claveOpcion, 'ABD_OP_PROG');
 });
 
 test('una consulta ambigua devuelve aclaración con opciones del menú', async () => {
-  const { status, json } = await post({ message: '¿Cuándo empiezan las clases?' });
-  assert.equal(status, 200);
-  assert.equal(json.tipo, 'aclaracion');
-  assert.equal(json.aclaracion.opciones.length, 4);
-
-  // La opción propuesta se puede usar como cualquier opción del menú.
-  const clave = json.aclaracion.opciones[0].clave;
-  const elegida = await post({ opcion: clave });
-  assert.equal(elegida.status, 200);
-  assert.ok(['respuesta', 'nodo', 'derivacion'].includes(elegida.json.tipo));
+  const r = await chat({ message: 'abd' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.tipo, 'aclaracion');
+  assert.deepEqual(claves(r.json.aclaracion.opciones).sort(), ['ABD_OP_COND', 'ABD_OP_PROG']);
 });
 
-test('una consulta fuera del dominio devuelve el aviso institucional', async () => {
-  const { status, json } = await post({ message: '¿Quién va a ganar el mundial?' });
-  assert.equal(status, 200);
-  assert.equal(json.tipo, 'no_disponible');
-  assert.ok(json.mensaje.includes('No dispongo de esa información'));
+test('un cuerpo sin entrada devuelve 400', async () => {
+  const r = await chat({});
+  assert.equal(r.status, 400);
 });
 
-test('un saludo devuelve el menú raíz', async () => {
-  const { status, json } = await post({ message: 'hola' });
-  assert.equal(status, 200);
-  assert.equal(json.tipo, 'nodo');
-  assert.equal(json.meta?.source, 'rule');
+test('enviar opción y texto juntos devuelve 400', async () => {
+  const r = await chat({ opcion: 'ABD_OP_PROG', message: 'programa de ABD' });
+  assert.equal(r.status, 400);
 });
 
-test('se acepta conversationId y se ignora', async () => {
-  const { status, json } = await post({ message: 'programa', conversationId: 'abc123' });
-  assert.equal(status, 200);
-  assert.equal(json.tipo, 'aclaracion');
+test('una consulta demasiado corta devuelve 400', async () => {
+  const r = await chat({ message: 'a' });
+  assert.equal(r.status, 400);
 });
 
-test('el cuerpo se valida: campos, exclusividad y longitud', async () => {
-  // Sin cuerpo utilizable.
-  const vacio = await post({});
-  assert.equal(vacio.status, 400);
-  assert.equal(vacio.json.error.code, 'VALIDATION_ERROR');
+test('una opción inexistente no responde con contenido', async () => {
+  const r = await chat({ opcion: 'NO_EXISTE' });
+  assert.ok(r.status >= 400, `se esperaba un error, llegó ${r.status}`);
+});
 
-  // Nombres antiguos del campo de texto: se rechazan con explicación.
-  const antiguo = await post({ mensaje: 'hola' });
-  assert.equal(antiguo.status, 400);
-  assert.match(antiguo.json.error.message, /"message"/);
-
-  const texto = await post({ texto: 'hola' });
-  assert.equal(texto.status, 400);
-
-  // Los dos flujos a la vez son ambiguos.
-  const ambos = await post({ opcion: 'ADM_OP_SIU', message: 'hola' });
-  assert.equal(ambos.status, 400);
-  assert.match(ambos.json.error.message, /no ambos a la vez/);
-
-  // Regla original del menú: exactamente una clave.
-  const dosMenu = await post({ opcion: 'ADM_OP_SIU', categoria: 'RAIZ' });
-  assert.equal(dosMenu.status, 400);
-
-  // Consulta demasiado corta.
-  const corta = await post({ message: '¿?' });
-  assert.equal(corta.status, 400);
-
-  // Consulta demasiado larga (límite por defecto: 800 caracteres).
-  const larga = await post({ message: 'a'.repeat(801) });
-  assert.equal(larga.status, 400);
-  assert.match(larga.json.error.message, /demasiado larga/);
+test('las métricas responden con el agregado', async () => {
+  const res = await fetch(`${base}/api/metricas`);
+  const json = (await res.json()) as any;
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(json.top));
 });

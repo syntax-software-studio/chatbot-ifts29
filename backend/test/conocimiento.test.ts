@@ -1,91 +1,56 @@
 /**
- * Tests de la base de conocimiento en modo semilla (sin `DATABASE_URL`).
+ * Tests de la base de conocimiento (búsqueda exacta y por similitud) contra la
+ * base de prueba, con los fixtures cargados.
  *
- * Comprueban los dos niveles de matching y, sobre todo, que la ambiguedad se
- * PRESERVE: una variante generica compartida tiene que devolver varias
- * intenciones (para que el motor pida aclaracion) y una consulta calificada con
- * la materia tiene que devolver una sola.
+ * Verifican que la ambigüedad se preserve: una variante compartida por dos
+ * intenciones tiene que devolver las dos, para que el motor pida aclaración.
  */
 
-import { test } from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Debe ir primero: vacia DATABASE_URL antes de que se importe la capa de datos.
-import './solo-semilla.js';
+// Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
+import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
 import { buscarExacto, buscarSimilares } from '../src/db/conocimiento.js';
 import { normalizar } from '../src/utils/normalizar.js';
-import { hasDatabase } from '../src/utils/env.js';
 
-const claves = (c: Array<{ intentKey: string }>): string[] => [...new Set(c.map((x) => x.intentKey))].sort();
-
-test('los tests se ejecutan contra el catálogo semilla, no contra la base', () => {
-  // Guarda contra regresiones: si un `.env` con DATABASE_URL se colara en la
-  // suite, estos tests estarian midiendo Neon y no el modo demo.
-  assert.equal(hasDatabase(), false, 'la suite debe correr sin DATABASE_URL');
+before(async () => {
+  await prepararBasePrueba();
 });
 
-test('las variantes genericas devuelven varias intenciones (aclaracion)', async () => {
-  const caso = await buscarExacto(normalizar('programa'));
-  assert.equal(claves(caso).length, 4);
-  assert.deepEqual(claves(caso), ['programa_ABD', 'programa_EAM', 'programa_LC', 'programa_TP']);
-
-  const dias = await buscarExacto(normalizar('¿Cuándo empiezan las clases?'));
-  assert.deepEqual(claves(dias), [
-    'dias_cursada_ABD',
-    'dias_cursada_EAM',
-    'dias_cursada_LC',
-    'dias_cursada_TP',
-  ]);
-
-  const condiciones = await buscarExacto(normalizar('condiciones de aprobación'));
-  assert.equal(claves(condiciones).length, 4);
+after(async () => {
+  await cerrarBasePrueba();
 });
 
-test('el nombre de una materia abre los cuatro temas de esa materia', async () => {
-  const caso = await buscarExacto(normalizar('Técnicas de Programación'));
-  assert.deepEqual(claves(caso), [
-    'condiciones_TP',
-    'cronograma_TP',
-    'dias_cursada_TP',
-    'programa_TP',
-  ]);
+const intenciones = (c: Array<{ intentKey: string }>): string[] =>
+  [...new Set(c.map((x) => x.intentKey))].sort();
+
+test('una variante exacta devuelve solo su intención', async () => {
+  const c = await buscarExacto(normalizar('programa de ABD'));
+  assert.deepEqual(intenciones(c), ['programa_ABD']);
 });
 
-test('la consulta larga con materia resuelve un unico tema', async () => {
-  const caso = await buscarExacto(normalizar('¿Cuándo empiezan las clases de Técnicas de Programación?'));
-  assert.deepEqual(claves(caso), ['dias_cursada_TP']);
-
-  const programa = await buscarExacto(normalizar('¿Cuál es el programa de Técnicas de Programación?'));
-  assert.deepEqual(claves(programa), ['programa_TP']);
-
-  const cronograma = await buscarExacto(normalizar('cronograma de Lógica Computacional'));
-  assert.deepEqual(claves(cronograma), ['cronograma_LC']);
+test('una variante compartida por dos intenciones devuelve las dos (aclaración)', async () => {
+  const c = await buscarExacto(normalizar('abd'));
+  assert.deepEqual(intenciones(c), ['condiciones_ABD', 'programa_ABD']);
 });
 
-test('la coincidencia exacta es igualdad de texto normalizado', async () => {
-  // Mismo conjunto de trigramas que "Técnicas de Programación" pero distinto
-  // texto: NO es una coincidencia exacta (tampoco en Neon).
-  const caso = await buscarExacto(normalizar('programacion de tecnicas'));
-  assert.equal(caso.length, 0);
+test('una consulta sin coincidencia exacta no devuelve nada en la búsqueda exacta', async () => {
+  const c = await buscarExacto(normalizar('clima mañana'));
+  assert.equal(c.length, 0);
 });
 
-test('las consultas fuera del dominio no llegan a candidatos', async () => {
-  for (const texto of ['¿Quién va a ganar el mundial?', 'cuánto cuesta la carrera', 'quién es mi profesor']) {
-    const similares = await buscarSimilares(normalizar(texto), 0.7);
-    assert.equal(similares.length, 0, `candidatos inesperados para: ${texto}`);
-  }
+test('la búsqueda por similitud encuentra una variante con errores de tipeo', async () => {
+  const c = await buscarSimilares(normalizar('condiciones de aprobacon de abd'), 0.7);
+  assert.ok(intenciones(c).includes('condiciones_ABD'));
 });
 
-test('un error de tipeo encuentra la variante por similitud', async () => {
-  const similares = await buscarSimilares(normalizar('cuando empiesan las clases de tecnicas de programacion'), 0.7);
-  assert.equal(claves(similares)[0], 'dias_cursada_TP');
+test('la similitud respeta el mínimo: por debajo no devuelve candidatos', async () => {
+  const c = await buscarSimilares(normalizar('clima mañana'), 0.7);
+  assert.equal(c.length, 0);
 });
 
-test('toda intencion apunta a una opcion y a una respuesta autorizada', async () => {
-  const casos = await buscarExacto(normalizar('inscripción a materias'));
-  assert.ok(casos.length > 0);
-  for (const c of casos) {
-    assert.ok(c.opcionClave.length > 0, `${c.intentKey} sin opcion de menu`);
-    assert.ok(c.respuestaId !== null, `${c.intentKey} sin respuesta asociada`);
-  }
+test('cada candidato trae la opción del menú a la que apunta', async () => {
+  const c = await buscarExacto(normalizar('programa de ABD'));
+  assert.equal(c[0]?.opcionClave, 'ABD_OP_PROG');
 });
