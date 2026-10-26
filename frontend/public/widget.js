@@ -5,13 +5,13 @@
  * Administrador de plataforma: un docente lo agrega desde un recurso de tipo
  * "Página" o "Área de texto y medios" pegando una única línea.
  *
- *   <script src="https://chatbot-ifts29.vercel.app/widget.js" defer></script>
+ *   <script src="https://chatbot-ifts29-jade.vercel.app/widget.js" defer></script>
  *
  * Esa línea sola crea un botón flotante en la esquina inferior derecha. Para
  * personalizar, se pueden pasar atributos data-* en la misma etiqueta:
  *
  *   <script
- *     src="https://chatbot-ifts29.vercel.app/widget.js"
+ *     src="https://chatbot-ifts29-jade.vercel.app/widget.js"
  *     defer
  *     data-ifts-open="1"          abre el panel al cargar
  *     data-ifts-inline="1"        sin botón flotante (embebido en el flujo)
@@ -30,7 +30,7 @@
   // ---------------------------------------------------------------------------
   // Configuración
   // ---------------------------------------------------------------------------
-  var ORIGEN_APP = 'https://chatbot-ifts29.vercel.app';
+  var ORIGEN_APP = 'https://chatbot-ifts29-jade.vercel.app';
   var ALTO_PANEL = 520;
   var ANCHO_PANEL = 380;
   var ESTILO_LANZADOR =
@@ -64,7 +64,7 @@
    */
   function origenDelApp() {
     try {
-      return new URL(estado.appUrl, doc.baseURI || 'https://chatbot-ifts29.vercel.app').origin;
+      return new URL(estado.appUrl, doc.baseURI || 'https://chatbot-ifts29-jade.vercel.app').origin;
     } catch (e) {
       return '*';
     }

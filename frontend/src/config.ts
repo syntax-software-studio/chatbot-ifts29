@@ -59,7 +59,7 @@ export const config = {
   minMensaje: 2,
   maxMensaje: 800,
   /** Origen canónico de la app, usado por el script inyector. */
-  origenApp: 'https://chatbot-ifts29.vercel.app',
+  origenApp: 'https://chatbot-ifts29-jade.vercel.app',
   /** Origen del Moodle institucional: el contenedor que embebe el widget. */
   origenMoodle: 'https://aulasvirtuales.bue.edu.ar',
   /**

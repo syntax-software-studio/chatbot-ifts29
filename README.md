@@ -362,14 +362,14 @@ los *rewrites*.
 En *Administración del sitio → Ajustes → HTML adicional*, pegar:
 
 ```html
-<script src="https://chatbot-ifts29.vercel.app/widget.js" defer></script>
+<script src="https://chatbot-ifts29-jade.vercel.app/widget.js" defer></script>
 ```
 
 Opciones por atributos del `<script>`:
 
 | Atributo | Default | Uso |
 | --- | --- | --- |
-| `data-ifts-src` | `https://chatbot-ifts29.vercel.app` | Otro despliegue |
+| `data-ifts-src` | `https://chatbot-ifts29-jade.vercel.app` | Otro despliegue |
 | `data-ifts-title` | `Asistente IFTS 29` | Título del panel |
 | `data-ifts-height` | `520` | Alto en píxeles |
 | `data-ifts-container` | — | Selector del contenedor (modo inline) |

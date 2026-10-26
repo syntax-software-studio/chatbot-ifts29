@@ -25,7 +25,7 @@
 - [x] Carga de contenido desde la planilla de Google, con validación previa (si hay errores, no se escribe nada)
 - [x] Reset del esquema preservando las métricas (`metrica_opcion`)
 - [x] Contenedor local con PostgreSQL (`docker compose up`)
-- [ ] Migración del esquema y del contenido a Neon (producción), con revisión
+- [x] Migración del esquema y del contenido a Neon (producción), con revisión
 
 ---
 
@@ -76,7 +76,7 @@
 
 - [x] Repositorio Git con la rama de trabajo `feat/base-fuente-unica`
 - [x] `.gitignore`: excluye `node_modules`, `.env`, la carpeta de ejemplo de Drive y los CSV temporales de carga
-- [ ] Commits de los cambios del último tramo, con descripción clara
+- [x] Commits con descripción clara
 - [ ] Proyecto comprimido (`.zip`), sin `node_modules`, `.env` ni `.git`
 
 ---

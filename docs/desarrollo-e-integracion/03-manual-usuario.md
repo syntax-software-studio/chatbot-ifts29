@@ -72,10 +72,10 @@ El Asistente está integrado directamente en el campus:
 2. Verás un **botón flotante** en la esquina inferior derecha
 3. Haz clic para abrir el Asistente
 
-**Opción 2: Acceso Directo (Demostración)**
+**Opción 2: Acceso Directo**
 
-Puedes acceder a una versión de demostración sin iniciar sesión:
-1. Visita: https://chatbot-ifts29.vercel.app
+Puedes acceder directamente desde el navegador, sin pasar por el campus:
+1. Visita: https://chatbot-ifts29-jade.vercel.app/
 2. Se abre automáticamente en tu navegador
 3. Funciona exactamente igual que en Moodle
 
@@ -275,7 +275,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### P: ¿Puedo usar el Asistente sin conectarme a Internet?
 
-**R:** Necesitas conexión a Internet, tanto en la demostración (https://chatbot-ifts29.vercel.app) como en Moodle. El Asistente usa muy poco ancho de banda.
+**R:** Necesitas conexión a Internet, tanto en el acceso directo (https://chatbot-ifts29-jade.vercel.app/) como en Moodle. El Asistente usa muy poco ancho de banda.
 
 ---
 
@@ -319,7 +319,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 **Solución:**
 1. Espera 5 segundos a que cargue completamente
 2. Recarga la página
-3. Si está muy lento, intenta acceder desde la demostración: https://chatbot-ifts29.vercel.app
+3. Si está muy lento, intenta acceder desde el acceso directo: https://chatbot-ifts29-jade.vercel.app/
 4. Verifica tu velocidad de conexión
 
 ---

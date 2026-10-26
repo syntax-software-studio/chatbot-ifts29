@@ -57,7 +57,7 @@ function list(key: string, fallback: string[]): string[] {
 }
 
 const DEFAULT_ALLOWED_ORIGINS = [
-  'https://chatbot-ifts29.vercel.app',
+  'https://chatbot-ifts29-jade.vercel.app',
   'https://aulasvirtuales.bue.edu.ar',
   'http://localhost:5173',
   'http://localhost:3000',
