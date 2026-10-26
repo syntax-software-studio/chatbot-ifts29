@@ -1,7 +1,7 @@
 /**
  * CORS + cabeceras de embebido (iframe).
  *
- * El widget se sirve desde `chatbot-ifts29.vercel.app` y se incrusta en el
+ * El widget se sirve desde `chatbot-ifts29-jade.vercel.app` y se incrusta en el
  * campus virtual de Moodle. Por eso:
  *  - `Access-Control-Allow-Origin` se limita a una lista explícita de orígenes
  *    (el propio, el Moodle institucional y localhost en desarrollo).
