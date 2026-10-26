@@ -15,36 +15,9 @@
  *    para no llamar a la API en cada request del estudiante.
  */
 
-import { google, type drive_v3 } from 'googleapis';
+import { clienteDrive } from '../client/drive.client.js';
 import { env, hasGoogleDrive } from '../utils/env.js';
-import { query, getPool } from '../db/pool.js';
-import { HttpError } from '../utils/errors.js';
-
-/* ==========================================================================
- * Cliente
- * ======================================================================== */
-
-let driveClient: drive_v3.Drive | null = null;
-
-function cliente(): drive_v3.Drive {
-  if (!hasGoogleDrive()) {
-    throw new HttpError(
-      503,
-      'DRIVE_NO_CONFIGURADO',
-      'Google Drive no está configurado en este entorno.',
-    );
-  }
-  if (driveClient) return driveClient;
-
-  const auth = new google.auth.JWT({
-    email: env.google.clientEmail,
-    key: env.google.privateKey,
-    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-  });
-
-  driveClient = google.drive({ version: 'v3', auth });
-  return driveClient;
-}
+import { query } from '../db/pool.js';
 
 /** Verifica si las credenciales de Drive pueden autenticarse. */
 export async function verificarDrive(): Promise<{ ok: boolean; detalle: string }> {
@@ -52,7 +25,7 @@ export async function verificarDrive(): Promise<{ ok: boolean; detalle: string }
     return { ok: false, detalle: 'Faltan GOOGLE_SERVICE_ACCOUNT_EMAIL o GOOGLE_PRIVATE_KEY' };
   }
   try {
-    const res = await cliente().about.get({ fields: 'user,storageQuota' });
+    const res = await clienteDrive().about.get({ fields: 'user,storageQuota' });
     const email = res.data.user?.emailAddress ?? 'desconocido';
     const limite = res.data.storageQuota?.limit
       ? `${Math.round(Number(res.data.storageQuota.limit) / 1e12)} TB`
@@ -104,7 +77,7 @@ export async function listarArchivos(carpetaId?: string): Promise<ArchivoDrive[]
 
     let pageToken: string | undefined;
     do {
-      const res = await cliente().files.list({
+      const res = await clienteDrive().files.list({
         q: carpeta
           ? `'${carpeta}' in parents and trashed = false`
           : 'trashed = false',
@@ -164,7 +137,7 @@ export async function enlaceDeLectura(fileId: string): Promise<string> {
 
   if (env.google.publicLinks) {
     try {
-      await cliente().permissions.create({
+      await clienteDrive().permissions.create({
         fileId,
         requestBody: { role: 'reader', type: 'anyone' },
         sendNotificationEmail: false,
@@ -192,7 +165,6 @@ export function enlaceDeDescarga(fileId: string): string {
 
 export interface ResultadoSync {
   ejecutada: boolean;
-  origen: 'neon' | 'seed';
   dryRun: boolean;
   archivosVistos: number;
   actualizados: number;
@@ -233,11 +205,10 @@ interface FichaDb {
  * `reemplazado` / `vigente = false` en vez de desaparecer del menú, para que el
  * estudiante nunca reciba un enlace roto (RF07).
  */
-export async function sincronizar(opciones: { carpetaId?: string; dryRun?: boolean } = {}): Promise<ResultadoSync> {
+export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryRun?: boolean } = {}): Promise<ResultadoSync> {
   const mensajes: string[] = [];
   const resultado: ResultadoSync = {
     ejecutada: false,
-    origen: getPool() ? 'neon' : 'seed',
     dryRun: opciones.dryRun ?? false,
     archivosVistos: 0,
     actualizados: 0,
@@ -247,10 +218,6 @@ export async function sincronizar(opciones: { carpetaId?: string; dryRun?: boole
 
   if (!hasGoogleDrive()) {
     mensajes.push('Google Drive no configurado: se omite la sincronización.');
-    return resultado;
-  }
-  if (!getPool()) {
-    mensajes.push('Sin base de datos configurada: la sincronización no tiene dónde escribir.');
     return resultado;
   }
 

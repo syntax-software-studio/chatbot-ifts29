@@ -22,14 +22,12 @@ import { procesarSeleccion, procesarConsulta, registrarAperturaDocumento } from 
 import { asyncHandler } from '../middleware/error.js';
 import { badRequest, validationError } from '../utils/errors.js';
 import { normalizar } from '../utils/normalizar.js';
-import { fuente } from '../db/catalogo.js';
 import { env } from '../utils/env.js';
 
 const cuerpoSchema = z
   .object({
     opcion: z.string().min(1).max(64).optional(),
     categoria: z.string().min(1).max(64).optional(),
-    contexto: z.number().int().positive().optional(),
     /** Consulta escrita. Validada a mano para poder dar mensajes en castellano. */
     message: z.string().optional(),
     /** Reservado para una fase futura de memoria conversacional (D10). */
@@ -104,7 +102,7 @@ chatRouter.post(
         ? await procesarSeleccion(entrada)
         : await procesarConsulta(message ?? '');
 
-    res.json({ origen: fuente(), ...turno });
+    res.json(turno);
   }),
 );
 

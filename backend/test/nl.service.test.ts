@@ -1,91 +1,67 @@
 /**
- * Tests del motor de interpretacion (`interpretarConsulta`), de punta a punta
- * sobre el catalogo semilla.
+ * Tests del motor de interpretación de consultas escritas, de punta a punta
+ * contra la base de prueba.
  *
- * Verifica los cuatro desenlaces posibles y que NUNCA se emita una respuesta
- * inventada: el motor devuelve una intencion (o pide aclaracion), y el texto
- * institucional lo sigue emitiendo el flujo ya existente del menu.
+ * Verifican los desenlaces posibles y que nunca se emita una respuesta
+ * inventada: el motor devuelve una opción del menú, pide aclaración con opciones
+ * reales, o informa que no hay información.
  */
 
-import { test } from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Debe ir primero: vacia DATABASE_URL antes de que se importe la capa de datos.
-import './solo-semilla.js';
-import {
-  MENSAJE_NO_DISPONIBLE,
-  interpretarConsulta,
-} from '../src/services/nl.service.js';
-import { obtenerOpcion, seedData } from '../src/db/catalogo.js';
+// Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
+import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
+import { interpretarConsulta, MENSAJE_NO_DISPONIBLE } from '../src/services/nl.service.js';
 
-test('un saludo devuelve el menu raiz (respuesta autorizada, no generada)', async () => {
-  const r = await interpretarConsulta('hola');
-  assert.equal(r.clase, 'nodo');
-  assert.equal(r.meta.source, 'rule');
-  assert.equal(r.meta.matchType, 'regla');
-  if (r.clase === 'nodo') {
-    assert.ok(r.nodo.opciones.length > 0);
-  }
+before(async () => {
+  await prepararBasePrueba();
 });
 
-test('una consulta exacta resuelve a la opcion del menu equivalente', async () => {
-  const r = await interpretarConsulta('¿Cuándo empiezan las clases de Técnicas de Programación?');
+after(async () => {
+  await cerrarBasePrueba();
+});
+
+test('una consulta que coincide exactamente devuelve la opción del menú', async () => {
+  const r = await interpretarConsulta('programa de ABD');
   assert.equal(r.clase, 'opcion');
-  assert.equal(r.meta.intent, 'dias_cursada_TP');
-  assert.equal(r.meta.source, 'kb_question');
-  assert.equal(r.meta.matchType, 'exacto');
-  assert.equal(r.meta.confidence, 1);
   if (r.clase === 'opcion') {
-    assert.equal(r.opcionClave, 'TP_OP_DIAS');
+    assert.equal(r.opcionClave, 'ABD_OP_PROG');
     assert.equal(r.evento, 'texto_exacto');
-    // La opcion existe de verdad en el menu: no se inventan claves.
-    const opcion = await obtenerOpcion(r.opcionClave);
-    assert.equal(opcion.clave, 'TP_OP_DIAS');
-    assert.notEqual(opcion.respuestaId, null);
+    assert.equal(r.meta.matchType, 'exacto');
   }
 });
 
-test('una consulta ambigua pide aclaracion con opciones reales del menu', async () => {
-  const r = await interpretarConsulta('¿Cuándo empiezan las clases?');
-  assert.equal(r.clase, 'aclaracion');
-  assert.equal(r.meta.intent, null);
-  if (r.clase === 'aclaracion') {
-    assert.equal(r.aclaracion.opciones.length, 4);
-    const clavesMenu = new Set(seedData.opciones.map((o) => o.clave));
-    for (const op of r.aclaracion.opciones) {
-      assert.ok(clavesMenu.has(op.clave), `opcion inexistente: ${op.clave}`);
-    }
+test('un error de tipeo se resuelve por similitud', async () => {
+  const r = await interpretarConsulta('condiciones de aprobacon de abd');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') {
+    assert.equal(r.opcionClave, 'ABD_OP_COND');
+    assert.equal(r.evento, 'texto_similar');
   }
 });
 
-test('la materia sola pide aclaracion entre los cuatro temas', async () => {
-  const r = await interpretarConsulta('Técnicas de Programación');
+test('una consulta ambigua pide aclaración con opciones reales del menú', async () => {
+  const r = await interpretarConsulta('abd');
   assert.equal(r.clase, 'aclaracion');
   if (r.clase === 'aclaracion') {
     const claves = r.aclaracion.opciones.map((o) => o.clave).sort();
-    assert.deepEqual(claves, ['TP_OP_COND', 'TP_OP_CRONO', 'TP_OP_DIAS', 'TP_OP_PROG']);
+    assert.deepEqual(claves, ['ABD_OP_COND', 'ABD_OP_PROG']);
   }
 });
 
-test('una consulta fuera del dominio responde que no hay informacion', async () => {
-  for (const texto of ['¿Quién va a ganar el mundial?', 'cuánto cuesta la carrera', 'qué nota necesito para aprobar']) {
-    const r = await interpretarConsulta(texto);
-    assert.equal(r.clase, 'no_disponible', `se esperaba no_disponible para: ${texto}`);
-    assert.equal(r.meta.confidence, 0);
-    if (r.clase === 'no_disponible') {
-      assert.equal(r.mensaje, MENSAJE_NO_DISPONIBLE);
-    }
+test('un saludo devuelve el menú raíz, sin buscar en la base de conocimiento', async () => {
+  const r = await interpretarConsulta('hola');
+  assert.equal(r.clase, 'nodo');
+  if (r.clase === 'nodo') {
+    assert.equal(r.nodo.categoria.clave, 'RAIZ');
   }
 });
 
-test('el texto institucional solo sale del menu, nunca del motor', async () => {
-  // El menu debe poder emitir la respuesta asociada a la opcion resuelta.
-  const r = await interpretarConsulta('¿Cuál es el programa de Técnicas de Programación?');
-  assert.equal(r.clase, 'opcion');
-  if (r.clase !== 'opcion') return;
-
-  const opcion = await obtenerOpcion(r.opcionClave);
-  assert.equal(opcion.clave, 'TP_OP_PROG');
-  assert.notEqual(opcion.respuestaId, null, 'la opcion resuelta no tiene respuesta institucional');
-  assert.equal(r.meta.confidence, 1);
+test('una consulta fuera del dominio informa que no hay información', async () => {
+  const r = await interpretarConsulta('clima mañana en la costa');
+  assert.equal(r.clase, 'no_disponible');
+  if (r.clase === 'no_disponible') {
+    assert.equal(r.mensaje, MENSAJE_NO_DISPONIBLE);
+  }
 });

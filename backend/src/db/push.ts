@@ -1,8 +1,8 @@
 /**
  * Carga el esquema y el contenido inicial en Neon.
  *
- *   npm run db:push            -> aplica 001_schema.sql (menu + base de
- *                                 conocimiento) + 002_seed.sql + 005_kb_seed.sql
+ *   npm run db:push            -> aplica sólo 001_schema.sql (esquema).
+ *                                 El contenido entra con `npm run sync`.
  *   npm run db:reset           -> borra el esquema antes de aplicar
  *   DATABASE_URL=... npm run db:push
  *
@@ -118,7 +118,7 @@ const ES_COMMIT = /^(COMMIT|END|ROLLBACK)$/i;
 const describeError = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
-/** Limitacion conocida del driver HTTP de Neon, no un error del script. */
+/** Detecta el error de "varias sentencias en una consulta preparada" (driver HTTP anterior). */
 const esErrorDeVariasSentencias = (err: unknown): boolean =>
   /cannot insert multiple commands into a prepared statement/i.test(describeError(err));
 
@@ -126,7 +126,7 @@ const esErrorDeVariasSentencias = (err: unknown): boolean =>
  * Saca el envoltorio transaccional de un script para poder aplicar sus
  * sentencias de forma independiente.
  *
- * `002_seed.sql` viene envuelto en `BEGIN; ... COMMIT;`. Si una sentencia
+ * Un script que viene envuelto en `BEGIN; ... COMMIT;`. Si una sentencia
  * fallara dentro de una transacción explícita, PostgreSQL aborta el resto de la
  * transacción y cada sentencia posterior fallaría con "current transaction is
  * aborted", enmascarando el error real. En el camino de diagnóstico cada
@@ -159,10 +159,9 @@ async function ejecutar(sql: string, etiqueta: string): Promise<void> {
     await s.query(sql);
     console.log(`[db] ${etiqueta} OK`);
   } catch (err) {
-    // El driver HTTP de Neon no admite varias sentencias en una consulta
-    // preparada ("cannot insert multiple commands into a prepared statement"),
-    // asi que el camino por separado es el normal con este driver; el mensaje
-    // queda como informativo para no confundir un error con un reintento.
+    // Respaldo: si una consulta multi-sentencia falla, se aplica sentencia por
+    // sentencia para nombrar cuál falló. Con `pg` el camino rápido normalmente
+    // funciona; este respaldo se puede retirar cuando se confirme.
     const sentencias = sinEnvoltorioTransaccional(dividirSentencias(sql));
     console.log(
       `[db] ${etiqueta}: se aplica sentencia por sentencia (${sentencias.length})...` +
@@ -184,6 +183,40 @@ async function ejecutar(sql: string, etiqueta: string): Promise<void> {
   }
 }
 
+interface FilaMetrica {
+  opcion_clave: string;
+  categoria_clave: string | null;
+  evento: string;
+  fecha: string;
+  total: number;
+}
+
+/** Lee las métricas existentes. Si la tabla todavía no existe, no hay nada que rescatar. */
+async function rescatarMetricas(): Promise<FilaMetrica[]> {
+  const existe = await query<{ existe: boolean }>(
+    "SELECT to_regclass('public.metrica_opcion') IS NOT NULL AS existe",
+  );
+  if (!existe.rows[0]?.existe) return [];
+  const r = await query<FilaMetrica>(
+    'SELECT opcion_clave, categoria_clave, evento, fecha::text AS fecha, total FROM metrica_opcion',
+  );
+  console.log(`[db] métricas a preservar: ${r.rows.length} filas`);
+  return r.rows;
+}
+
+/** Vuelve a insertar las métricas rescatadas, sumando si ya hubiera una fila igual. */
+async function restaurarMetricas(filas: FilaMetrica[]): Promise<void> {
+  for (const f of filas) {
+    await query(
+      `INSERT INTO metrica_opcion (opcion_clave, categoria_clave, evento, fecha, total)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (opcion_clave, evento, fecha)
+       DO UPDATE SET total = metrica_opcion.total + EXCLUDED.total`,
+      [f.opcion_clave, f.categoria_clave, f.evento, f.fecha, f.total],
+    );
+  }
+}
+
 async function main(): Promise<void> {
   if (!env.databaseUrl) {
     console.error(
@@ -195,14 +228,19 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Las métricas son datos históricos: se rescatan antes del reset y se restauran después.
+  const metricas = reset ? await rescatarMetricas() : [];
   if (reset) {
     console.log('[db] --reset: eliminando el esquema public...');
     await ejecutar('DROP SCHEMA public CASCADE; CREATE SCHEMA public;', 'reset');
   }
 
   await ejecutar(await readFile(join(carpetaSql, '001_schema.sql'), 'utf8'), '001_schema.sql');
-  await ejecutar(await readFile(join(carpetaSql, '002_seed.sql'), 'utf8'), '002_seed.sql');
-  await ejecutar(await readFile(join(carpetaSql, '005_kb_seed.sql'), 'utf8'), '005_kb_seed.sql');
+
+  if (metricas.length > 0) {
+    await restaurarMetricas(metricas);
+    console.log(`[db] métricas restauradas: ${metricas.length} filas`);
+  }
 
   const r = await query<{
     categoria: number;
@@ -225,7 +263,7 @@ async function main(): Promise<void> {
        (SELECT count(*)::int FROM kb_pregunta_variante WHERE activo) AS kb_variante`,
   );
 
-  console.log('\n[db] contenido cargado:');
+  console.log('\n[db] conteos actuales:');
   console.table(r.rows);
   console.log('\n  Siguiente paso: ejecutar la sincronización con Drive ->  POST /api/sync\n');
 }

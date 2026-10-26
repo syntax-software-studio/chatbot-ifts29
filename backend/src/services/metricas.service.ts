@@ -6,7 +6,7 @@
  * de datos, el registro es un no-op para no romper la respuesta al usuario.
  */
 
-import { query, getPool } from '../db/pool.js';
+import { query } from '../db/pool.js';
 
 export type Evento =
   | 'seleccion'
@@ -27,7 +27,6 @@ export type Evento =
 
 
 export async function registrarMetrica(opcionClave: string, evento: Evento): Promise<void> {
-  if (!getPool()) return;
   try {
     await query(
       `INSERT INTO metrica_opcion (opcion_clave, categoria_clave, evento, total)
@@ -46,7 +45,6 @@ export async function registrarMetrica(opcionClave: string, evento: Evento): Pro
 export async function topOpciones(limite = 20): Promise<
   Array<{ opcion_clave: string; evento: string; total: number }>
 > {
-  if (!getPool()) return [];
   const r = await query<{ opcion_clave: string; evento: string; total: number }>(
     `SELECT opcion_clave, evento, SUM(total)::int AS total
        FROM metrica_opcion

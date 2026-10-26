@@ -14,6 +14,7 @@ import { menuRouter } from './routes/menu.routes.js';
 import { chatRouter } from './routes/chat.routes.js';
 import { healthRouter } from './routes/system.routes.js';
 import { logDbMode } from './db/pool.js';
+import { hasDatabase } from './utils/env.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -40,6 +41,15 @@ export function createApp(): express.Express {
         'GET  /api/metricas',
         'POST /api/sync',
       ],
+    });
+  });
+
+  // Sin base de datos no hay contenido que mostrar: la API responde 503 en lugar de
+  // inventar datos. El health queda afuera para poder diagnosticar la configuración.
+  app.use('/api', (req, res, next) => {
+    if (hasDatabase() || req.path === '/health') return next();
+    res.status(503).json({
+      error: { code: 'BASE_NO_CONFIGURADA', message: 'La base de datos no está configurada (DATABASE_URL).' },
     });
   });
 

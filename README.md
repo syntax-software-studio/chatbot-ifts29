@@ -11,8 +11,8 @@ opciones reales del menú; si no hay información autorizada, lo informa.
 
 - **Frontend:** React 18 + TypeScript + Vite
 - **Backend:** Express 5 + TypeScript, ejecutado como función *serverless* de Vercel
-- **Datos:** PostgreSQL en Neon, con un catálogo semilla equivalente para poder
-  demostrar el proyecto sin infraestructura
+- **Datos:** PostgreSQL (Neon en producción, Docker en desarrollo). El contenido se
+  carga desde una planilla de Google y la carpeta de Drive
 - **Interpretación:** coincidencia exacta + variantes + similitud trigram
   (`pg_trgm`). Sin LLM, sin embeddings, sin acceso a Internet
 - **Documentos:** sincronización con Google Drive mediante *Service Account*
@@ -27,12 +27,14 @@ opciones reales del menú; si no hay información autorizada, lo informa.
 | Node.js | 20 o superior (probado con 24) |
 | npm | 10 o superior |
 
-No hace falta Docker ni base de datos para arrancar en modo demostración.
+Para la base local hace falta Docker (o una `DATABASE_URL` de Neon).
 
-## 2. Puesta en marcha rápida (modo demo)
+## 2. Puesta en marcha rápida
 
 ```bash
 npm install
+docker compose up -d --build
+npm run sync --workspace backend   # carga el contenido (requiere DATABASE_URL en .env)
 
 # Terminal 1: API
 npm run dev:api
@@ -44,13 +46,14 @@ npm run dev:web
 - Interfaz: <http://localhost:5173>
 - API: <http://localhost:3000/api/health>
 
-Sin `DATABASE_URL` la API responde con el **catálogo local**, que contiene
-exactamente el mismo contenido que `db/002_seed.sql` (menú) y `db/005_kb_seed.sql`
-(base de conocimiento). Es el modo recomendado para desarrollo y para la
-demostración: no necesita red ni base de datos, y las consultas escritas se
-resuelven igual que en Neon porque el motor y los umbrales son los mismos.
+Sin `DATABASE_URL` la API responde 503 (`BASE_NO_CONFIGURADA`): no hay modo demo.
+Para la base local, agregá al `.env`:
 
-Para trabajar contra la base real, agregar `DATABASE_URL` al `.env` (sección 4).
+```
+DATABASE_URL=postgresql://postgres:password123@localhost:5432/ifts29
+```
+
+Ver la sección 4 para el resto de la configuración.
 
 ## 3. Estructura del proyecto
 
@@ -60,18 +63,15 @@ Para trabajar contra la base real, agregar `DATABASE_URL` al `.env` (sección 4)
 ├── api/index.ts             # Entry point de la función serverless de Vercel
 ├── db/
 │   ├── 001_schema.sql       # DDL: menú, base de conocimiento, triggers y vistas
-│   ├── 002_seed.sql         # Contenido del menú (idempotente)
-│   ├── 003_verificacion.sql # Comprueba contra PostgreSQL real que todo responde
-│   └── 005_kb_seed.sql      # Intenciones, preguntas y variantes (generado)
+│   └── 003_verificacion.sql # Comprueba contra PostgreSQL real que todo responde
 ├── backend/
 │   ├── src/
-│   │   ├── db/              # pool.ts (Neon), catalogo.ts, conocimiento.ts, push.ts
+│   │   ├── db/              # pool.ts (PostgreSQL), catalogo.ts, conocimiento.ts, push.ts
 │   │   ├── routes/          # menu, chat, system (health / metricas / sync)
 │   │   ├── services/        # chat, nl (intérprete), drive, metricas
 │   │   ├── middleware/      # CORS + cabeceras, rate limit, errores
-│   │   ├── seed/            # catálogo y base de conocimiento en memoria
 │   │   └── utils/           # env.ts, normalizar.ts, errors.ts
-│   └── test/                # 40 tests con node:test (sin dependencias extra)
+│   └── test/                # 58 tests con node:test (sin dependencias extra)
 ├── frontend/
 │   ├── public/widget.js     # Script inyector para Moodle
 │   └── src/                 # ChatWidget + compositor, tarjetas, burbujas, estilos
@@ -89,14 +89,14 @@ cp .env.example .env
 **Un solo archivo para todo el proyecto**: tanto el backend como el build del
 frontend leen ese `.env` de la raíz (Vite usa `envDir: '..'`). No hace falta
 `dotenv` ni flags por script. Si el archivo no existe, todo funciona con los
-defaults y la API cae en modo semilla.
+defaults; sin `DATABASE_URL` la API responde 503.
 
 El `.env` está en `.gitignore` y **no se despliega**: en Vercel las mismas
 variables se cargan en *Project Settings → Environment Variables*.
 
 | Variable | Para | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | API | vacío → modo semilla |
+| `DATABASE_URL` | API | vacío → la API responde 503 (sin base) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | API | vacío → Drive deshabilitado |
 | `GOOGLE_PRIVATE_KEY` | API | vacío |
 | `GOOGLE_SHARED_FOLDER_ID` | API | vacío |
@@ -126,16 +126,16 @@ postgresql://USUARIO:PASSWORD@ep-xxxx-pooler.REGION.neon.tech/ifts29?sslmode=req
                                                                    ^^^^^^ base
 ```
 
-La URL debe ser la **pooled connection** de Neon (*Connection Details → Pooled
-connection*), porque el driver `@neondatabase/serverless` habla HTTP y no
-sockets TCP. El nombre de la rama (`main`, `dev`, …) es indistinto.
+La misma `DATABASE_URL` sirve para Neon y para el PostgreSQL de Docker. El driver
+es `pg` (node-postgres), que soporta SCRAM-SHA-256 y SSL, así que no hay un
+driver distinto por entorno. El nombre de la rama (`main`, `dev`, …) es
+indistinto.
 
-### ¿Por qué `@neondatabase/serverless` y no `pg`?
+Para Docker local:
 
-Neon autentica con SCRAM-SHA-256, que `node-postgres` no soporta, y un runtime
-serverless no necesita sockets TCP persistentes. El driver serverless habla
-HTTP directo y resuelve SCRAM con WebCrypto. No hay pool que configurar: cada
-consulta es una petición HTTPS.
+```
+postgresql://postgres:password123@localhost:5432/ifts29
+```
 
 ## 5. Base de datos
 
@@ -146,16 +146,16 @@ npm run db:push     # aplica esquema + contenido (idempotente)
 npm run db:reset    # borra el esquema public y lo vuelve a crear
 ```
 
-`db:push` aplica, en orden, `001_schema.sql`, `002_seed.sql` y `005_kb_seed.sql`,
-y al final muestra los conteos de cada tabla. Es
-**idempotente** (`CREATE ... IF NOT EXISTS` y `ON CONFLICT DO UPDATE`), así que
-se puede reejecutar sin romper nada: es la forma normal de actualizar el catálogo
-cuando cambia un texto del menú o se agrega una variante.
+`db:push` aplica sólo `001_schema.sql` (el esquema) y es idempotente. El contenido
+(menú, base de conocimiento, contactos y documentos) no sale del repo: se carga desde la
+planilla de Google con `npm run sync --workspace backend`, que también sincroniza los
+documentos de Drive. Para cambiar un texto o agregar una variante se edita la planilla y
+se vuelve a sincronizar.
 
 `db/001_schema.sql` define el esquema completo, las dos mitades del sistema:
 
-- `categoria`, `opcion_menu`, `respuesta`, `documento`, `contacto`, `contexto`
-- Tablas de relación: `opcion_contacto`, `respuesta_documento`, `contexto_opcion`
+- `categoria`, `opcion_menu`, `respuesta`, `documento`, `contacto`
+- Tablas de relación: `opcion_contacto`, `respuesta_documento`
 - `metrica_opcion` (métricas agregadas, sin datos personales)
 - La base de conocimiento de las consultas escritas: `kb_intencion` (qué
   intención corresponde a qué opción del menú), `kb_pregunta` (la formulación
@@ -172,19 +172,14 @@ reutiliza.
 
 ### Ampliar la base de conocimiento
 
-El contenido de la KB vive en `backend/src/seed/conocimiento.ts` y
-`db/005_kb_seed.sql` es su espejo generado. Para sumar una redacción nueva:
+El contenido vive en la planilla de Google "Bot IFTS29 - Contenido", no en el código. Para sumar una redacción nueva:
 
-1. Agregar el texto en `conMateria` del tema correspondiente, o crear un tema
-   nuevo si la consulta es administrativa.
-2. `npm run db:kb --workspace backend` → regenera `db/005_kb_seed.sql`.
-3. `npm test --workspace backend` → falla si el SQL y el TypeScript se
-   desalinean, si una variante queda repetida o si falta el `ON CONFLICT`.
-4. `npm run db:push` → sube el cambio a Neon.
+1. Agregar la fila en la pestaña `variantes` (y, si hace falta, en `preguntas` o `intenciones`).
+2. Ejecutar `npm run sync --workspace backend`. Valida la planilla antes de escribir: si hay un error, lo muestra y no cambia nada.
 
 ```bash
-npm run db:kb --workspace backend   # regenera db/005_kb_seed.sql
-npm test --workspace backend        # valida paridad e idempotencia
+npm run sync --workspace backend   # carga el contenido y sincroniza los documentos
+npm test --workspace backend       # valida el código
 ```
 
 ### Verificación contra PostgreSQL real
@@ -220,7 +215,6 @@ textos genéricos compartidos. Esa última lista es la que sirve para calibrar
 - `nodo` → un nuevo menú (`nodo`)
 - `respuesta` → texto y, si corresponde, `respuesta.documentos`
 - `derivacion` → orientación a la persona-humana adecuada
-- `contexto` → submenú de contexto (comisión, cuatrimestre)
 - `aclaracion` → la consulta era ambigua: `aclaracion.opciones` son opciones
   reales del menú, para responder con un toque
 - `no_disponible` → no hay información autorizada para esa consulta
@@ -262,7 +256,7 @@ Códigos: `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`,
    coincide con variantes de varias intenciones, se devuelven **todas**: es el
    caso que dispara la aclaración.
 4. **Similitud trigram** (`pg_trgm`), con el mismo coeficiente que la función en
-   memoria para que el modo demo y Neon se comporten igual.
+   memoria, con el mismo coeficiente, para que los umbrales coincidan.
 5. **Umbrales**: confianza alta → respuesta; media → aclaración con opciones del
    menú; baja → `no_disponible`.
 
@@ -406,15 +400,15 @@ Los mensajes entre el iframe y la página padre usan un `targetOrigin` explícit
 | `npm run build` | Compila backend y frontend |
 | `npm run typecheck` | Chequeo de tipos de ambos workspaces |
 | `npm test --workspace backend` | Tests del backend (`node --test`, sin dependencias extra) |
-| `npm run db:push` | Aplica `001_schema.sql` + `002_seed.sql` + `005_kb_seed.sql` en Neon |
+| `npm run db:push` | Aplica sólo `001_schema.sql` (esquema) |
+| `npm run sync --workspace backend` | Carga el contenido de la planilla y sincroniza los documentos de Drive |
 | `npm run db:reset` | Borra el esquema y lo vuelve a crear |
-| `npm run db:kb --workspace backend` | Regenera `db/005_kb_seed.sql` desde el seed de TypeScript |
 
 ### Qué cubren los tests
 
-`npm test --workspace backend` corre 40 tests con `node:test`, sin dependencias
-extra y **siempre contra el catálogo local**, nunca contra Neon (el `.env` se
-neutraliza a propósito, para que la suite no dependa de la red).
+`npm test --workspace backend` corre 58 tests con `node:test`. Las pruebas de
+integración usan una base de prueba (`ifts29_test`) en el PostgreSQL de Docker, con
+fixtures propios: nunca se conectan a Neon ni a Google.
 
 | Archivo | Qué verifica |
 | --- | --- |
@@ -422,13 +416,10 @@ neutraliza a propósito, para que la suite no dependa de la red).
 | `conocimiento.test.ts` | Matching exacto y por similitud, y que la ambigüedad se preserve |
 | `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo |
 | `api.test.ts` | Contrato HTTP de `/api/chat` sobre la app real (Express en un puerto efímero) |
-| `kb-seed.test.ts` | Paridad del seed TS y el SQL, idempotencia y ausencia de BOM |
 | `sql-coincide.test.ts` | Que cada columna usada por el SQL exista en los DDL |
 
-Este último es el que evita el tipo de falla más difícil de detectar: el esquema
-usa `clave`/`nombre`/`pregunta` y el seed de TypeScript `key`/`name`/`question`.
-Si uno se desalinea, el modo demo sigue funcionando y la falla aparece recién en
-Neon.
+Este último evita una falla difícil de detectar: que el SQL de la aplicación use una
+columna que no existe en el esquema. Se verifica en `npm test`, sin base de datos.
 
 ## 11. Privacidad
 
@@ -446,16 +437,12 @@ Neon.
 
 ## 12. Límites conocidos
 
-- Los contactos de tutoría están **cargados en el seed**, no se sincronizan
-  desde Drive. Para hacerlo falta definir el formato del archivo fuente
-  (cuatrimestre / comisión) y el mapeo al esquema.
-- La resolución de la opción "no encontré lo que busco" deriva a tutoría,
-  Bedelía y Asesoría Pedagógica. Si el equipo quiere derivaciones distintas
-  por cuatrimestre o comisión, se modelan con `opcion_contacto` + `contexto`.
+- La derivación cubre los motivos y comisiones cargados en la planilla. Los cambios se
+  hacen en la planilla y sincronizan sin tocar código.
 - El texto libre cubre únicamente lo que ya está en el menú: si la base de
   conocimiento no tiene una variante parecida, la respuesta es
-  `no_disponible`. Ampliar cobertura es agregar variantes a
-  `backend/src/seed/conocimiento.ts` y regenerar `db/005_kb_seed.sql`.
+  `no_disponible`. Ampliar cobertura es agregar variantes en la
+  pestaña `variantes` de la planilla y sincronizar.
 - Los umbrales de similitud son valores iniciales. Conviene revisarlos con
   consultas reales antes de dar por cerrada la calibración.
 - No hay memoria conversacional: `conversationId` se acepta y se ignora.

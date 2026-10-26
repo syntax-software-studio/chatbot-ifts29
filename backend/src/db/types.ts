@@ -41,18 +41,6 @@ export interface Contacto {
   motivo: string | null;
 }
 
-/**
- * Valor de contexto ofrecido como submenu (comision, cuatrimestre...).
- * `ambitoClave` identifica el valor para filtrar (p. ej. 'A' para la comision A).
- */
-export interface OpcionContexto {
-  contextoId: number;
-  clave: string;
-  etiqueta: string;
-  valor: string | null;
-  ambitoClave: string | null;
-}
-
 /** Opcion seleccionable del menu: es la respuesta autorizada a la que también
  *  mapea una consulta escrita, asi que no lleva texto propio (RF05). */
 export interface OpcionMenu {
@@ -82,13 +70,6 @@ export interface Respuesta {
 export interface Derivacion {
   texto: string;
   contactos: Contacto[];
-}
-
-/** Envoltoria de la opcion cuando pide un dato contextual antes de responder. */
-export interface PreguntaContexto {
-  texto: string;
-  clave: string;
-  opciones: OpcionContexto[];
 }
 
 /** Origen del turno: menu guiado o motor de lenguaje natural. */
@@ -125,10 +106,7 @@ export type TurnoChat =
   | { tipo: 'nodo'; nodo: NodoMenu; meta?: MetaInterpretacion }
   | { tipo: 'respuesta'; claveOpcion: string; respuesta: Respuesta; nodoActual: string; meta?: MetaInterpretacion }
   | { tipo: 'derivacion'; claveOpcion: string; derivacion: Derivacion; meta?: MetaInterpretacion }
-  | { tipo: 'contexto'; claveOpcion: string; pregunta: PreguntaContexto }
   | { tipo: 'aclaracion'; aclaracion: Aclaracion; meta?: MetaInterpretacion }
   | { tipo: 'no_disponible'; mensaje: string; meta?: MetaInterpretacion }
   | { tipo: 'error'; mensaje: string };
 
-/** Origen de los datos: base real o catalogo semilla local. */
-export type FuenteDatos = 'neon' | 'seed';

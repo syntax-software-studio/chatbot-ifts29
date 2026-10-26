@@ -9,7 +9,7 @@
  *
  * Secuencia (Niveles A -> E del prompt maestro):
  *
- *   normalizacion
+ *   normalizacion (siglas de la pestaña `alias` y palabras vacías)
  *     -> regla de saludos (Nivel C, menu raiz)
  *     -> coincidencia exacta sobre `kb_pregunta_variante.normalized_text`
  *     -> variantes / similitud trigram (`pg_trgm`)
@@ -20,8 +20,8 @@
  */
 
 import { obtenerNodo, CATEGORIA_RAIZ } from '../db/catalogo.js';
-import { buscarExacto, buscarSimilares, type CandidatoKb } from '../db/conocimiento.js';
-import { normalizar } from '../utils/normalizar.js';
+import { buscarExacto, buscarSimilares, buscarPorPalabras, obtenerAlias, type CandidatoKb } from '../db/conocimiento.js';
+import { normalizarConsulta } from '../utils/normalizar.js';
 import { env } from '../utils/env.js';
 import type { Aclaracion, MetaInterpretacion, NodoMenu } from '../db/types.js';
 import type { Evento } from './metricas.service.js';
@@ -121,6 +121,20 @@ function esResoluble(c: CandidatoKb): boolean {
   return c.respuestaId !== null || c.opcionClave.length > 0;
 }
 
+/**
+ * Une dos listas de candidatos quedándose, para cada variante, con la mayor similitud.
+ * Así una variante que solo coincide por palabras (transposición) también cuenta.
+ */
+function combinarPorMaximo(a: CandidatoKb[], b: CandidatoKb[]): CandidatoKb[] {
+  const mejor = new Map<string, CandidatoKb>();
+  for (const c of [...a, ...b]) {
+    const clave = `${c.preguntaId}|${c.normalizedText}`;
+    const previo = mejor.get(clave);
+    if (!previo || c.similarity > previo.similarity) mejor.set(clave, c);
+  }
+  return [...mejor.values()].sort((x, y) => y.similarity - x.similarity);
+}
+
 /** Botones de la aclaracion: opciones reales del menu, no rotulos libres. */
 function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones'] {
   return candidatos.slice(0, env.lenguajeNatural.maxOpcionesAclaracion).map((c) => ({
@@ -146,7 +160,8 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
  */
 export async function interpretarConsulta(texto: string): Promise<ResolucionConsulta> {
   const { umbralAlto, umbralMedio, margenAmbiguedad } = env.lenguajeNatural;
-  const normalizado = normalizar(texto);
+  const alias = await obtenerAlias().catch(() => new Map<string, string>());
+  const normalizado = normalizarConsulta(texto, alias);
 
   // Nivel C: saludos -> menu raiz (respuesta autorizada, no generada).
   if (SALUDOS.has(normalizado)) {
@@ -163,7 +178,9 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       candidatos = exactos;
       esExacto = true;
     } else {
-      candidatos = (await buscarSimilares(normalizado, umbralMedio)).filter(esResoluble);
+      const porTrigram = await buscarSimilares(normalizado, umbralMedio);
+      const porPalabras = await buscarPorPalabras(normalizado, umbralMedio);
+      candidatos = combinarPorMaximo(porTrigram, porPalabras).filter(esResoluble);
     }
   } catch (err) {
     // Sin `pg_trgm` o sin tablas `kb_*` la base no puede interpretar.

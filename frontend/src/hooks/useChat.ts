@@ -17,11 +17,9 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { obtenerMenu, enviarSeleccion, enviarMensaje, ApiError } from '../api/client';
-import { prefijoContexto } from '../components/OptionList';
-import type { OpcionContexto, OpcionMenu, TurnoChat } from '../types';
+import type { OpcionMenu, TurnoChat } from '../types';
 
 /** Elementos que se renderizan como botones en el menú. */
-export type ElementoLista = OpcionMenu | OpcionContexto;
 
 export interface Turno {
   id: string;
@@ -39,11 +37,11 @@ export interface EstadoChat {
   cargando: boolean;
   error: string | null;
   turnos: Turno[];
-  opciones: ElementoLista[];
+  opciones: OpcionMenu[];
   nodoActual: string;
   puedeNavegarAtras: boolean;
   inicializar: () => Promise<void>;
-  seleccionar: (clave: string, contextoId?: number) => Promise<void>;
+  seleccionar: (clave: string) => Promise<void>;
   /** Envía una consulta escrita y aplica el turno que devuelva la API. */
   consultar: (texto: string) => Promise<void>;
   /** Vuelve al menú anterior, también desde una respuesta o derivación. */
@@ -56,15 +54,13 @@ const nuevoId = (): string => `t${++secuencia}`;
 
 export function useChat(): EstadoChat {
   const [turnos, setTurnos] = useState<Turno[]>([]);
-  const [opciones, setOpciones] = useState<ElementoLista[]>([]);
+  const [opciones, setOpciones] = useState<OpcionMenu[]>([]);
   const [nodoActual, setNodoActual] = useState('RAIZ');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /** Pila de categorías visitadas, para el botón "volver" implícito. */
   const historial = useRef<string[]>([]);
-  /** Datos del turno de contexto pendiente, para resolver la selección. */
-  const contextoPendiente = useRef<{ claveOpcion: string; clave: string } | null>(null);
   /**
    * true cuando el último turno no es un menú (respuesta, derivación, submenú).
    * En ese caso "volver" muestra la categoría de la que se llegó, sin sacarla de la pila.
@@ -84,7 +80,6 @@ export function useChat(): EstadoChat {
       setOpciones(nodo.opciones);
       setNodoActual(nodo.categoria.clave);
       historial.current = [nodo.categoria.clave];
-      contextoPendiente.current = null;
       enHoja.current = false;
     } catch (err) {
       setError(
@@ -105,7 +100,6 @@ export function useChat(): EstadoChat {
           setOpciones(turno.nodo.opciones);
           setNodoActual(turno.nodo.categoria.clave);
           historial.current.push(turno.nodo.categoria.clave);
-          contextoPendiente.current = null;
           enHoja.current = false;
           break;
 
@@ -119,7 +113,6 @@ export function useChat(): EstadoChat {
           // ninguna parte: se conservan las opciones vigentes para que pueda
           // seguir explorando sin reiniciar. Un clic de menú sí las reemplaza.
           if (!turno.meta) setOpciones([]);
-          contextoPendiente.current = null;
           enHoja.current = true;
           break;
 
@@ -130,17 +123,6 @@ export function useChat(): EstadoChat {
             contactos: turno.derivacion.contactos,
           });
           if (!turno.meta) setOpciones([]);
-          contextoPendiente.current = null;
-          enHoja.current = true;
-          break;
-
-        case 'contexto':
-          agregarTurno({ autor: 'bot', texto: turno.pregunta.texto });
-          setOpciones(turno.pregunta.opciones);
-          contextoPendiente.current = {
-            claveOpcion: turno.claveOpcion,
-            clave: turno.pregunta.clave,
-          };
           enHoja.current = true;
           break;
 
@@ -149,7 +131,6 @@ export function useChat(): EstadoChat {
           // tocando un botón y el flujo continúa como el de siempre.
           agregarTurno({ autor: 'bot', texto: turno.aclaracion.mensaje });
           setOpciones(turno.aclaracion.opciones);
-          contextoPendiente.current = null;
           enHoja.current = true;
           break;
 
@@ -168,36 +149,16 @@ export function useChat(): EstadoChat {
   );
 
   const seleccionar = useCallback(
-    async (clave: string, contextoId?: number) => {
+    async (clave: string) => {
       if (cargando) return;
 
-      const esContexto = clave.startsWith(prefijoContexto);
-      const pendiente = contextoPendiente.current;
-      const esRespuestaDeContexto = esContexto && pendiente !== null;
-
-      // Texto visible de la selección del estudiante.
-      const encontrado = opciones.find((o) =>
-        esContexto ? 'contextoId' in o && o.contextoId === contextoId : o.clave === clave,
-      );
-      const etiqueta = encontrado?.etiqueta ?? '';
+      const etiqueta = opciones.find((o) => o.clave === clave)?.etiqueta ?? '';
 
       setCargando(true);
       agregarTurno({ autor: 'estudiante', texto: etiqueta || '…' });
 
       try {
-        let turno: TurnoChat;
-
-        if (esRespuestaDeContexto) {
-          // Segunda etapa: se manda la opción original con el valor elegido.
-          turno = await enviarSeleccion({
-            opcion: pendiente.claveOpcion,
-            contexto: contextoId,
-          });
-        } else {
-          turno = await enviarSeleccion({ opcion: clave });
-        }
-
-        aplicarTurno(turno);
+        aplicarTurno(await enviarSeleccion({ opcion: clave }));
         setError(null);
       } catch (err) {
         const mensaje =
@@ -259,7 +220,6 @@ export function useChat(): EstadoChat {
       agregarTurno({ autor: 'bot', texto: nodo.mensaje });
       setOpciones(nodo.opciones);
       setNodoActual(nodo.categoria.clave);
-      contextoPendiente.current = null;
       enHoja.current = false;
       setError(null);
     } catch (err) {
@@ -293,4 +253,4 @@ export function useChat(): EstadoChat {
   };
 }
 
-export type { OpcionMenu, OpcionContexto };
+export type { OpcionMenu };

@@ -47,6 +47,12 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Evidencias y resultados
 - Validación de módulos
 
+### 7. [Contenido y decisiones](07-contenido-y-decisiones.md)
+- Fuentes de contenido (planilla y Drive)
+- Sincronización y convención de nombres
+- Flujo de derivación
+- Decisiones y pendientes
+
 ---
 
 ## Estructura de Carpetas
@@ -60,6 +66,7 @@ desarrollo-e-integracion/
 ├── 04-base-datos.md
 ├── 05-pruebas-unitarias.md
 ├── 06-pruebas-integracion.md
+├── 07-contenido-y-decisiones.md
 └── screenshots/
     ├── manual-usuario/
     ├── pruebas-unitarias/

@@ -1,36 +1,15 @@
 /**
- * Capa de acceso a datos del catálogo.
- *
- * Dos orígenes con la misma interfaz:
- *   - `neon` : PostgreSQL real (producción).
- *   - `seed` : catálogo en memoria (`db/002_seed.sql` replicado en TypeScript).
+ * Capa de acceso a datos del catálogo. Lee el menú desde PostgreSQL.
  *
  * Todas las consultas están parametrizadas y solo devuelven contenido
  * institucional. No se persiste ni se lee ningún dato del estudiante.
  */
 
-import { query, getPool } from './pool.js';
-import { seedData, type SeedData, type SeedContacto } from '../seed/catalogo.js';
+import { query } from './pool.js';
 import { notFound } from '../utils/errors.js';
-import type {
-  Categoria,
-  Contacto,
-  Documento,
-  FuenteDatos,
-  NodoMenu,
-  OpcionMenu,
-  OpcionContexto,
-  Respuesta,
-  Derivacion,
-  TipoOpcion,
-} from './types.js';
+import type { Categoria, Contacto, Documento, NodoMenu, OpcionMenu, Respuesta, Derivacion, TipoOpcion } from './types.js';
 
 export const CATEGORIA_RAIZ = 'RAIZ';
-
-/** ¿Estamos usando PostgreSQL o el catálogo semilla? */
-export function fuente(): FuenteDatos {
-  return getPool() ? 'neon' : 'seed';
-}
 
 /* ==========================================================================
  * Mapeadores
@@ -164,79 +143,29 @@ const SQL_DOCUMENTOS_DE_RESPUESTA = `
    WHERE rd.respuesta_id = $1 AND d.estado <> 'archivado'
    ORDER BY rd.orden, d.id`;
 
-/* Si `$2` viene (comision elegida), se filtran los contactos de esa comision.
- * Los contactos sin comision o con "General" se muestran siempre. */
 const SQL_CONTACTOS_DE_OPCION = `
   SELECT c.id, c.clave, c.nombre, c.area, c.email,
          c.url_perfil, c.motivo
     FROM opcion_contacto oc
     JOIN contacto c ON c.id = oc.contacto_id
    WHERE oc.opcion_id = $1 AND c.activo
-     AND ($2::text IS NULL OR c.comision IS NULL OR c.comision = 'General' OR c.comision = $2)
    ORDER BY oc.orden, c.id`;
-
-const SQL_CONTEXTOS_DE_OPCION = `
-  SELECT ctx.id AS contexto_id, ctx.clave, ctx.nombre AS etiqueta, ctx.valor, ctx.ambito_clave
-    FROM contexto_opcion co
-    JOIN contexto ctx ON ctx.id = co.contexto_id
-   WHERE co.opcion_id = $1 AND ctx.activo
-   ORDER BY co.orden, ctx.id`;
-/* ==========================================================================
- * Lectura del árbol - Seed
- * ======================================================================== */
-
-function seedOpcionesDe(categoriaId: number): OpcionMenu[] {
-  return seedData.opciones
-    .filter((o) => o.categoria_id === categoriaId && o.activo)
-    .sort((a, b) => a.orden - b.orden || a.id - b.id)
-    .map(toOpcion);
-}
-
-function seedDocumentosDeRespuesta(respuestaId: number): Documento[] {
-  return seedData.respuestaDocumento
-    .filter((rd) => rd.respuesta_id === respuestaId)
-    .sort((a, b) => a.orden - b.orden)
-    .map((rd) => seedData.documentos.find((d) => d.id === rd.documento_id))
-    .filter((d): d is NonNullable<typeof d> => Boolean(d))
-    .map(toDocumento);
-}
-
-function seedContactosDeOpcion(opcionId: number): Contacto[] {
-  return seedData.opcionContacto
-    .filter((oc) => oc.opcion_id === opcionId)
-    .sort((a, b) => a.orden - b.orden)
-    .map((oc) => seedData.contactos.find((c) => c.id === oc.contacto_id))
-    .filter((c): c is SeedContacto => c !== undefined && c.activo)
-    .map(toContacto);
-}
-
 /* ==========================================================================
  * API pública
  * ======================================================================== */
 
 /** Devuelve el nodo raíz (saludo inicial) o el nodo de una categoría. */
 export async function obtenerNodo(categoriaClave: string = CATEGORIA_RAIZ): Promise<NodoMenu> {
-  if (getPool()) {
-    const cat = await query<RawCategoria>(SQL_CATEGORIA_POR_CLAVE, [categoriaClave]);
-    const row = cat.rows[0];
-    if (!row) throw notFound(`Categoría no encontrada: ${categoriaClave}`);
+  const cat = await query<RawCategoria>(SQL_CATEGORIA_POR_CLAVE, [categoriaClave]);
+  const row = cat.rows[0];
+  if (!row) throw notFound(`Categoría no encontrada: ${categoriaClave}`);
 
-    const ops = await query<RawOpcion>(SQL_OPCIONES, [row.id]);
-    return {
-      categoria: toCategoria(row),
-      mensaje: row.mensaje ?? row.nombre,
-      opciones: ops.rows.map(toOpcion),
-      esRaiz: row.es_raiz,
-    };
-  }
-
-  const cat = seedData.categorias.find((x) => x.clave === categoriaClave && x.activo);
-  if (!cat) throw notFound(`Categoría no encontrada: ${categoriaClave}`);
+  const ops = await query<RawOpcion>(SQL_OPCIONES, [row.id]);
   return {
-    categoria: toCategoria(cat),
-    mensaje: cat.mensaje ?? cat.nombre,
-    opciones: seedOpcionesDe(cat.id),
-    esRaiz: cat.es_raiz,
+    categoria: toCategoria(row),
+    mensaje: row.mensaje ?? row.nombre,
+    opciones: ops.rows.map(toOpcion),
+    esRaiz: row.es_raiz,
   };
 }
 
@@ -251,135 +180,50 @@ export interface OpcionResuelta {
 
 /** Resuelve una opción por clave y devuelve la información necesaria. */
 export async function obtenerOpcion(opcionClave: string): Promise<OpcionResuelta> {
-  if (getPool()) {
-    const r = await query<
-      RawOpcion & { respuesta_id: number | null; categoria_destino_id: number | null; categoria_clave: string }
-    >(SQL_OPCION_POR_CLAVE, [opcionClave]);
-    const row = r.rows[0];
-    if (!row) throw notFound(`Opción no encontrada: ${opcionClave}`);
+  const r = await query<
+    RawOpcion & { respuesta_id: number | null; categoria_destino_id: number | null; categoria_clave: string }
+  >(SQL_OPCION_POR_CLAVE, [opcionClave]);
+  const row = r.rows[0];
+  if (!row) throw notFound(`Opción no encontrada: ${opcionClave}`);
 
-    let destino: string | null = null;
-    if (row.categoria_destino_id) {
-      const d = await query<{ clave: string }>('SELECT clave FROM categoria WHERE id = $1', [
-        row.categoria_destino_id,
-      ]);
-      destino = d.rows[0]?.clave ?? null;
-    }
-
-    return {
-      clave: row.clave,
-      etiqueta: row.etiqueta,
-      tipo: row.tipo,
-      categoriaClave: destino,
-      respuestaId: row.respuesta_id,
-      opcionId: row.id,
-    };
+  let destino: string | null = null;
+  if (row.categoria_destino_id) {
+    const d = await query<{ clave: string }>('SELECT clave FROM categoria WHERE id = $1', [row.categoria_destino_id]);
+    destino = d.rows[0]?.clave ?? null;
   }
 
-  const o = seedData.opciones.find((x) => x.clave === opcionClave && x.activo);
-  if (!o) throw notFound(`Opción no encontrada: ${opcionClave}`);
-  const destinoCat = o.categoria_destino_id
-    ? seedData.categorias.find((c) => c.id === o.categoria_destino_id)
-    : undefined;
-
   return {
-    clave: o.clave,
-    etiqueta: o.etiqueta,
-    tipo: o.tipo,
-    categoriaClave: destinoCat?.clave ?? null,
-    respuestaId: o.respuesta_id,
-    opcionId: o.id,
+    clave: row.clave,
+    etiqueta: row.etiqueta,
+    tipo: row.tipo,
+    categoriaClave: destino,
+    respuestaId: row.respuesta_id,
+    opcionId: row.id,
   };
 }
 
 /** Texto + documentos adjuntos de una respuesta. */
 export async function obtenerRespuesta(respuestaId: number): Promise<Respuesta> {
-  if (getPool()) {
-    const r = await query<RawRespuesta>(SQL_RESPUESTA, [respuestaId]);
-    const row = r.rows[0];
-    if (!row) throw notFound(`Respuesta no encontrada: ${respuestaId}`);
+  const r = await query<RawRespuesta>(SQL_RESPUESTA, [respuestaId]);
+  const row = r.rows[0];
+  if (!row) throw notFound(`Respuesta no encontrada: ${respuestaId}`);
 
-    const docs = await query<RawDocumento>(SQL_DOCUMENTOS_DE_RESPUESTA, [respuestaId]);
-    return { texto: row.texto, documentos: docs.rows.map(toDocumento) };
-  }
-
-  const resp = seedData.respuestas.find((x) => x.id === respuestaId && x.activo);
-  if (!resp) throw notFound(`Respuesta no encontrada: ${respuestaId}`);
-  return { texto: resp.texto, documentos: seedDocumentosDeRespuesta(respuestaId) };
+  const docs = await query<RawDocumento>(SQL_DOCUMENTOS_DE_RESPUESTA, [respuestaId]);
+  return { texto: row.texto, documentos: docs.rows.map(toDocumento) };
 }
 
 /** Contactos de derivación de una opción. */
-export async function obtenerContactos(opcionId: number, comision?: string | null): Promise<Contacto[]> {
-  if (getPool()) {
-    const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId, comision ?? null]);
-    return r.rows.map(toContacto);
-  }
-  return seedContactosDeOpcion(opcionId);
+export async function obtenerContactos(opcionId: number): Promise<Contacto[]> {
+  const r = await query<RawContacto>(SQL_CONTACTOS_DE_OPCION, [opcionId]);
+  return r.rows.map(toContacto);
 }
 
-/** Valores de contexto que la opción ofrece como submenú (RF06). */
-export async function obtenerContextosDeOpcion(opcionId: number): Promise<OpcionContexto[]> {
-  if (getPool()) {
-    const r = await query<{
-      contexto_id: number;
-      clave: string;
-      etiqueta: string;
-      valor: string | null;
-      ambito_clave: string | null;
-    }>(SQL_CONTEXTOS_DE_OPCION, [opcionId]);
-    return r.rows.map((row) => ({
-      contextoId: row.contexto_id,
-      clave: row.clave,
-      etiqueta: row.etiqueta,
-      valor: row.valor,
-      ambitoClave: row.ambito_clave,
-    }));
-  }
-
-  // El catálogo semilla no usa submenús contextuales: la respuesta de días de
-  // cursada ya lista las tres comisiones (comportamiento validado en el
-  // prototipo). Se deja el hook listo para cuando se carguen en la base.
-  return (seedData.opcionContexto ?? [])
-    .filter((oc) => oc.opcion_id === opcionId)
-    .map((oc) => {
-      const ctx = seedData.contextos.find((c) => c.id === oc.contexto_id);
-      if (!ctx) return null;
-      return {
-        contextoId: ctx.id,
-        clave: ctx.clave,
-        etiqueta: ctx.nombre,
-        valor: ctx.valor,
-        ambitoClave: ctx.ambito_clave ?? null,
-      };
-    })
-    .filter((x): x is OpcionContexto => x !== null);
-}
-
-/** Valores de un contexto global, para interpolar en textos. */
-export async function obtenerContextoGlobal(clave: string): Promise<string | null> {
-  if (getPool()) {
-    const r = await query<{ valor: string | null }>(
-      'SELECT valor FROM contexto WHERE clave = $1 AND ambito_tipo IS NULL AND activo LIMIT 1',
-      [clave],
-    );
-    return r.rows[0]?.valor ?? null;
-  }
-  const ctx = seedData.contextos.find((c) => c.clave === clave && c.ambito_tipo === null && c.activo);
-  return ctx?.valor ?? null;
-}
-
-/** Categorías hoja del árbol, útil para el mapa de navegación y las pruebas. */
+/** Categorías del árbol, útil para el mapa de navegación y las pruebas. */
 export async function listarCategorias(): Promise<Categoria[]> {
-  if (getPool()) {
-    const r = await query<RawCategoria>(
-      'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM categoria WHERE activo ORDER BY orden, id',
-    );
-    return r.rows.map(toCategoria);
-  }
-  return seedData.categorias
-    .filter((c) => c.activo)
-    .sort((a, b) => a.orden - b.orden || a.id - b.id)
-    .map(toCategoria);
+  const r = await query<RawCategoria>(
+    'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM categoria WHERE activo ORDER BY orden, id',
+  );
+  return r.rows.map(toCategoria);
 }
 
 /** Texto introductorio de una derivación (opcional). */
@@ -394,5 +238,3 @@ export async function textoDerivacion(respuestaId: number | null): Promise<strin
 }
 
 export type { Derivacion };
-export { seedData };
-export type { SeedData };
