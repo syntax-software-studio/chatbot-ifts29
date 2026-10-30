@@ -20,7 +20,7 @@
  */
 
 import { obtenerNodo, CATEGORIA_RAIZ } from '../db/catalogo.js';
-import { buscarExacto, buscarSimilares, buscarPorPalabras, obtenerAlias, type CandidatoKb } from '../db/conocimiento.js';
+import { buscarExacto, buscarSimilares, buscarPorPalabras, buscarPorFts, obtenerAlias, type CandidatoKb } from '../db/conocimiento.js';
 import { normalizarConsulta } from '../utils/normalizar.js';
 import { env } from '../utils/env.js';
 import type { Aclaracion, MetaInterpretacion, NodoMenu } from '../db/types.js';
@@ -178,9 +178,12 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       candidatos = exactos;
       esExacto = true;
     } else {
-      const porTrigram = await buscarSimilares(normalizado, umbralMedio);
+      // FTS falla en silencio si la columna search_vector todavía no existe
+      // (base sin migrar). El resto de la cascada sigue funcionando igual.
+      const porFts      = await buscarPorFts(normalizado).catch(() => [] as CandidatoKb[]);
+      const porTrigram  = await buscarSimilares(normalizado, umbralMedio);
       const porPalabras = await buscarPorPalabras(normalizado, umbralMedio);
-      candidatos = combinarPorMaximo(porTrigram, porPalabras).filter(esResoluble);
+      candidatos = combinarPorMaximo([...porFts, ...porTrigram], porPalabras).filter(esResoluble);
     }
   } catch (err) {
     // Sin `pg_trgm` o sin tablas `kb_*` la base no puede interpretar.
@@ -212,7 +215,11 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
 
   const confianza = redondear(primero.similarity);
   const source: MetaInterpretacion['source'] = esExacto ? 'kb_question' : 'kb_variant';
-  const matchType: MetaInterpretacion['matchType'] = esExacto ? 'exacto' : 'similar';
+  const matchType: MetaInterpretacion['matchType'] = esExacto
+    ? 'exacto'
+    : primero.fuenteNivel === 'fts'
+      ? 'fts'
+      : 'similar';
 
   // Por debajo del umbral medio no hay informacion suficiente (Nivel E).
   if (primero.similarity < umbralMedio) {
