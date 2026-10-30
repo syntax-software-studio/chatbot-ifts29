@@ -69,6 +69,12 @@ const num = (v: string | number | null | undefined, fallback = 0): number => {
 /** Limite de candidatos que se traen de la base. La KB es chica; es un tope. */
 const LIMITE_CANDIDATOS = 12;
 
+/**
+ * Similitud mínima de un término con una palabra de la variante para contarlo
+ * como error de tipeo. Por debajo, el término no cubre nada.
+ */
+const UMBRAL_TERMINO_FUZZY = 0.6;
+
 /* ==========================================================================
  * Neon
  * ======================================================================== */
@@ -76,12 +82,12 @@ const LIMITE_CANDIDATOS = 12;
 /**
  * Nivel B_FTS: full-text search con config spanish.
  *
- * Candidatos: cualquier variante que contenga al menos uno de los términos
- * significativos (OR), para no perder matches parciales.
+ * Candidatos: cualquier variante que cubra al menos un término.
  *
- * Confianza = cobertura: proporción de términos significativos de la consulta
- * que aparecen en la variante (con stemming). Es 0..1 directo, sin escalas.
- * Cada término se evalúa por separado con plainto_tsquery.
+ * Confianza = cobertura: promedio, sobre los términos significativos, de cuánto
+ * cubre cada uno. Un término cubre 1.0 si coincide con stemming, o su similitud
+ * si es un error de tipeo (word_similarity). Así "condicons" cuenta casi como
+ * "condiciones" y no hace falta una aclaración para resolverlo.
  */
 const SQL_FTS = `
   SELECT i.clave    AS intent_key,
@@ -96,18 +102,29 @@ const SQL_FTS = `
          v.original_text,
          v.normalized_text,
          v.weight,
-         (SELECT count(*) FROM unnest($2::text[]) AS t
-           WHERE v.search_vector @@ plainto_tsquery('spanish', t))::float8
-           / cardinality($2::text[])::float8 AS similarity,
-         array(SELECT t FROM unnest($2::text[]) AS t
-                WHERE v.search_vector @@ plainto_tsquery('spanish', t)) AS cubiertos
+         s.score AS similarity,
+         s.cubiertos
     FROM kb_pregunta_variante v
     JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
     JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
-    CROSS JOIN websearch_to_tsquery('spanish', $1) AS query
+    CROSS JOIN LATERAL (
+      -- Por cada término: 1 si coincide con stemming, la similitud si es un
+      -- error de tipeo (>= $2), 0 si no aparece. La cobertura es el promedio.
+      SELECT avg(m.mejor) AS score,
+             array_agg(m.termino) FILTER (WHERE m.mejor > 0) AS cubiertos
+        FROM (
+          SELECT t.termino,
+                 CASE
+                   WHEN v.search_vector @@ plainto_tsquery('spanish', t.termino) THEN 1.0
+                   WHEN word_similarity(t.termino, v.normalized_text) >= $2
+                     THEN word_similarity(t.termino, v.normalized_text)
+                   ELSE 0.0
+                 END AS mejor
+            FROM unnest($1::text[]) AS t(termino)
+        ) m
+    ) s
    WHERE v.activo
-     AND query IS NOT NULL
-     AND v.search_vector @@ query
+     AND s.score > 0
    ORDER BY similarity DESC, p.priority DESC, v.weight DESC
    LIMIT $3`;
 
@@ -306,8 +323,7 @@ export async function buscarPorFts(normalizado: string): Promise<CandidatoKb[]> 
     return [];
   }
 
-  const wsQuery = terminos.join(' OR ');
-  const r = await query<RawCandidato>(SQL_FTS, [wsQuery, terminos, LIMITE_CANDIDATOS]);
+  const r = await query<RawCandidato>(SQL_FTS, [terminos, UMBRAL_TERMINO_FUZZY, LIMITE_CANDIDATOS]);
   const candidatos: CandidatoKb[] = r.rows.map((row) => ({
     ...toCandidato(row),
     similarity: num(row.similarity),
