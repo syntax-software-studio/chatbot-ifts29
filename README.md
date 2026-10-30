@@ -13,8 +13,9 @@ opciones reales del menú; si no hay información autorizada, lo informa.
 - **Backend:** Express 5 + TypeScript, ejecutado como función *serverless* de Vercel
 - **Datos:** PostgreSQL (Neon en producción, Docker en desarrollo). El contenido se
   carga desde una planilla de Google y la carpeta de Drive
-- **Interpretación:** coincidencia exacta + variantes + similitud trigram
-  (`pg_trgm`). Sin LLM, sin embeddings, sin acceso a Internet
+- **Interpretación:** coincidencia exacta + cobertura de términos (FTS en
+  español) + similitud trigram por término (`pg_trgm`). Sin LLM, sin
+  embeddings, sin acceso a Internet
 - **Documentos:** sincronización con Google Drive mediante *Service Account*
   (modo solo lectura)
 
@@ -161,8 +162,9 @@ se vuelve a sincronizar.
   intención corresponde a qué opción del menú), `kb_pregunta` (la formulación
   canónica) y `kb_pregunta_variante` (las redacciones alternativas ya
   normalizadas)
-- Índices: B-tree para la coincidencia exacta y GIN `gin_trgm_ops` para la
-  similitud; extensiones `pgcrypto` y `pg_trgm`
+- Índices: B-tree para la coincidencia exacta, GIN sobre `search_vector` para la
+  búsqueda de palabras y GIN `gin_trgm_ops` para la similitud; extensiones
+  `pgcrypto` y `pg_trgm`
 - Trigger `touch_actualizado_en` y vistas `v_arbol_menu` y `v_kb_resolucion`
   para control
 
@@ -255,10 +257,14 @@ Códigos: `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`,
 3. **Coincidencia exacta** sobre `normalized_text` (índice B-tree). Si el texto
    coincide con variantes de varias intenciones, se devuelven **todas**: es el
    caso que dispara la aclaración.
-4. **Similitud trigram** (`pg_trgm`), con el mismo coeficiente que la función en
-   memoria, con el mismo coeficiente, para que los umbrales coincidan.
-5. **Umbrales**: confianza alta → respuesta; media → aclaración con opciones del
-   menú; baja → `no_disponible`.
+4. **Cobertura de términos (FTS)**: cada término de la consulta (sin las palabras
+   de la pestaña `ignorados`) cubre 1 si coincide con stemming, o su similitud si
+   es un error de tipeo. La confianza es el promedio.
+5. **Trigramas por término** (`pg_trgm`, `word_similarity`) para los errores de
+   tipeo que FTS no resuelve.
+6. **Umbrales**: confianza alta → respuesta; media → aclaración con opciones del
+   menú; baja → `no_disponible`. Si la opción tiene documentos de varias
+   comisiones, pregunta la comisión antes de mostrarlos.
 
 Los umbrales se configuran por entorno (`KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO`,
 `KB_MARGEN_AMBIGUEDAD`, `KB_MAX_MENSAJE`, `KB_MAX_OPCIONES_ACLARACION`). Son
@@ -414,7 +420,9 @@ fixtures propios: nunca se conectan a Neon ni a Google.
 | --- | --- |
 | `normalizar.test.ts` | Normalización y el coeficiente trigram, contra los casos del código de `pg_trgm` |
 | `conocimiento.test.ts` | Matching exacto y por similitud, y que la ambigüedad se preserve |
-| `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo |
+| `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
+| `comisiones.test.ts` | Lectura de la comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
+| `fuente-contenido.test.ts` | Validación de la planilla: encabezados, pestañas y filas |
 | `api.test.ts` | Contrato HTTP de `/api/chat` sobre la app real (Express en un puerto efímero) |
 | `sql-coincide.test.ts` | Que cada columna usada por el SQL exista en los DDL |
 
