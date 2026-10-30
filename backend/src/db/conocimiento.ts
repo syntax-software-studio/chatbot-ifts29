@@ -184,16 +184,6 @@ const SQL_SIMILARES_TERMINO = `
 /** Términos más cortos que esto no aportan señal (ruido de 2-3 letras). */
 const LARGO_MIN_TERMINO = 4;
 
-/**
- * Palabras que aparecen en casi cualquier consulta y no identifican una
- * intención. Sólo se usan para trigramas: no cambian la normalización, que
- * requeriría volver a sincronizar la base.
- */
-const TERMINOS_IGNORADOS = new Set([
-  'como', 'cuando', 'donde', 'cual', 'cuales', 'para', 'necesito', 'quiero',
-  'puedo', 'hay', 'tiene', 'tengo', 'sobre', 'informacion',
-]);
-
 const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentKey: r.intent_key,
   intentName: r.intent_name,
@@ -246,6 +236,16 @@ export async function obtenerAlias(): Promise<Map<string, string>> {
   return new Map(r.rows.map((x) => [x.alias, x.expansion] as const));
 }
 
+/**
+ * Palabras de la consulta que se descartan al buscar (ruido: "como", "para"...).
+ * Vienen de la pestaña `ignorados` de la planilla. No afectan la normalización
+ * de las variantes, así que cambiarlas no requiere volver a sincronizar.
+ */
+export async function obtenerTerminosIgnorados(): Promise<Set<string>> {
+  const r = await query<{ termino: string }>('SELECT termino FROM kb_termino_ignorado');
+  return new Set(r.rows.map((x) => x.termino));
+}
+
 export async function buscarExacto(normalizado: string): Promise<CandidatoKb[]> {
   if (normalizado.length === 0) return [];
   const r = await query<RawCandidato>(SQL_EXACTO, [normalizado, LIMITE_CANDIDATOS]);
@@ -278,12 +278,13 @@ export async function buscarSimilares(
   normalizado: string,
   minimo: number,
   limite = LIMITE_CANDIDATOS,
+  ignorados: ReadonlySet<string> = new Set(),
 ): Promise<CandidatoKb[]> {
   // Trigramas a nivel término: cada palabra de la consulta se compara contra
   // las palabras de cada variante (word_similarity), no contra la frase entera.
   const terminos = normalizado
     .split(' ')
-    .filter((t) => t.length >= LARGO_MIN_TERMINO && !TERMINOS_IGNORADOS.has(t));
+    .filter((t) => t.length >= LARGO_MIN_TERMINO && !ignorados.has(t));
   if (terminos.length === 0) return [];
 
   const resultados = await Promise.all(
@@ -309,12 +310,15 @@ export async function buscarSimilares(
  * Candidatos por full-text search (Nivel B_FTS).
  *
  * Los términos significativos son las palabras de la consulta sin ruido
- * (`TERMINOS_IGNORADOS`). Con ellos se arma la búsqueda OR y se calcula la
- * cobertura de cada variante (ver SQL_FTS).
+ * (`ignorados`, de la planilla). Con ellos se calcula la cobertura de cada
+ * variante (ver SQL_FTS).
  */
-export async function buscarPorFts(normalizado: string): Promise<CandidatoKb[]> {
+export async function buscarPorFts(
+  normalizado: string,
+  ignorados: ReadonlySet<string> = new Set(),
+): Promise<CandidatoKb[]> {
   const todos = normalizado.split(' ').filter((t) => t !== '');
-  const terminos = todos.filter((t) => t.length > 2 && !TERMINOS_IGNORADOS.has(t));
+  const terminos = todos.filter((t) => t.length > 2 && !ignorados.has(t));
 
   if (terminos.length === 0) {
     if (DIAGNOSTICO_LOCAL) {

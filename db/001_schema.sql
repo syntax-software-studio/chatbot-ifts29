@@ -351,6 +351,17 @@ CREATE TABLE IF NOT EXISTS kb_alias (
 COMMENT ON TABLE kb_alias IS 'Siglas y abreviaturas de la consulta, ya normalizadas, con su expansion.';
 
 -- ---------------------------------------------------------------------------
+-- 10c. KB_TERMINO_IGNORADO  ->  palabras de la consulta que no identifican nada
+--     Se cargan desde la pestaña `ignorados` de la planilla. Sólo se usan al
+--     buscar (FTS y trigramas): no cambian cómo se guardan las variantes.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS kb_termino_ignorado (
+    termino     TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE kb_termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
+
+-- ---------------------------------------------------------------------------
 -- 11. Trigger de mantenimiento: actualizado_en
 --     Una sola funcion para todas las tablas con columna `actualizado_en`,
 --     del menu y de la base de conocimiento.

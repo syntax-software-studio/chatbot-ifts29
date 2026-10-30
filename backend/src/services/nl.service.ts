@@ -20,7 +20,15 @@
  */
 
 import { obtenerNodo, CATEGORIA_RAIZ } from '../db/catalogo.js';
-import { buscarExacto, buscarSimilares, buscarPorPalabras, buscarPorFts, obtenerAlias, type CandidatoKb } from '../db/conocimiento.js';
+import {
+  buscarExacto,
+  buscarSimilares,
+  buscarPorPalabras,
+  buscarPorFts,
+  obtenerAlias,
+  obtenerTerminosIgnorados,
+  type CandidatoKb,
+} from '../db/conocimiento.js';
 import { normalizarConsulta } from '../utils/normalizar.js';
 import { env } from '../utils/env.js';
 import type { Aclaracion, MetaInterpretacion, NodoMenu } from '../db/types.js';
@@ -161,6 +169,7 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
 export async function interpretarConsulta(texto: string): Promise<ResolucionConsulta> {
   const { umbralAlto, umbralMedio, margenAmbiguedad } = env.lenguajeNatural;
   const alias = await obtenerAlias().catch(() => new Map<string, string>());
+  const ignorados = await obtenerTerminosIgnorados().catch(() => new Set<string>());
   const normalizado = normalizarConsulta(texto, alias);
 
   // Nivel C: saludos -> menu raiz (respuesta autorizada, no generada).
@@ -180,8 +189,8 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
     } else {
       // FTS falla en silencio si la columna search_vector todavía no existe
       // (base sin migrar). El resto de la cascada sigue funcionando igual.
-      const porFts      = await buscarPorFts(normalizado).catch(() => [] as CandidatoKb[]);
-      const porTrigram  = await buscarSimilares(normalizado, umbralMedio);
+      const porFts      = await buscarPorFts(normalizado, ignorados).catch(() => [] as CandidatoKb[]);
+      const porTrigram  = await buscarSimilares(normalizado, umbralMedio, undefined, ignorados);
       const porPalabras = await buscarPorPalabras(normalizado, umbralMedio);
       candidatos = combinarPorMaximo([...porFts, ...porTrigram], porPalabras).filter(esResoluble);
     }
