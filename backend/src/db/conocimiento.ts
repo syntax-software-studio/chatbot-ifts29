@@ -12,6 +12,10 @@
 
 import { query } from './pool.js';
 import { similitudPorPalabras } from '../utils/normalizar.js';
+import { env } from '../utils/env.js';
+
+/** Log detallado del matching de texto libre. Solo en NODE_ENV=local. */
+const DIAGNOSTICO_LOCAL = env.nodeEnv === 'local';
 
 /** Intencion + pregunta + variante que casan con la consulta. */
 export interface CandidatoKb {
@@ -36,6 +40,8 @@ export interface CandidatoKb {
    * Permite que nl.service registre qué camino resolvió la consulta.
    */
   fuenteNivel?: 'exacto' | 'fts' | 'trigram' | 'palabras';
+  /** Términos de la consulta que aparecen en la variante (sólo FTS). */
+  terminosCubiertos?: string[];
 }
 
 interface RawCandidato {
@@ -52,6 +58,7 @@ interface RawCandidato {
   normalized_text: string;
   weight: string | number;
   similarity: string | number;
+  cubiertos?: string[] | null;
 }
 
 const num = (v: string | number | null | undefined, fallback = 0): number => {
@@ -62,18 +69,6 @@ const num = (v: string | number | null | undefined, fallback = 0): number => {
 /** Limite de candidatos que se traen de la base. La KB es chica; es un tope. */
 const LIMITE_CANDIDATOS = 12;
 
-/**
- * Factor de escala para ts_rank_cd -> rango de umbrales del sistema.
- *
- * ts_rank_cd (norma 2) sobre variantes cortas devuelve típicamente 0.1-0.5
- * cuando hay buen match. El factor lleva esos valores al rango [0.7, 1.0]
- * que el motor espera.
- *
- * Es experimental y se calibra con los primeros datos reales. Se puede ajustar
- * sin recompilar a través de la variable de entorno KB_FTS_ESCALA.
- */
-const FTS_ESCALA = Number.parseFloat(process.env['KB_FTS_ESCALA'] ?? '') || 3.5;
-
 /* ==========================================================================
  * Neon
  * ======================================================================== */
@@ -81,14 +76,12 @@ const FTS_ESCALA = Number.parseFloat(process.env['KB_FTS_ESCALA'] ?? '') || 3.5;
 /**
  * Nivel B_FTS: full-text search con config spanish.
  *
- * La tsquery se construye como OR de tokens (websearch_to_tsquery acepta
- * "token1 OR token2") para comportarse como búsqueda keyword: "alguno de
- * estos términos" en vez de AND estricto. Los tokens de 1-2 caracteres se
- * filtran porque producen lexemas vacíos o stopwords que no aportan.
+ * Candidatos: cualquier variante que contenga al menos uno de los términos
+ * significativos (OR), para no perder matches parciales.
  *
- * ts_rank_cd (norma 2) se escala por FTS_ESCALA para que los valores queden
- * en la misma escala que los umbrales del motor (KB_UMBRAL_MEDIO / KB_UMBRAL_ALTO).
- * El factor es experimental: se calibra con los primeros datos reales.
+ * Confianza = cobertura: proporción de términos significativos de la consulta
+ * que aparecen en la variante (con stemming). Es 0..1 directo, sin escalas.
+ * Cada término se evalúa por separado con plainto_tsquery.
  */
 const SQL_FTS = `
   SELECT i.clave    AS intent_key,
@@ -103,7 +96,11 @@ const SQL_FTS = `
          v.original_text,
          v.normalized_text,
          v.weight,
-         ts_rank_cd(v.search_vector, query, 2)::float8 AS similarity
+         (SELECT count(*) FROM unnest($2::text[]) AS t
+           WHERE v.search_vector @@ plainto_tsquery('spanish', t))::float8
+           / cardinality($2::text[])::float8 AS similarity,
+         array(SELECT t FROM unnest($2::text[]) AS t
+                WHERE v.search_vector @@ plainto_tsquery('spanish', t)) AS cubiertos
     FROM kb_pregunta_variante v
     JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
     JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
@@ -111,8 +108,8 @@ const SQL_FTS = `
    WHERE v.activo
      AND query IS NOT NULL
      AND v.search_vector @@ query
-   ORDER BY ts_rank_cd(v.search_vector, query, 2) DESC, p.priority DESC, v.weight DESC
-   LIMIT $2`;
+   ORDER BY similarity DESC, p.priority DESC, v.weight DESC
+   LIMIT $3`;
 
 const SQL_EXACTO = `
   SELECT i.clave    AS intent_key,
@@ -136,7 +133,12 @@ const SQL_EXACTO = `
    ORDER BY p.priority DESC, v.weight DESC
    LIMIT $2`;
 
-const SQL_SIMILARES = `
+/**
+ * Nivel B_TRG a nivel término: `word_similarity(termino, variante)` mide qué
+ * tan parecido es el término a alguna palabra de la variante. Por eso un typo
+ * en una palabra no se diluye por el largo de la frase.
+ */
+const SQL_SIMILARES_TERMINO = `
   SELECT i.clave    AS intent_key,
          i.nombre  AS intent_name,
          i.domain,
@@ -149,14 +151,31 @@ const SQL_SIMILARES = `
          v.original_text,
          v.normalized_text,
          v.weight,
-         similarity(v.normalized_text, $1)::float8 AS similarity
+         word_similarity($1, v.normalized_text)::float8 AS similarity
     FROM kb_pregunta_variante v
     JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
     JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo
-     AND similarity(v.normalized_text, $1) >= $2
+     AND word_similarity($1, v.normalized_text) >= $2
+     -- Las coincidencias exactas (y con stemming) son de FTS. Aca sólo interesan
+     -- los errores de tipeo: si no, las palabras compartidas por todas las
+     -- variantes de una materia empatan a todas las intenciones en 1.00.
+     AND word_similarity($1, v.normalized_text) < 1
    ORDER BY similarity DESC, p.priority DESC, v.weight DESC
    LIMIT $3`;
+
+/** Términos más cortos que esto no aportan señal (ruido de 2-3 letras). */
+const LARGO_MIN_TERMINO = 4;
+
+/**
+ * Palabras que aparecen en casi cualquier consulta y no identifican una
+ * intención. Sólo se usan para trigramas: no cambian la normalización, que
+ * requeriría volver a sincronizar la base.
+ */
+const TERMINOS_IGNORADOS = new Set([
+  'como', 'cuando', 'donde', 'cual', 'cuales', 'para', 'necesito', 'quiero',
+  'puedo', 'hay', 'tiene', 'tengo', 'sobre', 'informacion',
+]);
 
 const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentKey: r.intent_key,
@@ -243,55 +262,97 @@ export async function buscarSimilares(
   minimo: number,
   limite = LIMITE_CANDIDATOS,
 ): Promise<CandidatoKb[]> {
-  if (normalizado.length === 0) return [];
-  const r = await query<RawCandidato>(SQL_SIMILARES, [normalizado, minimo, limite]);
-  return r.rows.map((row) => ({ ...toCandidato(row), fuenteNivel: 'trigram' as const }));
+  // Trigramas a nivel término: cada palabra de la consulta se compara contra
+  // las palabras de cada variante (word_similarity), no contra la frase entera.
+  const terminos = normalizado
+    .split(' ')
+    .filter((t) => t.length >= LARGO_MIN_TERMINO && !TERMINOS_IGNORADOS.has(t));
+  if (terminos.length === 0) return [];
+
+  const resultados = await Promise.all(
+    terminos.map((termino) => query<RawCandidato>(SQL_SIMILARES_TERMINO, [termino, minimo, limite])),
+  );
+
+  // Una variante puede llegar por varios términos: se queda con la mejor similitud.
+  const mejor = new Map<string, CandidatoKb>();
+  for (const r of resultados) {
+    for (const row of r.rows) {
+      const c = { ...toCandidato(row), fuenteNivel: 'trigram' as const };
+      const clave = `${c.preguntaId}|${c.normalizedText}`;
+      const previo = mejor.get(clave);
+      if (!previo || c.similarity > previo.similarity) mejor.set(clave, c);
+    }
+  }
+  return [...mejor.values()]
+    .sort((a, b) => b.similarity - a.similarity || b.priority - a.priority || b.weight - a.weight)
+    .slice(0, limite);
 }
 
 /**
  * Candidatos por full-text search (Nivel B_FTS).
  *
- * Construye la tsquery como OR de los tokens con >2 caracteres y la pasa a
- * websearch_to_tsquery, que es robusta con cualquier input. ts_rank_cd se
- * escala por FTS_ESCALA para quedar en el rango de los umbrales del motor.
+ * Los términos significativos son las palabras de la consulta sin ruido
+ * (`TERMINOS_IGNORADOS`). Con ellos se arma la búsqueda OR y se calcula la
+ * cobertura de cada variante (ver SQL_FTS).
  */
 export async function buscarPorFts(normalizado: string): Promise<CandidatoKb[]> {
-  const tokens = normalizado.split(' ').filter((t) => t.length > 2);
-  if (tokens.length === 0) return [];
-  const wsQuery = tokens.join(' OR ');
+  const todos = normalizado.split(' ').filter((t) => t !== '');
+  const terminos = todos.filter((t) => t.length > 2 && !TERMINOS_IGNORADOS.has(t));
 
-  // Diagnóstico: ver qué lexemas produce el input y qué filas matchean.
-  // Quitar cuando ya no se necesite calibrar.
-  try {
-    const [lexQuery, lexDocs] = await Promise.all([
-      query<{ tsquery: string }>(`SELECT websearch_to_tsquery('spanish', $1)::text AS tsquery`, [wsQuery]),
-      query<{ normalized_text: string; rank: number }>(
-        `SELECT v.normalized_text,
-                ts_rank_cd(v.search_vector, q, 2)::float8 AS rank
-           FROM kb_pregunta_variante v,
-                websearch_to_tsquery('spanish', $1) AS q
-          WHERE v.activo AND q IS NOT NULL AND v.search_vector @@ q
-          ORDER BY rank DESC LIMIT 5`,
-        [wsQuery],
-      ),
-    ]);
-    console.log(`[fts] entrada:"${normalizado}" → wsQuery:"${wsQuery}" → tsquery:${lexQuery.rows[0]?.tsquery ?? 'NULL'}`);
-    if (lexDocs.rows.length === 0) {
-      console.log('[fts] sin resultados en la base');
-    } else {
-      console.log('[fts] top matchs (rank crudo, antes de escalar x' + FTS_ESCALA + '):');
-      for (const row of lexDocs.rows) {
-        console.log(`  rank=${row.rank.toFixed(4)}  scaled=${(row.rank * FTS_ESCALA).toFixed(4)}  variante="${row.normalized_text}"`);
-      }
+  if (terminos.length === 0) {
+    if (DIAGNOSTICO_LOCAL) {
+      console.log(`[fts] "${normalizado}": sin términos significativos (descartados: ${todos.join(', ') || '—'})`);
     }
-  } catch (diagErr) {
-    console.log('[fts] diagnóstico falló:', diagErr instanceof Error ? diagErr.message : diagErr);
+    return [];
   }
 
-  const r = await query<RawCandidato>(SQL_FTS, [wsQuery, LIMITE_CANDIDATOS]);
-  return r.rows.map((row) => ({
+  const wsQuery = terminos.join(' OR ');
+  const r = await query<RawCandidato>(SQL_FTS, [wsQuery, terminos, LIMITE_CANDIDATOS]);
+  const candidatos: CandidatoKb[] = r.rows.map((row) => ({
     ...toCandidato(row),
-    similarity: Math.min(1.0, num(row.similarity) * FTS_ESCALA),
+    similarity: num(row.similarity),
     fuenteNivel: 'fts' as const,
+    terminosCubiertos: row.cubiertos ?? [],
   }));
+
+  if (DIAGNOSTICO_LOCAL) registrarDiagnosticoFts(normalizado, terminos, todos, candidatos);
+  return candidatos;
+}
+
+/**
+ * Explica en consola por qué FTS eligió lo que eligió: qué términos se usaron,
+ * cuáles se descartaron como ruido, y para cada candidato cuántos términos
+ * cubre y cuáles le faltan. Sólo en NODE_ENV=local.
+ */
+function registrarDiagnosticoFts(
+  normalizado: string,
+  terminos: string[],
+  todos: string[],
+  candidatos: CandidatoKb[],
+): void {
+  const n = terminos.length;
+  const descartados = todos.filter((t) => !terminos.includes(t));
+  const lineas = [
+    `[fts] consulta normalizada: "${normalizado}"`,
+    `[fts]   términos (${n}): ${terminos.join(', ')}`,
+    `[fts]   descartados como ruido: ${descartados.join(', ') || '—'}`,
+    `[fts]   umbral medio: ${env.lenguajeNatural.umbralMedio.toFixed(2)} (por debajo no se responde)`,
+  ];
+
+  if (candidatos.length === 0) {
+    lineas.push(`[fts]   sin candidatos: ningún término aparece en ninguna variante.`);
+    lineas.push(`[fts]   → falta un sinónimo en la KB, o el vocabulario no está cargado.`);
+  } else {
+    lineas.push(`[fts]   candidatos: ${candidatos.length} (mostrando ${Math.min(5, candidatos.length)})`);
+    candidatos.slice(0, 5).forEach((c, i) => {
+      const cubre = c.terminosCubiertos ?? [];
+      const falta = terminos.filter((t) => !cubre.includes(t));
+      lineas.push(
+        `[fts]   #${i + 1}  ${c.similarity.toFixed(2)}  (${cubre.length}/${n})  ${c.intentKey}  "${c.normalizedText}"`,
+      );
+      lineas.push(`[fts]        cubre: ${cubre.join(', ') || '—'}   |   falta: ${falta.join(', ') || '—'}`);
+    });
+  }
+
+  console.log(lineas.join('\n'));
 }
