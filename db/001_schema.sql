@@ -32,7 +32,6 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- ---------------------------------------------------------------------------
 -- 1. CATEGORIA  ->  nodos del árbol conversacional
