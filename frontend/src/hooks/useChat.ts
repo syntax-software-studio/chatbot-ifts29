@@ -109,10 +109,9 @@ export function useChat(): EstadoChat {
             texto: turno.respuesta.texto,
             documentos: turno.respuesta.documentos,
           });
-          // Si el turno viene de una consulta escrita, el estudiante no navegó a
-          // ninguna parte: se conservan las opciones vigentes para que pueda
-          // seguir explorando sin reiniciar. Un clic de menú sí las reemplaza.
-          if (!turno.meta) setOpciones([]);
+          // Una respuesta cierra la hoja: no quedan opciones del menú debajo.
+          // Para volver se usa el botón "Volver al menú" del pie.
+          setOpciones([]);
           enHoja.current = true;
           break;
 
