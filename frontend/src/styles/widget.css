@@ -129,7 +129,7 @@
   display: flex;
   flex-direction: column;
   width: 380px;
-  height: 640px;
+  height: min(800px, calc(100vh - 110px));
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 110px);
   overflow: hidden;
