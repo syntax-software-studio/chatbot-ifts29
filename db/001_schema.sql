@@ -26,7 +26,8 @@
 --
 --  Indices de la base de conocimiento:
 --   * B-tree sobre `normalized_text` para la coincidencia EXACTA (Nivel A).
---   * GIN con `gin_trgm_ops` para la similitud (Nivel B, `pg_trgm`).
+--   * GIN tsvector para full-text search (Nivel B_FTS, config `spanish`).
+--   * GIN con `gin_trgm_ops` para la similitud trigram (Nivel B_TRG, `pg_trgm`).
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -313,6 +314,12 @@ CREATE TABLE IF NOT EXISTS kb_pregunta_variante (
     creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+    -- Nivel B_FTS: vector FTS precalculado. El texto normalizado ya no tiene
+    -- diacriticos (el normalizador JS los elimino), asi que no hace falta el
+    -- wrapper immutable de unaccent.
+    search_vector   tsvector
+        GENERATED ALWAYS AS (to_tsvector('spanish', normalized_text)) STORED,
+
     CONSTRAINT kb_variante_uniq UNIQUE (pregunta_id, normalized_text)
 );
 
@@ -320,7 +327,11 @@ CREATE TABLE IF NOT EXISTS kb_pregunta_variante (
 CREATE INDEX IF NOT EXISTS kb_variante_normalized_idx
     ON kb_pregunta_variante (normalized_text);
 
--- Nivel B: similitud. El GIN acelera el filtro por `similarity(...) >= x`.
+-- Nivel B_FTS: full-text search.
+CREATE INDEX IF NOT EXISTS kb_variante_fts_idx
+    ON kb_pregunta_variante USING GIN (search_vector);
+
+-- Nivel B_TRG: similitud trigram. El GIN acelera el filtro `similarity(...) >= x`.
 CREATE INDEX IF NOT EXISTS kb_variante_trgm_idx
     ON kb_pregunta_variante USING GIN (normalized_text gin_trgm_ops);
 
@@ -338,6 +349,17 @@ CREATE TABLE IF NOT EXISTS kb_alias (
 );
 
 COMMENT ON TABLE kb_alias IS 'Siglas y abreviaturas de la consulta, ya normalizadas, con su expansion.';
+
+-- ---------------------------------------------------------------------------
+-- 10c. KB_TERMINO_IGNORADO  ->  palabras de la consulta que no identifican nada
+--     Se cargan desde la pestaña `ignorados` de la planilla. Sólo se usan al
+--     buscar (FTS y trigramas): no cambian cómo se guardan las variantes.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS kb_termino_ignorado (
+    termino     TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE kb_termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
 
 -- ---------------------------------------------------------------------------
 -- 11. Trigger de mantenimiento: actualizado_en

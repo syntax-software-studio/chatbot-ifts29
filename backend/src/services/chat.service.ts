@@ -34,7 +34,16 @@ import {
   CLAVE_METRICA_SALUDO,
 } from './nl.service.js';
 import { badRequest } from '../utils/errors.js';
+import {
+  claveConComision,
+  comisionesAPreguntar,
+  filtrarPorComision,
+  separarComision,
+} from '../utils/comisiones.js';
 import type { NodoMenu, TurnoChat } from '../db/types.js';
+
+/** Pregunta que se muestra cuando los documentos de una respuesta dependen de la comisión. */
+export const MENSAJE_COMISION = '¿De qué comisión sos?';
 
 export async function menuInicial(): Promise<NodoMenu> {
   return obtenerNodo(CATEGORIA_RAIZ);
@@ -74,8 +83,9 @@ export async function procesarSeleccion(
     throw badRequest('Se requiere "opcion" o "categoria" en el cuerpo de la petición.');
   }
 
-  // 2. Resolución de la opción.
-  const opcion = await obtenerOpcion(entrada.opcion);
+  // 2. Resolución de la opción. Puede traer la comisión elegida (`CLAVE@B`).
+  const { base, comision } = separarComision(entrada.opcion);
+  const opcion = await obtenerOpcion(base);
   const evento: Evento = eventoTurno ?? (opcion.tipo === 'derivar' ? 'derivacion' : 'seleccion');
 
   // 2.a. Navegación a subnivel.
@@ -95,8 +105,28 @@ export async function procesarSeleccion(
     }
     const respuesta = await obtenerRespuesta(opcion.respuestaId);
 
+    // Documentos por comisión: si hay más de una y no se eligió ninguna, se pregunta.
+    const comisiones = comisionesAPreguntar(respuesta.documentos);
+    if (comisiones.length > 0 && comision === null) {
+      return {
+        tipo: 'aclaracion',
+        aclaracion: {
+          mensaje: MENSAJE_COMISION,
+          opciones: comisiones.map((c) => ({
+            clave: claveConComision(opcion.clave, c),
+            etiqueta: `Comisión ${c}`,
+            descripcion: null,
+            tipo: 'responder' as const,
+            esVolver: false,
+            icono: null,
+          })),
+        },
+      };
+    }
+
+    const documentos = comision === null ? respuesta.documentos : filtrarPorComision(respuesta.documentos, comision);
     await registrarMetrica(opcion.clave, evento);
-    return { tipo: 'respuesta', claveOpcion: opcion.clave, respuesta, nodoActual: '' };
+    return { tipo: 'respuesta', claveOpcion: opcion.clave, respuesta: { ...respuesta, documentos }, nodoActual: '' };
   }
 
   // 2.d. Derivación asincrónica con contactos (RF04).

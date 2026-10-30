@@ -32,6 +32,7 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | `variantes` | intencion, pregunta, texto, peso |
 | `contactos` | clave, nombre, area, comision, email, perfil, motivo, orden, opcion |
 | `alias` | alias, expansion |
+| `ignorados` | termino (palabras de la consulta que se descartan al buscar: "como", "para", "una"...) |
 
 La sincronización valida los encabezados y las referencias entre pestañas antes de escribir. Si hay un error, muestra todos y **no cambia nada**.
 
@@ -87,12 +88,14 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 8. **Sin `ALTER` en el esquema.** `001_schema.sql` describe el estado final; una base nueva queda igual que una creada desde cero.
 9. **`db:push` aplica sólo el esquema.** El contenido entra por la sincronización.
 10. **Sin modo demo.** No existe un catálogo semilla: sin base de datos la API responde 503. Una sola fuente de datos.
-11. **Normalización de consultas.** Las siglas de la pestaña `alias` se expanden y las palabras vacías se quitan, en la consulta y en las variantes. La búsqueda combina trigramas con comparación por palabras, tolerante a transposiciones.
+11. **Normalización de consultas.** Las siglas de la pestaña `alias` se expanden, en la consulta y en las variantes. Las palabras vacías (`PALABRAS_VACIAS`, en código) se quitan de ambos lados. Las palabras de ruido de la búsqueda (pestaña `ignorados`) sólo se quitan de la consulta, así que cambiarlas no requiere resincronizar.
+12. **Búsqueda con cobertura de términos.** Cada variante recibe el promedio de cuánto cubre cada término de la consulta: 1 si coincide con stemming, la similitud si es un error de tipeo (≥ 0,6), 0 si no aparece. Por eso "condicons de abd" llega a condiciones sin aclaración.
+13. **Documentos por comisión.** Si una respuesta tiene documentos de dos o más comisiones del mismo tipo, el bot pregunta "¿De qué comisión sos?" y muestra sólo el documento elegido. La comisión se lee del nombre del archivo (ver la convención). Si la respuesta tiene un solo documento, o documentos sin comisión, responde directo.
 
 ## Pendientes
 
-- **Submenú por comisión para documentos** (por ejemplo, horarios o condiciones por comisión). Hoy el documento se muestra sin preguntar la comisión. Hay que definir cómo se asocia a la respuesta y construirlo en el menú.
-- **Métricas en `db:reset`.** El reset borra `metrica_opcion`. Hace falta preservarla o exportarla antes.
+- **Documentos que desaparecen de Drive.** La sincronización los deja como vigentes y sólo emite una advertencia. Definir si se archivan.
 - **Conjunto dorado.** Consultas con respuesta esperada para medir el motor de texto libre y calibrar los umbrales.
 - **Documento sin archivo.** `EAM_condiciones` está en la planilla pero no existe en Drive; el bot no le muestra enlace hasta que aparezca.
+- **Lógica Computacional con el flujo de menú anterior.** Migrarla a la regla de comisiones (decisión 13) es opcional.
 - **Producción (Neon).** Los cambios de esquema y de contenido todavía no se aplicaron en Neon. Requieren migración y revisión.

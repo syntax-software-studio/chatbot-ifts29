@@ -72,7 +72,7 @@ export interface MetaInterpretacion {
   intent: string | null;
   confidence: number;
   source: 'menu' | 'kb_question' | 'kb_variant' | 'rule' | 'none';
-  matchType: 'exacto' | 'similar' | 'regla' | 'ninguno';
+  matchType: 'exacto' | 'fts' | 'similar' | 'regla' | 'ninguno';
 }
 
 /**
