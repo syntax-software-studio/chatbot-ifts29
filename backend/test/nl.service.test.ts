@@ -65,3 +65,50 @@ test('una consulta fuera del dominio informa que no hay información', async () 
     assert.equal(r.mensaje, MENSAJE_NO_DISPONIBLE);
   }
 });
+
+/* ==========================================================================
+ * Cobertura de términos, errores de tipeo y temas fuera de ABD
+ * ======================================================================== */
+
+test('una palabra suelta de un tema resuelve directo a su opción', async () => {
+  const r = await interpretarConsulta('foro');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'SIUC_OP_FOROS');
+});
+
+test('reglamento resuelve directo a la opción de normativa', async () => {
+  const r = await interpretarConsulta('reglamento');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'NORM_OP_REGL');
+});
+
+test('entrega de documentación resuelve a Trámites, no a Derivación', async () => {
+  const r = await interpretarConsulta('entrega de documentacion');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'TRAM_OP_ENTREGA');
+});
+
+test('las palabras de ruido no impiden responder', async () => {
+  const r = await interpretarConsulta('para aprobar abd necesito');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'ABD_OP_COND');
+});
+
+test('el plural cubre el término por stemming', async () => {
+  const r = await interpretarConsulta('programas de abd');
+  assert.equal(r.clase, 'opcion');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'ABD_OP_PROG');
+});
+
+test('un error de tipeo en una palabra apunta a la intención correcta', async () => {
+  // Con dos términos un typo baja la cobertura bajo el umbral alto, así que
+  // puede pedir aclaración. Lo que se verifica es que la opción correcta esté.
+  const r = await interpretarConsulta('condicones de abd');
+  if (r.clase === 'opcion') assert.equal(r.opcionClave, 'ABD_OP_COND');
+  else {
+    assert.equal(r.clase, 'aclaracion');
+    if (r.clase === 'aclaracion') {
+      assert.ok(r.aclaracion.opciones.some((o) => o.clave === 'ABD_OP_COND'));
+    }
+  }
+});
