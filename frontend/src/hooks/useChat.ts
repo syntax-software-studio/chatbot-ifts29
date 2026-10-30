@@ -134,9 +134,11 @@ export function useChat(): EstadoChat {
           break;
 
         case 'no_disponible':
-          // No se borran las opciones vigentes: el estudiante siempre tiene una
-          // salida, sea por el menú o reformulando la consulta.
+          // Sin opciones debajo: la salida es el botón "Volver al menú" del pie,
+          // que lleva a la categoría desde la que se escribió la consulta.
           agregarTurno({ autor: 'bot', texto: turno.mensaje });
+          setOpciones([]);
+          enHoja.current = true;
           break;
 
         case 'error':

@@ -44,7 +44,7 @@ import type { Evento } from './metricas.service.js';
 /** Base aprobada en D07 / §20 del prompt maestro. */
 export const MENSAJE_NO_DISPONIBLE =
   'No dispongo de esa información dentro del dominio autorizado del IFTS N.º29. ' +
-  'Podés reformular la consulta o elegir una de las opciones sugeridas.';
+  'Podés reformular la consulta o volver al menú.';
 
 /** Si la base de conocimiento no esta disponible, se dice sin inventar nada. */
 export const MENSAJE_MOTOR_NO_DISPONIBLE =
