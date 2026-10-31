@@ -3,16 +3,39 @@
  *  - `aplicarContenido`: contenido de la planilla, en una transacción.
  *  - `sincronizarDocumentos`: fichas de documentos con Drive y sus fragmentos.
  *
- * Pendiente: las consultas SQL de este archivo están inline. Moverlas a
- * repositories/sync-load.repository.ts.
+ * Las consultas SQL están en `repositories/sync-load.repository.ts`.
  */
 
 import type { PoolClient } from 'pg';
-import { getPool, query } from '../db/pool.js';
-import { env, hasGoogleDrive } from '../config/env.js';
-import { normalizar, normalizarConsulta } from '../lib/normalizar.js';
+import { getPool } from '../db/pool.js';
+import { hasGoogleDrive } from '../config/env.js';
+import { normalizar } from '../lib/normalizar.js';
 import * as driveReal from '../clients/drive.js';
 import type { ArchivoDrive } from '../clients/drive.js';
+import {
+  actualizarFicha,
+  borrarFueraDe,
+  contarHuerfanos,
+  expansionDeAlias,
+  fichasDocumentos,
+  idsPorClave,
+  insertarAdjunto,
+  insertarAlias,
+  insertarIgnorado,
+  insertarIntencion,
+  insertarOpcionContacto,
+  insertarPregunta,
+  insertarVariante,
+  reemplazarFragmentos,
+  upsertCategoria,
+  upsertContacto,
+  upsertDocumento,
+  upsertOpcion,
+  upsertRespuesta,
+  vaciarDependientes,
+} from '../repositories/sync-load.repository.js';
+import { extraerFragmentos } from './sync-extract.service.js';
+import type { DatosContenido, ResumenCarga } from './sync-transform.service.js';
 
 /** Lo que la sincronización necesita de Drive. Por defecto, el cliente real; en pruebas, un fake. */
 export type PuertoDrive = Pick<typeof driveReal, 'listarArchivos' | 'descargarArchivo' | 'enlaceDeLectura' | 'enlaceDeDescarga'>;
@@ -22,22 +45,6 @@ export interface OpcionesDocumentos {
   dryRun?: boolean;
   drive?: PuertoDrive;
 }
-import { extraerFragmentos } from './sync-extract.service.js';
-import type {
-  Alias,
-  Categoria,
-  Contacto,
-  DatosContenido,
-  Documento,
-  Intencion,
-  Opcion,
-  Pregunta,
-  Respuesta,
-  RespuestaDocumento,
-  ResumenCarga,
-  TerminoIgnorado,
-  Variante,
-} from './sync-transform.service.js';
 
 export interface ResultadoSync {
   ejecutada: boolean;
@@ -46,14 +53,6 @@ export interface ResultadoSync {
   actualizados: number;
   sinMatch: Array<{ clave: string; archivoEsperado: string }>;
   mensajes: string[];
-}
-
-interface FichaDb {
-  clave: string;
-  drive_nombre_archivo: string | null;
-  drive_file_id: string | null;
-  drive_md5: string | null;
-  fragmentos_md5: string | null;
 }
 
 /**
@@ -88,16 +87,17 @@ async function actualizarFragmentos(
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
     // entra en el texto de búsqueda: casi ninguna sección lo repite.
     const codigo = clave.split('_')[0]!.toLowerCase();
-    const materia = (await query<{ expansion: string }>('SELECT expansion FROM kb_alias WHERE alias = $1', [codigo])).rows[0]?.expansion ?? '';
-    await query('DELETE FROM documento_fragmento WHERE documento_id = (SELECT id FROM documento WHERE clave = $1)', [clave]);
-    for (const [i, f] of fragmentos.entries()) {
-      await query(
-        `INSERT INTO documento_fragmento (documento_id, orden, titulo, texto, texto_busqueda)
-         SELECT id, $2, $3, $4, $5 FROM documento WHERE clave = $1`,
-        [clave, i + 1, f.titulo, f.texto, normalizar(`${materia} ${f.titulo} ${f.texto}`)],
-      );
-    }
-    await query('UPDATE documento SET fragmentos_md5 = $2 WHERE clave = $1', [clave, archivo.md5]);
+    const materia = (await expansionDeAlias(codigo)) ?? '';
+    await reemplazarFragmentos(
+      clave,
+      fragmentos.map((f, i) => ({
+        orden: i + 1,
+        titulo: f.titulo,
+        texto: f.texto,
+        textoBusqueda: normalizar(`${materia} ${f.titulo} ${f.texto}`),
+      })),
+      archivo.md5,
+    );
     mensajes.push(
       fragmentos.length > 0
         ? `fragmentos: ${clave} -> ${fragmentos.length}`
@@ -151,14 +151,9 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     porNombre.set(claveDeArchivo(a.nombre), a);
   }
 
-  const fichas = await query<FichaDb>(
-    `SELECT clave, drive_nombre_archivo, drive_file_id, drive_md5, fragmentos_md5
-       FROM documento
-      WHERE estado <> 'archivado'
-      ORDER BY clave`,
-  );
+  const fichas = await fichasDocumentos();
 
-  for (const ficha of fichas.rows) {
+  for (const ficha of fichas) {
     const esperado = ficha.drive_nombre_archivo;
     let archivo: ArchivoDrive | undefined;
 
@@ -186,32 +181,10 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
 
     if (!resultado.dryRun) {
       const enlace = await drive.enlaceDeLectura(archivo.id);
-      await query(
-        `UPDATE documento
-            SET drive_file_id        = $1,
-                drive_nombre_archivo = $2,
-                mime_type            = $3,
-                drive_md5            = $4,
-                drive_modified_time  = $5,
-                drive_url            = $6,
-                drive_view_url       = $7,
-                nombre               = COALESCE(NULLIF(nombre, ''), $2),
-                sincronizado_en      = now(),
-                actualizado_en       = now(),
-                vigente              = TRUE,
-                estado               = 'vigente'
-          WHERE clave = $8`,
-        [
-          archivo.id,
-          archivo.nombre,
-          archivo.mimeType,
-          archivo.md5,
-          archivo.modifiedTime,
-          drive.enlaceDeDescarga(archivo.id),
-          enlace,
-          ficha.clave,
-        ],
-      );
+      await actualizarFicha(ficha.clave, archivo, {
+        descarga: drive.enlaceDeDescarga(archivo.id),
+        lectura: enlace,
+      });
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
@@ -224,15 +197,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
 
   // Fichas ya sincronizadas cuyo archivo desapareció de Drive.
   if (!resultado.dryRun) {
-    const r = await query<{ n: number }>(
-      `SELECT count(*)::int AS n
-         FROM documento
-        WHERE drive_file_id IS NOT NULL
-          AND estado = 'vigente'
-          AND drive_file_id <> ALL($1::text[])`,
-      [archivos.map((a) => a.id)],
-    );
-    const huerfanos = r.rows[0]?.n ?? 0;
+    const huerfanos = await contarHuerfanos(archivos.map((a) => a.id));
     if (huerfanos > 0) {
       mensajes.push(
         `${huerfanos} documento(s) marcados como vigente pero ausentes de Drive: revisar antes de publicar.`,
@@ -263,146 +228,90 @@ export async function aplicarContenido(datos: DatosContenido): Promise<ResumenCa
 }
 
 async function escribir(client: PoolClient, datos: DatosContenido): Promise<ResumenCarga> {
-  const ids = async (tabla: string): Promise<Map<string, number>> => {
-    const r = await client.query<{ id: number; clave: string }>(`SELECT id, clave FROM ${tabla}`);
-    return new Map(r.rows.map((row) => [row.clave, row.id]));
-  };
   const claves = (xs: { clave: string }[]) => xs.map((x) => x.clave);
 
   // Primero se vacían las tablas que dependen de otras, para que no bloqueen
   // los borrados de menú, respuestas y documentos que vienen después.
-  await client.query('DELETE FROM kb_alias');
-  await client.query('DELETE FROM kb_termino_ignorado');
-  await client.query('DELETE FROM kb_pregunta_variante');
-  await client.query('DELETE FROM kb_pregunta');
-  await client.query('DELETE FROM kb_intencion');
-  await client.query('DELETE FROM respuesta_documento');
-  await client.query('DELETE FROM opcion_contacto');
+  await vaciarDependientes(client);
 
   // Menú: upsert por clave; lo que ya no está en la planilla se borra.
-  for (const c of datos.categorias) {
-    await client.query(
-      `INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz, activo)
-       VALUES ($1, $2, $3, $4, $5, TRUE)
-       ON CONFLICT (clave) DO UPDATE SET
-         nombre = EXCLUDED.nombre, mensaje = EXCLUDED.mensaje,
-         orden = EXCLUDED.orden, es_raiz = EXCLUDED.es_raiz, activo = TRUE`,
-      [c.clave, c.nombre, c.mensaje, c.orden, c.esRaiz],
-    );
-  }
-  for (const r of datos.respuestas) {
-    await client.query(
-      `INSERT INTO respuesta (clave, texto, orden, activo)
-       VALUES ($1, $2, $3, TRUE)
-       ON CONFLICT (clave) DO UPDATE SET texto = EXCLUDED.texto, orden = EXCLUDED.orden, activo = TRUE`,
-      [r.clave, r.texto, r.orden],
-    );
-  }
+  for (const c of datos.categorias) await upsertCategoria(client, c);
+  for (const r of datos.respuestas) await upsertRespuesta(client, r);
 
   // Opciones: necesitan los ids de categoría y respuesta.
-  await client.query('DELETE FROM opcion_menu WHERE NOT (clave = ANY($1::text[]))', [claves(datos.opciones)]);
-  const categoriaId = await ids('categoria');
-  const respuestaId = await ids('respuesta');
+  await borrarFueraDe(client, 'opcion_menu', claves(datos.opciones));
+  const categoriaId = await idsPorClave(client, 'categoria');
+  const respuestaId = await idsPorClave(client, 'respuesta');
   for (const o of datos.opciones) {
-    await client.query(
-      `INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
-       ON CONFLICT (clave) DO UPDATE SET
-         categoria_id = EXCLUDED.categoria_id, etiqueta = EXCLUDED.etiqueta, tipo = EXCLUDED.tipo,
-         categoria_destino_id = EXCLUDED.categoria_destino_id, respuesta_id = EXCLUDED.respuesta_id,
-         es_volver = EXCLUDED.es_volver, orden = EXCLUDED.orden, activo = TRUE`,
-      [
-        o.clave,
-        categoriaId.get(o.categoria),
-        o.etiqueta,
-        o.tipo,
-        o.destino ? categoriaId.get(o.destino) : null,
-        o.respuesta ? respuestaId.get(o.respuesta) : null,
-        o.esVolver,
-        o.orden,
-      ],
-    );
+    await upsertOpcion(client, {
+      clave: o.clave,
+      categoriaId: categoriaId.get(o.categoria),
+      etiqueta: o.etiqueta,
+      tipo: o.tipo,
+      destinoId: o.destino ? categoriaId.get(o.destino) : undefined,
+      respuestaId: o.respuesta ? respuestaId.get(o.respuesta) : undefined,
+      esVolver: o.esVolver,
+      orden: o.orden,
+    });
   }
-  await client.query('DELETE FROM categoria WHERE NOT (clave = ANY($1::text[]))', [claves(datos.categorias)]);
-  await client.query('DELETE FROM respuesta WHERE NOT (clave = ANY($1::text[]))', [claves(datos.respuestas)]);
+  await borrarFueraDe(client, 'categoria', claves(datos.categorias));
+  await borrarFueraDe(client, 'respuesta', claves(datos.respuestas));
 
-  // Documentos: fichas por nombre de archivo. Drive completa el resto.
-  for (const d of datos.documentos) {
-    await client.query(
-      `INSERT INTO documento (clave, nombre, tipo, drive_nombre_archivo, vigente, estado)
-       VALUES ($1, $2, 'documento', $2, TRUE, 'vigente')
-       ON CONFLICT (clave) DO UPDATE SET drive_nombre_archivo = EXCLUDED.drive_nombre_archivo, vigente = TRUE, estado = 'vigente'`,
-      [d.clave, d.nombreArchivo],
-    );
-  }
-  // Fichas que la planilla ya no referencia se borran: el historial vive en la planilla.
-  await client.query('DELETE FROM documento WHERE NOT (clave = ANY($1::text[]))', [claves(datos.documentos)]);
-  const documentoId = await ids('documento');
+  // Documentos: fichas por nombre de archivo. Las que la planilla ya no referencia
+  // se borran: el historial vive en la planilla.
+  for (const d of datos.documentos) await upsertDocumento(client, d);
+  await borrarFueraDe(client, 'documento', claves(datos.documentos));
+  const documentoId = await idsPorClave(client, 'documento');
 
   // Adjuntos: ya se borraron al inicio; se insertan de nuevo.
   for (const rd of datos.respuestaDocumentos) {
-    await client.query(
-      'INSERT INTO respuesta_documento (respuesta_id, documento_id, orden) VALUES ($1, $2, $3)',
-      [respuestaId.get(rd.respuesta), documentoId.get(rd.documento), rd.orden],
-    );
+    await insertarAdjunto(client, {
+      respuestaId: respuestaId.get(rd.respuesta),
+      documentoId: documentoId.get(rd.documento),
+      orden: rd.orden,
+    });
   }
 
   // Contactos: upsert; la asociación con derivación se reemplaza completa.
-  for (const c of datos.contactos) {
-    await client.query(
-      `INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, activo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
-       ON CONFLICT (clave) DO UPDATE SET
-         nombre = EXCLUDED.nombre, area = EXCLUDED.area, comision = EXCLUDED.comision,
-         email = EXCLUDED.email, url_perfil = EXCLUDED.url_perfil, motivo = EXCLUDED.motivo,
-         orden = EXCLUDED.orden, activo = TRUE`,
-      [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden],
-    );
-  }
-  await client.query('DELETE FROM contacto WHERE NOT (clave = ANY($1::text[]))', [claves(datos.contactos)]);
+  for (const c of datos.contactos) await upsertContacto(client, c);
+  await borrarFueraDe(client, 'contacto', claves(datos.contactos));
 
   // Derivación: cada contacto pertenece a una sola opción de tipo 'derivar'.
-  const contactoId = await ids('contacto');
-  const opcionMenuId = await ids('opcion_menu');
+  const contactoId = await idsPorClave(client, 'contacto');
+  const opcionMenuId = await idsPorClave(client, 'opcion_menu');
   for (const c of datos.contactos) {
-    await client.query(
-      'INSERT INTO opcion_contacto (opcion_id, contacto_id, orden) VALUES ($1, $2, $3)',
-      [opcionMenuId.get(c.opcion), contactoId.get(c.clave), c.orden],
-    );
+    await insertarOpcionContacto(client, {
+      opcionId: opcionMenuId.get(c.opcion),
+      contactoId: contactoId.get(c.clave),
+      orden: c.orden,
+    });
   }
   const opcionContacto = datos.contactos.length;
 
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
-  for (const a of datos.alias) {
-    await client.query('INSERT INTO kb_alias (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
-  }
-  for (const t of datos.ignorados) {
-    await client.query('INSERT INTO kb_termino_ignorado (termino) VALUES ($1)', [t.termino]);
-  }
-  for (const i of datos.intenciones) {
-    await client.query(
-      'INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
-      [i.clave, i.nombre, i.dominio, i.opcion],
-    );
-  }
-  const intencionId = await ids('kb_intencion');
+  for (const a of datos.alias) await insertarAlias(client, a);
+  for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
+  for (const i of datos.intenciones) await insertarIntencion(client, i);
+  const intencionId = await idsPorClave(client, 'kb_intencion');
 
   const preguntaIdPorClave = new Map<string, number>();
   for (const p of datos.preguntas) {
-    const r = await client.query<{ id: number }>(
-      `INSERT INTO kb_pregunta (intencion_id, pregunta, priority, minimum_threshold, activo)
-       VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
-      [intencionId.get(p.intencion), p.pregunta, p.prioridad, p.umbral],
-    );
-    preguntaIdPorClave.set(`${p.intencion}\u0000${p.pregunta}`, r.rows[0]!.id);
+    const id = await insertarPregunta(client, {
+      intencionId: intencionId.get(p.intencion),
+      pregunta: p.pregunta,
+      prioridad: p.prioridad,
+      umbral: p.umbral,
+    });
+    preguntaIdPorClave.set(`${p.intencion}\u0000${p.pregunta}`, id);
   }
 
   for (const v of datos.variantes) {
-    await client.query(
-      `INSERT INTO kb_pregunta_variante (pregunta_id, original_text, normalized_text, weight, activo)
-       VALUES ($1, $2, $3, $4, TRUE)`,
-      [preguntaIdPorClave.get(`${v.intencion}\u0000${v.pregunta}`), v.texto, v.normalizado, v.peso],
-    );
+    await insertarVariante(client, {
+      preguntaId: preguntaIdPorClave.get(`${v.intencion}\u0000${v.pregunta}`),
+      texto: v.texto,
+      normalizado: v.normalizado,
+      peso: v.peso,
+    });
   }
 
   return {
