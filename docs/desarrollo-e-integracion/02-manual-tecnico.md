@@ -37,6 +37,7 @@ Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──
 | Backend | Express 5, TypeScript, zod (validación), pg (PostgreSQL) |
 | Google | googleapis (Sheets y Drive), cuenta de servicio |
 | Base de datos | PostgreSQL 16, extensiones `pgcrypto` y `pg_trgm` |
+| Extracción de PDF | `pdfjs-dist` (solo en la sincronización, no en las consultas) |
 | Tests | `node:test` con `tsx` |
 
 ## 2.3 Estructura del código
@@ -91,6 +92,7 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
    - **Comparación por palabras:** proporción de palabras de la consulta que aparecen en la variante, tolerando un error de tipeo por palabra (distancia de Damerau ≤ 1 en palabras de 4 letras o más).
 6. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
 7. Si la opción tiene documentos de dos o más comisiones del mismo tipo, la respuesta es una pregunta de comisión (ver [07](07-contenido-y-decisiones.md), decisión 13).
+8. En consultas escritas con respuesta de documentos, busca pasajes en los fragmentos de esos documentos (`documento_fragmento`), con la misma cobertura y el umbral `KB_UMBRAL_PASAJE` (0,90). Si hay pasajes, se muestran en lugar del texto general, seguidos de «Para más información te adjuntamos el PDF completo». Si no, queda el documento completo (ver [08](08-extractos-de-documentos.md)).
 
 La comparación por palabras se calcula en memoria sobre las variantes activas. Si la base crece mucho, conviene pasarla a SQL.
 
@@ -132,6 +134,7 @@ Las variables se leen de `.env` en la raíz del repo (plantilla: `.env.example`)
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` | No | Límite de peticiones por IP |
 | `KB_MIN_MENSAJE`, `KB_MAX_MENSAJE` | No | Largo mínimo y máximo de la consulta escrita |
 | `KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO`, `KB_MARGEN_AMBIGUEDAD`, `KB_MAX_OPCIONES_ACLARACION` | No | Calibración del texto libre |
+| `KB_UMBRAL_PASAJE` | No | Confianza mínima para mostrar un extracto del documento (por defecto `0.90`) |
 
 ## 2.7 Desarrollo local
 
@@ -160,4 +163,4 @@ Los tests del backend no necesitan base ni red. Ver [05-pruebas-unitarias.md](05
 - **Conjunto dorado** para medir el motor de texto libre.
 - **Pruebas con fixtures más complejos** (más materias, varias comisiones y documentos) para cubrir la pregunta de comisión y la cobertura de términos.
 - **Métricas en `db:reset`.** Ver [04-base-datos.md](04-base-datos.md), sección 4.5.
-- **Despliegue en Neon.** Pendiente de revisión.
+- **Despliegue en Neon.** Pendiente de revisión. Incluye la tabla `documento_fragmento` y la columna `documento.fragmentos_md5`: como el esquema usa `CREATE TABLE IF NOT EXISTS`, hace falta el mismo reset que en local.

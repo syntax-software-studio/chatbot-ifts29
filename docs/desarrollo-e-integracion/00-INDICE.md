@@ -53,7 +53,7 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Flujo de derivación
 - Decisiones y pendientes
 
-### 8. [Extractos de documentos](08-extractos-de-documentos.md) (propuesta)
+### 8. [Extractos de documentos](08-extractos-de-documentos.md) (implementada, en validación)
 - Respuesta con extracto literal del PDF vigente
 - Búsqueda de pasajes sobre los documentos de cada intención
 - Flujo y requisitos técnicos

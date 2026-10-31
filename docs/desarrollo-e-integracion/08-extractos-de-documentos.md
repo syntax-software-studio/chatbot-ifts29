@@ -1,6 +1,6 @@
 # 08 · Extractos de documentos
 
-**Estado:** propuesta en curso. Las decisiones tomadas están en la sección [Decisiones](#decisiones). Cuando la propuesta esté implementada, se pasa a [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
+**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Quedan pendientes de validación con el conjunto dorado (ver [Próximos pasos](#próximos-pasos)). Las decisiones tomadas están en [Decisiones](#decisiones). Cuando se valide, las decisiones se pasan a [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
 
 ## Idea
 
@@ -21,7 +21,7 @@ El texto del extracto sale del documento vigente. Nada se parafrasea ni se gener
 | Búsqueda | Qué compara | Qué devuelve | Estado |
 |---|---|---|---|
 | **Intención** | La pregunta contra variantes escritas por el equipo (textos cortos) | Una intención y su opción de menú | Implementada |
-| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa intención | El fragmento que responde, con su título | Propuesta |
+| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa intención | El fragmento que responde, con su título | Implementada |
 
 ## Flujo funcional
 
@@ -87,7 +87,10 @@ flowchart LR
 2. **Tabla de fragmentos basada en FTS.** Cada fragmento guarda su título y su texto. Se busca con el mismo criterio de cobertura de términos que las intenciones, y los trigramas quedan como complemento. La relación es de un documento a muchos fragmentos; la confirmación del 1:1 está pendiente (ver preguntas abiertas).
 3. **PDFs de Genially: fuera por ahora.** Se muestran solo desde el menú, no por texto libre. Se revisan cuando sean prioritarios.
 4. **Un extracto por consulta, con los dos mejores fragmentos si aplica.** El caso de respuestas repartidas en varias secciones se revisa si aparece en la práctica.
-5. **Umbral alto para empezar (0,9).** Se ajusta con el conjunto dorado y los logs de consultas reales.
+5. **Umbral alto para empezar (0,9).** Se ajusta con el conjunto dorado y los logs de consultas reales. Variable: `KB_UMBRAL_PASAJE`.
+6. **Los extractos son solo para texto libre.** El camino de menú sigue mostrando el documento completo, como antes.
+7. **Documentos sin texto extraíble, fuera.** `GENERAL_reglamento` y `GENERAL_protocolo-examenes` son imágenes. El OCR da resultados que no sirven para citar, así que no se usa: se le pide al cliente un PDF con texto seleccionable.
+8. **Sin reprocesar lo que no cambió.** La sincronización compara el `md5` del archivo con `documento.fragmentos_md5`, y solo descarga y extrae cuando difieren.
 
 ## Preguntas abiertas
 
@@ -97,6 +100,7 @@ flowchart LR
 
 ## Próximos pasos
 
-1. Armar la tabla `documento_fragmento` con FTS, y cargar fragmentos de un documento de prueba (condiciones de ABD).
-2. Probar la búsqueda de pasajes con consultas de la lista del conjunto dorado.
-3. Medir el umbral alto y ajustarlo.
+1. Armar el conjunto dorado: consultas con el pasaje esperado, incluidas las que hoy no resuelven ("aprueba" frente a "aprobación", "promocionar", o "programas" en un documento que no nombra el programa).
+2. Revisar el ranking cuando hay varios pasajes con la misma confianza (por ejemplo, "para aprobar abd necesito" muestra regularización y promoción).
+3. Medir el umbral con los logs de consultas reales y ajustar `KB_UMBRAL_PASAJE`.
+4. Revisar las secciones de los programas que se detectan como título por error (viñetas de unidades temáticas, "REPASO").

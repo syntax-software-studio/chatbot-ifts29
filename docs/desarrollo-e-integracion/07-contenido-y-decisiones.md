@@ -91,6 +91,7 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 11. **Normalización de consultas.** Las siglas de la pestaña `alias` se expanden, en la consulta y en las variantes. Las palabras vacías (`PALABRAS_VACIAS`, en código) se quitan de ambos lados. Las palabras de ruido de la búsqueda (pestaña `ignorados`) sólo se quitan de la consulta, así que cambiarlas no requiere resincronizar.
 12. **Búsqueda con cobertura de términos.** Cada variante recibe el promedio de cuánto cubre cada término de la consulta: 1 si coincide con stemming, la similitud si es un error de tipeo (≥ 0,6), 0 si no aparece. Por eso "condicons de abd" llega a condiciones sin aclaración.
 13. **Documentos por comisión.** Si una respuesta tiene documentos de dos o más comisiones del mismo tipo, el bot pregunta "¿De qué comisión sos?" y muestra sólo el documento elegido. La comisión se lee del nombre del archivo (ver la convención). Si la respuesta tiene un solo documento, o documentos sin comisión, responde directo.
+14. **Extractos de documentos en texto libre.** Para una consulta escrita, si una sección de los documentos de la intención responde (con el umbral `KB_UMBRAL_PASAJE`, 0,90), se muestra el texto literal de esa sección y la frase "Para más información te adjuntamos el PDF completo". Si no, queda el documento completo. Los PDFs sin texto (imágenes) no tienen extractos. Ver [08](08-extractos-de-documentos.md).
 
 ## Pendientes
 
@@ -98,4 +99,5 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 - **Conjunto dorado.** Consultas con respuesta esperada para medir el motor de texto libre y calibrar los umbrales.
 - **Documento sin archivo.** `EAM_condiciones` está en la planilla pero no existe en Drive; el bot no le muestra enlace hasta que aparezca.
 - **Lógica Computacional con el flujo de menú anterior.** Migrarla a la regla de comisiones (decisión 13) es opcional.
+- **Reglamento y protocolo de exámenes sin texto.** Son imágenes. Se le pide al cliente un PDF con texto seleccionable; mientras tanto se muestran completos, sin extracto.
 - **Producción (Neon).** Los cambios de esquema y de contenido todavía no se aplicaron en Neon. Requieren migración y revisión.
