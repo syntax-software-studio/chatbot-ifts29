@@ -58,7 +58,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-proximas-iteraciones.md), sección 6). |
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-proximas-iteraciones.md), sección 5). |
 | `metrica_exportacion` | Un registro por mes publicado en la planilla de métricas: `mes` (`AAAA-MM`), ID de la planilla, registros, total y fecha de la última publicación. Lo actualiza la exportación mensual; republicar un mes reemplaza su fila. |
 
 ### Vistas
@@ -139,8 +139,3 @@ Si el volumen ya existía con una versión anterior del esquema, el arranque no 
 | `GOOGLE_SHEET_ID` | ID de la planilla de contenido. |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHARED_FOLDER_ID` | Acceso de lectura a la planilla y a Drive. |
 
-## 4.9 Pendientes
-
-- Migración de Neon: el esquema y el contenido nuevos todavía no se aplicaron en producción. Antes de aplicarlos, correr el reset y la sincronización en una rama de prueba y revisar con `\d kb_pregunta_variante` que existan `search_vector` y su índice, y que `kb_termino_ignorado` tenga filas.
-- Documentos que desaparecen de Drive: la sincronización los deja como vigentes y sólo emite una advertencia. Pendiente definir si se archivan.
-- Fragmentos de documentos: validar la búsqueda de pasajes con el conjunto dorado y ajustar el umbral (ver [08](08-extractos-de-documentos.md)).

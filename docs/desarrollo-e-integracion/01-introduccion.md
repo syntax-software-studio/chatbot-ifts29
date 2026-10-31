@@ -54,7 +54,6 @@ Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**
 - Menú guiado, texto libre y derivación funcionando contra la base local de Docker.
 - Contenido cargado desde la planilla y los documentos sincronizados con Drive.
 - Tests del backend pasando.
-- Pendientes: conjunto dorado de consultas, submenú por comisión para documentos y despliegue en Neon.
 
 ## Fechas clave
 

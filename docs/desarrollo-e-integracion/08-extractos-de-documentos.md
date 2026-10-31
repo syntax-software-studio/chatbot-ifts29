@@ -1,6 +1,6 @@
 # 08 · Extractos de documentos
 
-**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Quedan pendientes de validación con el conjunto dorado (ver [Próximos pasos](#próximos-pasos)). Las decisiones tomadas están en [Decisiones](#decisiones). Cuando se valide, las decisiones se pasan a [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
+**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
 
 ## Idea
 
@@ -98,9 +98,3 @@ flowchart LR
 2. ¿Quién aprueba los fragmentos, y cómo se guarda esa aprobación?
 3. ¿Qué documentos entran primero? Por ahora, los prioritarios; el resto cuando se necesiten.
 
-## Próximos pasos
-
-1. Armar el conjunto dorado: consultas con el pasaje esperado, incluidas las que hoy no resuelven ("aprueba" frente a "aprobación", "promocionar", o "programas" en un documento que no nombra el programa).
-2. Revisar el ranking cuando hay varios pasajes con la misma confianza (por ejemplo, "para aprobar abd necesito" muestra regularización y promoción).
-3. Medir el umbral con los logs de consultas reales y ajustar `KB_UMBRAL_PASAJE`.
-4. Revisar las secciones de los programas que se detectan como título por error (viñetas de unidades temáticas, "REPASO").

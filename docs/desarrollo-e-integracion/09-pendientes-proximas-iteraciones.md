@@ -1,76 +1,49 @@
-# 09 · Pendientes para próximas iteraciones
+# 09 · Pendientes
 
-**Estado:** lista de trabajo. Reúne lo que no entra en la iteración actual, para no perderlo. Cada ítem tiene el documento donde se describe con más detalle.
+**Estado:** lista de trabajo. Cada ítem enlaza al documento con el detalle.
 
-## 1. Despliegue ordenado
+## 1. Despliegue
 
-Hoy el despliegue a producción son pasos manuales que tienen que correr en orden. Un error de orden no rompe nada a la vista, pero deja el chat degradado (por ejemplo, sin lista de términos ignorados). Hace falta un procedimiento que lo haga en el orden correcto y que se pueda repetir.
+El procedimiento manual está en [10 · Tareas operativas](10-operacion.md).
 
-Orden propuesto:
+- **Automatizarlo:** un script `npm run desplegar` con confirmación en cada paso, o un flujo en GitHub Actions que corra la sincronización. Ambas opciones necesitan las credenciales de Drive y de Neon fuera del código.
 
-1. **Respaldo** de `metrica_opcion` a CSV (el reset la conserva, pero el respaldo es la única recuperación si algo falla).
-2. **Verificar el runtime**: Node en el entorno de despliegue compatible con `pdfjs-dist` (requiere 22.13 o superior, y `engines` del proyecto dice `>=20`).
-3. **Esquema y contenido**: `npm run db:reset`, después `npm run sync`. La sync valida la planilla antes de escribir y no escribe si hay errores.
-4. **Código**: desplegar el backend y el frontend. Va después de la base: el código nuevo espera `kb_termino_ignorado` y `documento_fragmento`.
-5. **Verificación**: `/api/health`, consultas de referencia (`para aprobar abd necesito`, `condicons de abd`, `inscripcion a materias`) y la salida de la sync.
+## 2. Extractos de documentos
 
-Opciones a evaluar: un script `npm run desplegar` que haga los pasos 1 a 3 con confirmación antes de cada uno, o un flujo en GitHub Actions que corra la sync con los secretos del repo. Las dos opciones necesitan las credenciales de Drive y de Neon fuera del código.
+Detalle en [08](08-extractos-de-documentos.md).
 
-Referencias: [02 § 2.9](02-manual-tecnico.md), [04 § 4.9](04-base-datos.md).
-
-## 2. Refactor por capas
-
-En curso en la rama `refactor/capas`. Hecho en esta rama: dominios `chat/`, `kb/` y `sync/` con barrels (`index.ts`), `drive.service` partido en `sync/drive.ts` y `sync/documentos.ts`, `nl` sin dependencia de `chat` (el saludo lo resuelve el chat), y `extraccion` usando el normalizador de `utils`. Pendiente: el normalizador de la extracción cambia `texto_busqueda` en las letras repetidas, así que en producción hay que volver a extraer los fragmentos.
-
-Pendiente, en el orden propuesto en la conversación:
-
-1. ~~**Un solo normalizador.**~~ Hecho: `lib/normalizar.ts` es el único normalizador de texto. Se quitó `similitudTrigram`, que la app no usaba.
-2. ~~**Dirección de dependencias.**~~ Hecho: `routes` → `services` → `repositories` → `db`. Queda pendiente el SQL inline de `sync-load.service.ts`.
-3. ~~**Separar `drive.service.ts`**~~ Hecho: `clients/drive.ts` y `services/sync-load.service.ts`.
-4. ~~**Separar `carga-contenido.service.ts`**~~ Hecho: `sync-transform.service.ts` (convertir) y `sync-load.service.ts` (escribir).
-5. **Agrupar por dominio** no aplica: se organizó por responsabilidad, con el dominio en el nombre del archivo.
-
-Cada paso con los tests en verde, en commits chicos y sin cambiar comportamiento. Decisión: no se usa ORM; el SQL es específico de PostgreSQL y el esquema es el estado final.
-
-## 3. Extractos de documentos
-
-Referencia: [08](08-extractos-de-documentos.md).
-
-- **Conjunto dorado**: consultas con el pasaje esperado, incluidas las que hoy no resuelven (`como apruebo abd` no encuentra la sección de aprobación; `promocionar`; `programas de abd`).
-- **Umbral `KB_UMBRAL_PASAJE`**: medirlo con el conjunto dorado y con logs de consultas reales.
-- **Ranking** cuando hay varios pasajes con la misma confianza.
+- **Conjunto dorado:** consultas con el pasaje esperado, incluidas las que hoy no resuelven (`como apruebo abd`, `promocionar`, `programas de abd`).
+- **Umbral `KB_UMBRAL_PASAJE`:** medirlo con el conjunto dorado y con logs de consultas reales.
+- **Ranking** cuando varios pasajes tienen la misma confianza.
 - **Títulos falsos** en los programas (viñetas de unidades temáticas, "REPASO").
-- **Documentos sin texto** (`GENERAL_reglamento`, `GENERAL_protocolo-examenes`): pedir al cliente un PDF con texto seleccionable. El OCR se descartó por la calidad del resultado.
-- **Costo de sincronización**: resuelto con `fragmentos_md5`. Revisar en producción que la segunda sync no descargue nada.
+- **Revisar en producción** que la segunda sincronización no descargue nada.
 
-## 4. Vocabulario y contenido
+## 3. Contenido
 
-- **Variantes faltantes** para promoción ("promocionar", "promociono") y otros temas consultados (ver [07](07-contenido-y-decisiones.md)).
-- **Documento sin archivo:** `EAM_condiciones` está en la planilla y no existe en Drive. El bot muestra "Documento en preparación".
-- **Cronogramas** con encabezado "2° cuatrimestre 2024" en archivos de 2026: confirmar con el equipo si el contenido está vigente.
-- **Documentos que desaparecen de Drive:** definir si se archivan (ver [04](04-base-datos.md)).
+- **Variantes faltantes** para promoción ("promocionar", "promociono") y otros temas (ver [07](07-contenido-y-decisiones.md)).
+- **`EAM_condiciones`:** está en la planilla y no existe en Drive. El bot muestra "Documento en preparación".
+- **Cronogramas** con encabezado "2° cuatrimestre 2024" en archivos de 2026: confirmar si siguen vigentes.
+- **Documentos que desaparecen de Drive:** definir si se archivan.
+- **Reglamento y protocolo de exámenes:** son imágenes. Pedir al cliente un PDF con texto seleccionable.
+- **Lógica Computacional:** migrarla a la regla de comisiones (decisión 13 de [07](07-contenido-y-decisiones.md)). Opcional.
+- **Submenú por comisión** para los documentos de materia.
 
-## 5. Pruebas
+## 4. Pruebas
 
-- **Tests de la pregunta por comisión en la interfaz.** Los tests del backend cubren el flujo, pero no el renderizado en el navegador.
-- **Fixtures más complejos**, con varias materias, comisiones y documentos con y sin texto.
-- **Tests de la sincronización** con Drive simulado, para no depender de credenciales.
+- **Pregunta por comisión en la interfaz:** los tests del backend cubren el flujo, no el renderizado en el navegador.
+- **Fixtures más complejos:** varias materias, comisiones y documentos con y sin texto.
+- **Fixtures desde la planilla:** una copia versionada, para que las pruebas no dependan de la red.
 
-## 6. Base de datos y reset
+## 5. Base de datos y reset
 
-- **Respaldo de métricas en `db:reset`.** `rescatarMetricas` guarda las filas solo en memoria: si el proceso se corta entre el `DROP` y la restauración, se pierden. Opciones: escribir un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción. Carga toda la tabla en memoria, lo que no escala bien.
-- **Categoría en métricas.** `metrica_opcion.categoria_clave` queda `NULL` porque `registrarMetrica` no la recibe. Propuesta: completarla al exportar con un join de `opcion_menu` a `categoria`, así el reporte refleja la estructura del menú al momento de publicarlo. Si hiciera falta un historial congelado, habría que pasar la categoría desde el flujo del chat al registrar el evento.
+- **Respaldo en `db:reset`:** `rescatarMetricas` guarda las filas solo en memoria; si el proceso se corta, se pierden. Opciones: un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción.
+- **Automatizar el respaldo** manual de `metrica_opcion` ([10.6](10-operacion.md#106-respaldo-de-metrica_opcion)).
+- **Categoría en métricas:** `metrica_opcion.categoria_clave` queda `NULL`. Propuesta: completarla al exportar con un join de `opcion_menu` a `categoria`.
 
-## 7. Documentación
+## 6. Operación y administración
 
-- **`003_verificacion.sql`** ya se actualizó a las claves vigentes. Falta revisar `sql-coincide.test.ts` si cambian las consultas de la verificación.
-- **Decisión 1:1 o 1:N** para `documento_fragmento`: la implementación usa 1:N, con un fragmento para los documentos cortos. Confirmar si es lo que se quiso decir.
-
-## 8. Operación y administración
-
-- **Exportación mensual de métricas.** Implementada: `GET /api/metricas/exportar-mes-anterior`, llamada por el cron de `vercel.json` el día 1 de cada mes. Publica una pestaña por mes en la planilla de métricas (cuenta de servicio dedicada, con acceso de Editor solo a esa planilla). Pendiente: `db:push` en producción para crear `metrica_exportacion`, variables `CRON_SECRET` y `GOOGLE_METRICAS_*` en Vercel, y verificar la primera ejecución real.
-- **Sincronización automática.** Cron de Vercel que llama a `POST /api/sync` con `SYNC_SECRET`. Sin permisos de escritura en GitHub ni en la planilla. Antes, medir la sync completa en un deploy de prueba: `maxDuration` es 30 s y la primera extracción de PDFs todavía no se midió en Vercel. Si no entra, partir la sync (planilla y documentos en pasos).
-- **Logs persistentes de cada sync.** Tabla `sync_log` (fecha, resultado, errores, documentos actualizados y sin match), expuesta por un endpoint protegido. Hoy los mensajes solo quedan en la consola.
-- **Aprobación de fragmentos.** Estado por fragmento (aprobado, quién y cuándo). La búsqueda usa solo los aprobados; los cambios de md5 dejan los fragmentos nuevos pendientes. Dónde se aprueba (planilla o pantalla) está sin decidir.
-- **Normalización del tipo de documento.** Lista cerrada en `documento.tipo`, para aprobar por tipo y filtrar la búsqueda.
-- **Panel de administración.** Solo si las opciones anteriores no alcanzan. Decisión pendiente con el cliente: planilla más pantalla mínima, o contenido en la base.
+- **Sincronización automática:** cron de Vercel que llama a `POST /api/sync`, sin permisos de escritura en GitHub ni en la planilla. Antes, medir la sincronización completa: `maxDuration` es 30 s y la extracción de PDFs no se midió en Vercel. Si no entra, partirla en pasos.
+- **Logs persistentes de cada sync:** tabla `sync_log`, expuesta por un endpoint protegido.
+- **Aprobación de fragmentos:** estado por fragmento, y la búsqueda usa solo los aprobados. Falta decidir dónde se aprueba (planilla o pantalla).
+- **Normalización del tipo de documento:** lista cerrada en `documento.tipo`.
+- **Panel de administración:** solo si lo anterior no alcanza. Decisión con el cliente: planilla más pantalla mínima, o contenido en la base.

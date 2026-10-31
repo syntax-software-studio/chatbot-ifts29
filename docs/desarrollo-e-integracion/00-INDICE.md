@@ -60,11 +60,12 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Preguntas abiertas
 
 ### 9. [Pendientes para próximas iteraciones](09-pendientes-proximas-iteraciones.md)
-- Despliegue ordenado (base antes que código)
-- Refactor por capas
-- Conjunto dorado y calibración de extractos
-- Vocabulario y contenido
-- Pruebas y documentación pendientes
+- Despliegue, extractos, contenido, pruebas, base de datos y operación
+
+### 10. [Tareas operativas](10-operacion.md)
+- Aplicar el esquema, sincronizar, resetear la base y actualizar `fragmentos_md5`
+- Exportación mensual de métricas (automática, sin acción manual)
+- Respaldo de `metrica_opcion` y rotación de secretos
 
 ---
 
@@ -82,6 +83,7 @@ desarrollo-e-integracion/
 ├── 07-contenido-y-decisiones.md
 ├── 08-extractos-de-documentos.md
 ├── 09-pendientes-proximas-iteraciones.md
+├── 10-operacion.md
 └── screenshots/
     ├── manual-usuario/
     ├── pruebas-unitarias/

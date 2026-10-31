@@ -59,8 +59,8 @@
 - [x] Cuenta de servicio con acceso de solo lectura a la planilla y a la carpeta
 - [ ] Revisar el texto de las respuestas y de la derivación con el equipo institucional
 - [ ] `EAM_condiciones`: el documento no existe en Drive; el bot no le muestra enlace hasta que se suba
-- [ ] Submenú por comisión para los documentos de materia (ver `07`, pendientes)
-- [ ] Informe mensual de métricas publicado en la planilla de Google Sheets (implementado; pendiente verificar en producción)
+- [ ] Submenú por comisión para los documentos de materia (ver `09`)
+- [ ] Informe mensual de métricas verificado en producción
 
 ---
 

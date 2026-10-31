@@ -53,7 +53,3 @@ El evaluador clasifica cada caso como **acierto**, **aclaración que incluye la 
 
 Limitación: los casos salen de las variantes cargadas, así que miden robustez frente a errores mecánicos, no cómo escribe realmente un estudiante.
 
-## 6.7 Pendientes
-
-- **Conjunto dorado:** un archivo de consultas con respuesta esperada, para medir aciertos y falsos positivos del texto libre y calibrar los umbrales. Hoy las pruebas verifican casos puntuales, no la calidad del motor.
-- **Fixtures desde la planilla:** una forma de tomar una copia de la planilla como fixture versionado, para que las pruebas reflejen el contenido real sin depender de la red.
