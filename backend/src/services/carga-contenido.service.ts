@@ -102,6 +102,11 @@ export interface Alias {
   expansion: string;
 }
 
+/** Palabra de la consulta que se descarta al buscar (ya normalizada). */
+export interface TerminoIgnorado {
+  termino: string;
+}
+
 export interface DatosContenido {
   categorias: Categoria[];
   respuestas: Respuesta[];
@@ -113,6 +118,7 @@ export interface DatosContenido {
   variantes: Variante[];
   contactos: Contacto[];
   alias: Alias[];
+  ignorados: TerminoIgnorado[];
 }
 
 export interface ResultadoConversion {
@@ -248,6 +254,17 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   }
   const mapaAlias = new Map(alias.map((a) => [a.alias, a.expansion] as const));
 
+  // --- Términos ignorados (ruido de la consulta) ---
+  const ignorados: TerminoIgnorado[] = filas('ignorados').map((f) => ({
+    termino: normalizar(f.termino!),
+  }));
+  const ignoradosVistos = new Set<string>();
+  for (const t of ignorados) {
+    if (!t.termino) errores.push('ignorados: hay una fila vacía.');
+    if (ignoradosVistos.has(t.termino)) errores.push(`ignorados "${t.termino}" está repetido.`);
+    ignoradosVistos.add(t.termino);
+  }
+
   // --- Base de conocimiento ---
   const intenciones: Intencion[] = filas('intenciones').map((f) => {
     const donde = `intenciones "${f.clave}"`;
@@ -335,6 +352,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       variantes,
       contactos,
       alias,
+      ignorados,
     },
   };
 }
@@ -368,6 +386,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   // Primero se vacían las tablas que dependen de otras, para que no bloqueen
   // los borrados de menú, respuestas y documentos que vienen después.
   await client.query('DELETE FROM kb_alias');
+  await client.query('DELETE FROM kb_termino_ignorado');
   await client.query('DELETE FROM kb_pregunta_variante');
   await client.query('DELETE FROM kb_pregunta');
   await client.query('DELETE FROM kb_intencion');
@@ -470,6 +489,9 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const a of datos.alias) {
     await client.query('INSERT INTO kb_alias (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
+  }
+  for (const t of datos.ignorados) {
+    await client.query('INSERT INTO kb_termino_ignorado (termino) VALUES ($1)', [t.termino]);
   }
   for (const i of datos.intenciones) {
     await client.query(

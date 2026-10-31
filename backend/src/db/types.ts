@@ -76,7 +76,7 @@ export interface Derivacion {
 export type FuenteTurno = 'menu' | 'kb_question' | 'kb_variant' | 'rule' | 'none';
 
 /** Como se resolvio la interpretacion de la consulta (trazabilidad, D18). */
-export type TipoMatch = 'exacto' | 'similar' | 'regla' | 'ninguno';
+export type TipoMatch = 'exacto' | 'fts' | 'similar' | 'regla' | 'ninguno';
 
 /**
  * Metadatos internos de la interpretacion.

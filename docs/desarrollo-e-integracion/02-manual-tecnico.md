@@ -85,10 +85,12 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
 2. Normaliza el texto (minúsculas, sin acentos ni signos) y quita palabras vacías ("de", "la", "el", "y"...). Las variantes de la base pasan por la misma normalización al cargarse.
 3. Saludos: devuelve el menú raíz.
 4. Coincidencia exacta con una variante → responde con la opción de esa intención.
-5. Si no hay exacta, calcula para cada variante el mayor de dos puntajes:
-   - similitud trigram (`pg_trgm`) sobre el texto completo;
-   - comparación por palabras: proporción de palabras de la consulta que aparecen en la variante, tolerando un error de tipeo por palabra (distancia de Damerau ≤ 1 en palabras de 4 letras o más, que cuenta una transposición como un solo error).
+5. Si no hay exacta, busca por tres caminos y, para cada variante, se queda con el mayor puntaje:
+   - **Cobertura de términos (FTS):** los términos significativos son las palabras de la consulta sin las de la pestaña `ignorados`. Cada término cubre 1 si coincide con stemming (`spanish`), o su similitud si es un error de tipeo (≥ 0,6). La confianza es el promedio sobre los términos.
+   - **Trigramas por término:** cada término se compara con las palabras de cada variante (`word_similarity`). Las coincidencias exactas no cuentan acá, porque ya las cubre FTS.
+   - **Comparación por palabras:** proporción de palabras de la consulta que aparecen en la variante, tolerando un error de tipeo por palabra (distancia de Damerau ≤ 1 en palabras de 4 letras o más).
 6. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
+7. Si la opción tiene documentos de dos o más comisiones del mismo tipo, la respuesta es una pregunta de comisión (ver [07](07-contenido-y-decisiones.md), decisión 13).
 
 La comparación por palabras se calcula en memoria sobre las variantes activas. Si la base crece mucho, conviene pasarla a SQL.
 
@@ -156,5 +158,6 @@ Los tests del backend no necesitan base ni red. Ver [05-pruebas-unitarias.md](05
 ## 2.9 Pendientes técnicos
 
 - **Conjunto dorado** para medir el motor de texto libre.
+- **Pruebas con fixtures más complejos** (más materias, varias comisiones y documentos) para cubrir la pregunta de comisión y la cobertura de términos.
 - **Métricas en `db:reset`.** Ver [04-base-datos.md](04-base-datos.md), sección 4.5.
 - **Despliegue en Neon.** Pendiente de revisión.

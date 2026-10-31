@@ -6,7 +6,7 @@
 
 - **Motor:** PostgreSQL 16. Neon en producción; Docker local (`docker compose up`) en desarrollo.
 - **Driver:** `pg` (node-postgres). La misma `DATABASE_URL` sirve para ambos.
-- **Extensiones:** `pgcrypto`, `pg_trgm` (similitud para el texto libre).
+- **Extensiones:** `pgcrypto`, `pg_trgm` (similitud para el texto libre). La búsqueda de palabras usa la configuración `spanish` de PostgreSQL, que viene incluida, sin extensión.
 - **Contenido:** no se escribe a mano en la base. Entra por la sincronización desde la planilla y Drive (ver [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md)).
 - **Datos personales:** ninguno. Las métricas son agregados anónimos.
 
@@ -40,8 +40,11 @@ Una restricción de la tabla impide combinaciones inválidas.
 | `kb_pregunta` | Formulación canónica de una intención, con prioridad y umbral |
 | `kb_pregunta_variante` | Redacciones posibles, ya normalizadas (`normalized_text`), con peso |
 | `kb_alias` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
+| `kb_termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
 
-Índices: B-tree sobre `normalized_text` (coincidencia exacta) y GIN con `gin_trgm_ops` (similitud).
+`kb_pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', normalized_text)`) que usa la búsqueda de palabras.
+
+Índices: B-tree sobre `normalized_text` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
 
 ### Métricas
 
@@ -129,4 +132,5 @@ Si el volumen ya existía con una versión anterior del esquema, el arranque no 
 
 ## 4.9 Pendientes
 
-- Migración de Neon: el esquema y el contenido nuevos todavía no se aplicaron en producción.
+- Migración de Neon: el esquema y el contenido nuevos todavía no se aplicaron en producción. Antes de aplicarlos, correr el reset y la sincronización en una rama de prueba y revisar con `\d kb_pregunta_variante` que existan `search_vector` y su índice, y que `kb_termino_ignorado` tenga filas.
+- Documentos que desaparecen de Drive: la sincronización los deja como vigentes y sólo emite una advertencia. Pendiente definir si se archivan.
