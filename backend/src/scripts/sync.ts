@@ -8,8 +8,8 @@
  * `POST /api/sync`.
  */
 
-import { sincronizar } from '../services/sincronizacion.service.js';
-import { closePool } from './pool.js';
+import { sincronizar } from '../services/sync.service.js';
+import { closePool } from '../db/pool.js';
 
 async function main(): Promise<void> {
   const r = await sincronizar();

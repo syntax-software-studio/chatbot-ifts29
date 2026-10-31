@@ -59,7 +59,7 @@ function aliasDe(sql: string): Map<string, Set<string>> {
 }
 
 const consultas = async (): Promise<Array<[string, string]>> => {
-  const archivos = ['backend/src/db/catalogo.ts', 'backend/src/db/conocimiento.ts'];
+  const archivos = ['backend/src/repositories/chat-menu.repository.ts', 'backend/src/repositories/kb-conocimiento.repository.ts'];
   const salida: Array<[string, string]> = [];
   for (const archivo of archivos) {
     const fuente = await leer(archivo);

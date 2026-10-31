@@ -14,7 +14,7 @@ import {
   comisionesAPreguntar,
   filtrarPorComision,
   separarComision,
-} from '../src/utils/comisiones.js';
+} from '../src/lib/comisiones.js';
 import { procesarSeleccion, MENSAJE_COMISION } from '../src/services/chat.service.js';
 
 /* ==========================================================================

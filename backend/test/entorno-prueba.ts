@@ -54,7 +54,8 @@ export async function prepararBasePrueba(): Promise<void> {
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await pool.query(await readFile(esquema, 'utf8'));
 
-  const { convertirContenido, aplicarContenido } = await import('../src/services/carga-contenido.service.js');
+  const { convertirContenido } = await import('../src/services/sync-transform.service.js');
+  const { aplicarContenido } = await import('../src/services/sync-load.service.js');
   const { contenidoPrueba } = await import('./fixtures/contenido.js');
   const conversion = convertirContenido(contenidoPrueba);
   if (!conversion.ok || !conversion.datos) {

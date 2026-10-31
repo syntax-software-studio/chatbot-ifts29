@@ -1,7 +1,7 @@
 /** Servidor local de desarrollo (Vercel usa `api/index.ts`). */
 
 import { app } from './app.js';
-import { env } from './utils/env.js';
+import { env } from './config/env.js';
 
 const puerto = env.port;
 

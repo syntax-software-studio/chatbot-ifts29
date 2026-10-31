@@ -7,8 +7,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { convertirContenido } from '../src/services/carga-contenido.service.js';
-import type { Fila, Pestana } from '../src/services/fuente-contenido.service.js';
+import { convertirContenido } from '../src/services/sync-transform.service.js';
+import type { Fila, Pestana } from '../src/lib/planilla.js';
 
 type Hojas = Partial<Record<Pestana, Fila[]>>;
 

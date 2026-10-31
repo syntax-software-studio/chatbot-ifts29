@@ -8,7 +8,7 @@
  */
 
 import type { RequestHandler } from 'express';
-import { env } from '../utils/env.js';
+import { env } from '../config/env.js';
 import { tooManyRequests } from '../utils/errors.js';
 
 interface Contador {

@@ -6,9 +6,10 @@
  * sincroniza las fichas de documentos con Drive.
  */
 
-import { sincronizarDocumentos, type ResultadoSync } from './drive.service.js';
-import { aplicarContenido, convertirContenido, type ResumenCarga } from './carga-contenido.service.js';
-import { leerContenido } from './fuente-contenido.service.js';
+import { sincronizarDocumentos, aplicarContenido, type ResultadoSync } from './sync-load.service.js';
+import type { ResumenCarga } from './sync-transform.service.js';
+import { convertirContenido } from './sync-transform.service.js';
+import { leerContenido } from './sync-extract.service.js';
 
 export interface ResultadoSincronizacion {
   ok: boolean;

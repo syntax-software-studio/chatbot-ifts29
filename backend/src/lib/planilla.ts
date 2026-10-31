@@ -13,8 +13,6 @@
  * ignoran, para que el equipo pueda tener hojas de trabajo sin romper la carga.
  */
 
-import { clienteSheets } from '../client/sheets.client.js';
-import { env, hasGoogleDrive } from '../utils/env.js';
 
 /** Encabezados esperados por pestaña, en el orden de la planilla. */
 export const ESQUEMA_CONTENIDO = {
@@ -91,34 +89,3 @@ export function interpretarContenido(pestanas: Record<string, Valores | undefine
  * Requiere `GOOGLE_SHEET_ID` y las credenciales de la cuenta de servicio. La
  * cuenta debe tener acceso de lector a la planilla.
  */
-export async function leerContenido(): Promise<ResultadoContenido> {
-  const spreadsheetId = env.google.sheetId;
-  if (!spreadsheetId || !hasGoogleDrive()) {
-    return {
-      ok: false,
-      hojas: {},
-      errores: ['Falta GOOGLE_SHEET_ID o las credenciales de Google en el entorno.'],
-    };
-  }
-
-  const sheets = clienteSheets();
-
-  const meta = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: 'sheets.properties.title',
-  });
-  const titulos = (meta.data.sheets ?? [])
-    .map((s) => s.properties?.title ?? '')
-    .filter((t) => t !== '');
-
-  const pestanas: Record<string, Valores> = {};
-  for (const titulo of titulos) {
-    const r = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `'${titulo.replace(/'/g, "''")}'`,
-    });
-    pestanas[titulo] = (r.data.values ?? []) as Valores;
-  }
-
-  return interpretarContenido(pestanas);
-}

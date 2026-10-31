@@ -1,9 +1,10 @@
 /**
- * Cliente de Google Drive, con alcance de lectura de archivos.
+ * Cliente de Google Drive
+ * Permisos de lectura de archivos.
  */
 
 import { google, type drive_v3 } from 'googleapis';
-import { hasGoogleDrive } from '../utils/env.js';
+import { hasGoogleDrive } from '../config/env.js';
 import { HttpError } from '../utils/errors.js';
 import { credencialGoogle } from './google-auth.js';
 

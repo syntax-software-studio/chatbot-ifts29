@@ -10,7 +10,7 @@
  * El texto que se devuelve es el literal del documento (`texto`), no el normalizado.
  */
 
-import { query } from './pool.js';
+import { query } from '../db/pool.js';
 
 /** Similitud mínima de un término con una palabra del fragmento para contarlo como error de tipeo. */
 const UMBRAL_TERMINO_FUZZY = 0.6;
@@ -18,7 +18,7 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
 /** Cantidad máxima de pasajes por consulta. */
 const LIMITE_PASAJES = 2;
 
-export interface Pasaje {
+export interface FragmentoBuscado {
   titulo: string;
   texto: string;
   confianza: number;
@@ -49,11 +49,11 @@ const SQL_PASAJES = `
  * Pasajes de los documentos indicados que responden a los términos de la consulta.
  * Vacío si ningún fragmento supera el umbral: el llamador muestra el documento completo.
  */
-export async function buscarPasajes(
+export async function buscarFragmentos(
   clavesDocumentos: string[],
   terminos: string[],
   umbral: number,
-): Promise<Pasaje[]> {
+): Promise<FragmentoBuscado[]> {
   if (clavesDocumentos.length === 0 || terminos.length === 0) return [];
   const r = await query<{ titulo: string; texto: string; confianza: number }>(SQL_PASAJES, [
     clavesDocumentos,

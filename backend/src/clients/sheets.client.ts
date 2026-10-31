@@ -1,5 +1,6 @@
 /**
- * Cliente de Google Sheets, con alcance de lectura de planillas.
+ * Cliente de Google Sheets
+ * Permisos de lectura de planillas.
  */
 
 import { google, type sheets_v4 } from 'googleapis';

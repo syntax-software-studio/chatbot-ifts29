@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 
 // Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
 import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
-import { interpretarConsulta, MENSAJE_NO_DISPONIBLE } from '../src/services/nl.service.js';
+import { procesarConsulta } from '../src/services/chat.service.js';
+import { interpretarConsulta, MENSAJE_NO_DISPONIBLE } from '../src/services/kb.service.js';
 
 before(async () => {
   await prepararBasePrueba();
@@ -50,11 +51,16 @@ test('una consulta ambigua pide aclaración con opciones reales del menú', asyn
   }
 });
 
-test('un saludo devuelve el menú raíz, sin buscar en la base de conocimiento', async () => {
+test('un saludo se reconoce sin buscar en la base de conocimiento (el chat arma el menú raíz)', async () => {
   const r = await interpretarConsulta('hola');
-  assert.equal(r.clase, 'nodo');
-  if (r.clase === 'nodo') {
-    assert.equal(r.nodo.categoria.clave, 'RAIZ');
+  assert.equal(r.clase, 'saludo');
+});
+
+test('un saludo, en el chat, devuelve el menú raíz', async () => {
+  const turno = await procesarConsulta('hola');
+  assert.equal(turno.tipo, 'nodo');
+  if (turno.tipo === 'nodo') {
+    assert.equal(turno.nodo.categoria.clave, 'RAIZ');
   }
 });
 

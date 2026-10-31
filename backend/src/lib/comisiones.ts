@@ -1,9 +1,8 @@
 /**
- * Comisiones en los documentos de materia.
+ * Gestión de consulta de omisiones, según documentos
  *
  * La convención de nombres (ver docs/desarrollo-e-integracion/07) es:
- *
- *   <CódigoMateria>_<Tipo>[_<Comisión>]_<Año>[_<CuatrimestreDeCursada>]
+ * <CódigoMateria>_<Tipo>[_<Comisión>]_<Año>[_<CuatrimestreDeCursada>]
  *
  * La comisión es opcional y es una sola letra. Se lee de la clave del documento
  * (el nombre sin .pdf), así que no hace falta una columna extra en la planilla.

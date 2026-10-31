@@ -10,7 +10,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MIN_CARACTERES, esConsultaUtil, normalizar, similitudTrigram } from '../src/utils/normalizar.js';
+import { MIN_CARACTERES, esConsultaUtil, normalizar, similitudTrigram } from '../src/lib/normalizar.js';
 
 test('normalizar quita tildes, mayusculas y puntuacion', () => {
   assert.equal(normalizar('¿Cuándo empiezan las clases?'), 'cuando empiezan las clases');

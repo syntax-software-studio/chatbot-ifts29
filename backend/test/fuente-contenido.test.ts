@@ -7,7 +7,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ESQUEMA_CONTENIDO, interpretarContenido, type Valores } from '../src/services/fuente-contenido.service.js';
+import { ESQUEMA_CONTENIDO, interpretarContenido, type Valores } from '../src/lib/planilla.js';
 
 /** Una pestaña: encabezado del esquema y, opcionalmente, filas de ejemplo. */
 const pestana = (nombre: keyof typeof ESQUEMA_CONTENIDO, ...filas: string[][]): Valores => [

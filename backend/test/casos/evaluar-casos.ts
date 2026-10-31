@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { closePool } from '../../src/db/pool.js';
-import { interpretarConsulta } from '../../src/services/nl.service.js';
+import { interpretarConsulta } from '../../src/services/kb.service.js';
 import type { Caso } from './generar-casos.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));

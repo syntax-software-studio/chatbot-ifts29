@@ -2,7 +2,7 @@
 
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { HttpError } from '../utils/errors.js';
-import { env } from '../utils/env.js';
+import { env } from '../config/env.js';
 
 export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json({

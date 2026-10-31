@@ -6,13 +6,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { normalizar } from '../src/lib/normalizar.js';
 import {
   esEncabezadoMayusculas,
   fragmentar,
-  normalizarTexto,
   tituloConocido,
   type LineaPdf,
-} from '../src/services/extraccion-secciones.js';
+} from '../src/lib/secciones.js';
 
 const lineas = (...textos: string[]): LineaPdf[] => textos.map((text) => ({ text, page: 1 }));
 
@@ -65,6 +65,6 @@ test('un título al inicio de línea seguido de : abre sección con el resto de 
   assert.equal(frags[1]?.texto, 'aquellos que posean una calificación menor a 7.');
 });
 
-test('normalizarTexto quita tildes, signos y mayúsculas, para la búsqueda', () => {
-  assert.equal(normalizarTexto('Régimen de Cursada: 75% de las PFO.'), 'regimen de cursada 75 de las pfo');
+test('normalizar quita tildes, signos y mayúsculas, para la búsqueda', () => {
+  assert.equal(normalizar('Régimen de Cursada: 75% de las PFO.'), 'regimen de cursada 75 de las pfo');
 });

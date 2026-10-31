@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test --test-concurrency=1 \"test/*.test.ts\"",
     "db:push": "tsx src/db/push.ts",
-    "sync": "tsx src/db/sincronizar.ts",
+    "sync": "tsx src/scripts/sync.ts",
     "casos:generar": "tsx test/casos/generar-casos.ts",
     "casos:evaluar": "tsx test/casos/evaluar-casos.ts"
   },

@@ -21,8 +21,8 @@ import { z } from 'zod';
 import { procesarSeleccion, procesarConsulta, registrarAperturaDocumento } from '../services/chat.service.js';
 import { asyncHandler } from '../middleware/error.js';
 import { badRequest, validationError } from '../utils/errors.js';
-import { normalizar } from '../utils/normalizar.js';
-import { env } from '../utils/env.js';
+import { normalizar } from '../lib/normalizar.js';
+import { env } from '../config/env.js';
 
 const cuerpoSchema = z
   .object({

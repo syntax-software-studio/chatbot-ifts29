@@ -19,7 +19,6 @@
  * Ningun LLM, ningun embedding, ningun acceso a Internet (D03, D08).
  */
 
-import { obtenerNodo, CATEGORIA_RAIZ } from '../db/catalogo.js';
 import {
   buscarExacto,
   buscarSimilares,
@@ -28,11 +27,13 @@ import {
   obtenerAlias,
   obtenerTerminosIgnorados,
   type CandidatoKb,
-} from '../db/conocimiento.js';
-import { normalizarConsulta } from '../utils/normalizar.js';
-import { env } from '../utils/env.js';
-import type { Aclaracion, MetaInterpretacion, NodoMenu } from '../db/types.js';
-import type { Evento } from './metricas.service.js';
+} from '../repositories/kb-conocimiento.repository.js';
+import { normalizarConsulta } from '../lib/normalizar.js';
+import { env } from '../config/env.js';
+import type { Aclaracion, MetaInterpretacion } from '../db/types.js';
+
+/** Desenlace de una consulta escrita que se resolvió con una opción del menú. */
+export type EventoKb = 'texto_exacto' | 'texto_similar';
 
 /* ==========================================================================
  * Mensajes institucionales
@@ -80,20 +81,15 @@ const SALUDOS = new Set([
   'hello',
 ]);
 
-/** Claves reservadas para las metricas agregadas del flujo de texto libre. */
-export const CLAVE_METRICA_SALUDO = '(texto_regla)';
-export const CLAVE_METRICA_ACLARACION = '(aclaracion)';
-export const CLAVE_METRICA_NO_DISPONIBLE = '(no_disponible)';
-
 /* ==========================================================================
  * Resultado de la interpretacion
  * ======================================================================== */
 
 export type ResolucionConsulta =
   /** La intencion se resuelve con una opcion del menu existente. */
-  | { clase: 'opcion'; opcionClave: string; evento: Evento; meta: MetaInterpretacion; terminos: string[] }
-  /** Respuesta directa que no pasa por el menu (regla de saludos). */
-  | { clase: 'nodo'; nodo: NodoMenu; meta: MetaInterpretacion }
+  | { clase: 'opcion'; opcionClave: string; evento: EventoKb; meta: MetaInterpretacion; terminos: string[] }
+  /** Saludo: el que arma la respuesta es el chat (menu raiz). */
+  | { clase: 'saludo'; meta: MetaInterpretacion }
   | { clase: 'aclaracion'; aclaracion: Aclaracion; meta: MetaInterpretacion }
   | { clase: 'no_disponible'; mensaje: string; meta: MetaInterpretacion }
   /** La base de conocimiento no respondio: no se inventa nada (D08). */
@@ -186,10 +182,9 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
   const ignorados = await obtenerTerminosIgnorados().catch(fuenteOpcional('ignorados', new Set<string>()));
   const normalizado = normalizarConsulta(texto, alias);
 
-  // Nivel C: saludos -> menu raiz (respuesta autorizada, no generada).
+  // Nivel C: saludos. No es una respuesta de la base: el chat decide el menu raiz.
   if (SALUDOS.has(normalizado)) {
-    const nodo = await obtenerNodo(CATEGORIA_RAIZ);
-    return { clase: 'nodo', nodo, meta: meta(null, 1, 'rule', 'regla') };
+    return { clase: 'saludo', meta: meta(null, 1, 'rule', 'regla') };
   }
 
   // Nivel A: coincidencia exacta. Nivel B: similitud trigram.

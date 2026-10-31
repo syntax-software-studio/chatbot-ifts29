@@ -11,7 +11,7 @@
  */
 
 import type { RequestHandler } from 'express';
-import { env } from '../utils/env.js';
+import { env } from '../config/env.js';
 
 function resolverOrigen(reqOrigin: string | undefined): string | null {
   if (!reqOrigin) return null; // mismo origen / curl / health checks

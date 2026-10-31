@@ -1,20 +1,18 @@
 /**
- * Carga el esquema y el contenido inicial en Neon.
+ * Carga el esquema y el contenido inicial en base de datos.
+ * npm run db:reset -> borra esquema, mantiene datos de métricas
+ * npm run db:push -> aplica sólo el schema
+ * npm run sync -> popula la base desde drive
  *
- *   npm run db:push            -> aplica sólo 001_schema.sql (esquema).
- *                                 El contenido entra con `npm run sync`.
- *   npm run db:reset           -> borra el esquema antes de aplicar
- *   DATABASE_URL=... npm run db:push
- *
- * Es idempotente: ambos scripts usan `CREATE ... IF NOT EXISTS` y
- * `ON CONFLICT DO UPDATE`, así que se pueden volver a ejecutar sin riesgo.
+ * Es idempotente: usan `CREATE ... IF NOT EXISTS` y `ON CONFLICT DO UPDATE`
+ * Se pueden volver a ejecutar sin riesgo
  */
 
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { getPool, closePool, query } from './pool.js';
-import { env } from '../utils/env.js';
+import { env } from '../config/env.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const carpetaSql = join(aqui, '..', '..', '..', 'db');

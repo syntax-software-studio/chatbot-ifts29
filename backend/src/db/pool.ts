@@ -1,16 +1,9 @@
 /**
- * Acceso a PostgreSQL con `pg` (node-postgres).
- *
- * Un solo driver para todos los entornos: la misma `DATABASE_URL` sirve para
- * el PostgreSQL local de Docker y para Neon (que acepta conexión estándar con
- * SSL, `?sslmode=require`). `pg` soporta SCRAM-SHA-256, que es el método de
- * autenticación de Neon.
- *
- * Sin `DATABASE_URL` no hay base: la API responde 503 (ver app.ts).
+ * Acceso a PostgreSQL
  */
 
 import { Pool } from 'pg';
-import { env, hasDatabase } from '../utils/env.js';
+import { env, hasDatabase } from '../config/env.js';
 
 let pool: Pool | null = null;
 let warned = false;

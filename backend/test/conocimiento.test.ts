@@ -11,8 +11,8 @@ import assert from 'node:assert/strict';
 
 // Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
 import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
-import { buscarExacto, buscarSimilares } from '../src/db/conocimiento.js';
-import { normalizarConsulta } from '../src/utils/normalizar.js';
+import { buscarExacto, buscarSimilares } from '../src/repositories/kb-conocimiento.repository.js';
+import { normalizarConsulta } from '../src/lib/normalizar.js';
 
 before(async () => {
   await prepararBasePrueba();

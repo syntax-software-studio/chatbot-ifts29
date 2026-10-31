@@ -1,12 +1,6 @@
 /**
- * Configuracion de entorno centralizada.
- * Lee process.env una sola vez y aplica defaults seguros para demo local.
- *
- * Carga ademas el `.env` de la raiz del repo si existe, para que el proyecto
- * se pueda configurar en un solo archivo (copiado de `.env.example`) sin
- * depender de `dotenv` ni de flags por script. Las variables ya presentes en
- * el entorno ganan sobre el archivo: en Vercel manda la configuracion del
- * proyecto y el `.env` no existe.
+ * Configuración de la aplicación, leída de `process.env`.
+ * Si existe, también carga el `.env` de la raíz; las variables del entorno tienen prioridad.
  */
 
 import { existsSync } from 'node:fs';
@@ -76,14 +70,8 @@ export const env = {
     clientEmail: str('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
     privateKey: str('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     sharedFolderId: str('GOOGLE_SHARED_FOLDER_ID'),
-    /** ID de la planilla de contenido ("Bot IFTS29 - Contenido"). Sólo lectura. */
     sheetId: str('GOOGLE_SHEET_ID'),
-    /**
-     * Crear el permiso "cualquiera con el enlace" es una escritura en Drive:
-     * el alcance `drive.readonly` siempre devuelve 403. Por eso el default es
-     * false y el bot opera en modo estrictamente solo lectura. Activarlo
-     * requiere cambiar el scope a `drive.file`/`drive` en drive.service.ts.
-     */
+    // Enlaces públicos. Apagado: la cuenta de servicio es de solo lectura.
     publicLinks: bool('DRIVE_PUBLIC_LINKS', false),
     linkCacheTtl: int('DRIVE_LINK_CACHE_TTL', 3600),
   },
@@ -94,37 +82,15 @@ export const env = {
     max: int('RATE_LIMIT_MAX', 120),
   },
 
-  /**
-   * Motor de lenguaje natural controlado.
-   *
-   * Los umbrales son valores INICIALES y calibrables (D04): se ajustan con
-   * consultas reales, no son constantes de negocio. Se pueden mover por entorno
-   * sin recompilar ni tocar codigo.
-   */
+  // Umbrales calibrables por entorno (ver docs/02 y docs/08).
   lenguajeNatural: {
-    /** Longitud maxima y minima del mensaje escrito por el estudiante. */
     maxMensaje: int('KB_MAX_MENSAJE', 800),
     minMensaje: int('KB_MIN_MENSAJE', 2),
-    /** >= 0.90 -> respuesta autorizada. */
     umbralAlto: float('KB_UMBRAL_ALTO', 0.9),
-    /** >= 0.70 (y < 0.90) -> aclaracion. Por debajo -> no disponible. */
     umbralMedio: float('KB_UMBRAL_MEDIO', 0.7),
-    /** Dos intenciones tan parecidas que hay que preguntar (D06). */
     margenAmbiguedad: float('KB_MARGEN_AMBIGUEDAD', 0.05),
-    /**
-     * Confianza mínima para mostrar un extracto del documento en lugar del
-     * documento completo (ver docs 08). Empieza alto: un extracto se lee como
-     * respuesta, así que un error se nota más.
-     */
     umbralPasaje: float('KB_UMBRAL_PASAJE', 0.9),
-    /**
-     * Maximo de opciones en una aclaracion (D06).
-     *
-     * 4 y no 3 a proposito: las consultas genericas del catalogo ("cuando
-     * empiezan las clases", "programa", "dias de cursada") tienen exactamente
-     * cuatro destinos posibles (las cuatro materias), y con un tope de 3 se
-     * ocultaria uno de ellos sin avisar, que es peor que mostrarlo.
-     */
+    // Cuatro, por las cuatro materias: con menos se ocultaría una opción.
     maxOpcionesAclaracion: int('KB_MAX_OPCIONES_ACLARACION', 4),
   },
 
@@ -132,9 +98,7 @@ export const env = {
   iframeAncestors: list('IFRAME_ANCESTORS', allowedOrigins),
 } as const;
 
-/** ¿La API tiene configurada una base de datos real? */
 export const hasDatabase = (): boolean => env.databaseUrl.length > 0;
 
-/** ¿La API tiene configurado el acceso a Google Drive? */
 export const hasGoogleDrive = (): boolean =>
   env.google.clientEmail.length > 0 && env.google.privateKey.length > 0;

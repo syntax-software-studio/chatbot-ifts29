@@ -10,9 +10,9 @@
  * que son las únicas vías autorizadas para emitir contenido institucional.
  */
 
-import { query } from './pool.js';
-import { similitudPorPalabras } from '../utils/normalizar.js';
-import { env } from '../utils/env.js';
+import { query } from '../db/pool.js';
+import { similitudPorPalabras } from '../lib/normalizar.js';
+import { env } from '../config/env.js';
 
 /** Log detallado del matching de texto libre. Solo en NODE_ENV=local. */
 const DIAGNOSTICO_LOCAL = env.nodeEnv === 'local';
