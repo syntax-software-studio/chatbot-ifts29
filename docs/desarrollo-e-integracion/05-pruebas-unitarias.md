@@ -24,7 +24,7 @@ Las pruebas corren de a un archivo (`--test-concurrency=1`), porque las de integ
 
 | Archivo | Pruebas | Qué verifica |
 |---|---|---|
-| `normalizar.test.ts` | 7 | Normalización del texto libre (acentos, mayúsculas, puntuación, letras repetidas), largo mínimo y similitud trigram (casos base, simetría, no cruza palabras). |
+| `normalizar.test.ts` | 5 | Normalización del texto libre (acentos, mayúsculas, puntuación, letras repetidas), expansión de siglas y palabras vacías, y comparación por palabras con errores de tipeo. |
 | `fuente-contenido.test.ts` | 8 | Validación de la planilla: contenido válido, celdas con comas y comillas, filas vacías, pestaña faltante, encabezados distintos o en otro orden, pestañas fuera del esquema, reporte de todos los errores juntos. |
 | `carga-contenido.test.ts` | 16 | Conversión a tipos de base: enteros, booleanos, decimales con coma, referencias entre pestañas (categorías, respuestas, opciones, intenciones, preguntas, variantes, contactos), reglas de opciones (`navegar` requiere destino, `responder` requiere respuesta), contactos asociados a una opción de tipo `derivar`, variantes repetidas tras normalizar, y acumulación de errores. |
 | `sql-coincide.test.ts` | 3 | Las columnas y tablas que usa el SQL de la aplicación existen en el esquema, y los archivos SQL no tienen BOM. |

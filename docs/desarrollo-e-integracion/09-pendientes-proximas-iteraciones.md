@@ -24,11 +24,11 @@ En curso en la rama `refactor/capas`. Hecho en esta rama: dominios `chat/`, `kb/
 
 Pendiente, en el orden propuesto en la conversación:
 
-1. **Un solo normalizador.** Hoy hay cuatro (`utils/normalizar.ts`, `drive.service.ts`, `extraccion-secciones.ts` y la carga de contenido). Es el de mayor riesgo, porque el mismo texto se compara distinto según dónde se procese.
-2. **Dirección de dependencias.** `db/sincronizar.ts` importa servicios, y las rutas `menu` y `system` consultan la base directo.
-3. **Separar `drive.service.ts`** en cliente de Drive y sincronización de documentos.
-4. **Separar `carga-contenido.service.ts`** en validar, convertir y escribir.
-5. **Agrupar por dominio** (`kb/` y `sync/`) cuando la feature esté validada.
+1. ~~**Un solo normalizador.**~~ Hecho: `lib/normalizar.ts` es el único normalizador de texto. Se quitó `similitudTrigram`, que la app no usaba.
+2. ~~**Dirección de dependencias.**~~ Hecho: `routes` → `services` → `repositories` → `db`. Queda pendiente el SQL inline de `sync-load.service.ts`.
+3. ~~**Separar `drive.service.ts`**~~ Hecho: `clients/drive.ts` y `services/sync-load.service.ts`.
+4. ~~**Separar `carga-contenido.service.ts`**~~ Hecho: `sync-transform.service.ts` (convertir) y `sync-load.service.ts` (escribir).
+5. **Agrupar por dominio** no aplica: se organizó por responsabilidad, con el dominio en el nombre del archivo.
 
 Cada paso con los tests en verde, en commits chicos y sin cambiar comportamiento. Decisión: no se usa ORM; el SQL es específico de PostgreSQL y el esquema es el estado final.
 

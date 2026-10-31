@@ -67,14 +67,16 @@ Ver la sección 4 para el resto de la configuración.
 │   └── 003_verificacion.sql # Comprueba contra PostgreSQL real que todo responde
 ├── backend/
 │   ├── src/
-│   │   ├── routes/          # HTTP: menu, chat, system (health / metricas / sync)
-│   │   ├── chat/            # Flujo de la conversación (chat.service, catálogo, comisiones, métricas)
-│   │   ├── kb/              # Búsqueda en la base de conocimiento (intenciones y pasajes)
-│   │   ├── sync/            # Planilla + Drive → base (extracción, transformación, carga)
-│   │   ├── db/              # pool.ts (PostgreSQL), types.ts, push.ts
+│   │   ├── routes/          # Controllers HTTP (chat, menu, system)
+│   │   ├── services/        # Casos de uso (chat, kb, fragmentos, sync-*)
+│   │   ├── repositories/    # SQL
+│   │   ├── clients/         # APIs externas (Drive, Sheets, PDF)
+│   │   ├── lib/             # Lógica pura (normalizar, comisiones, secciones)
+│   │   ├── db/              # pool.ts, types.ts, push.ts
+│   │   ├── config/          # env.ts
 │   │   ├── middleware/      # CORS + cabeceras, rate limit, errores
-│   │   └── utils/           # env.ts, normalizar.ts, errors.ts
-│   └── test/                # 81 tests con node:test (sin dependencias extra)
+│   │   └── utils/           # errors.ts
+│   └── test/                # 79 tests con node:test (sin dependencias extra)
 ├── frontend/
 │   ├── public/widget.js     # Script inyector para Moodle
 │   └── src/                 # ChatWidget + compositor, tarjetas, burbujas, estilos
@@ -421,7 +423,7 @@ fixtures propios: nunca se conectan a Neon ni a Google.
 
 | Archivo | Qué verifica |
 | --- | --- |
-| `normalizar.test.ts` | Normalización y el coeficiente trigram, contra los casos del código de `pg_trgm` |
+| `normalizar.test.ts` | Normalización del texto, expansión de siglas y comparación por palabras con errores de tipeo |
 | `conocimiento.test.ts` | Matching exacto y por similitud, y que la ambigüedad se preserve |
 | `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
 | `comisiones.test.ts` | Lectura de la comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |

@@ -44,40 +44,51 @@ Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──
 
 ```
 backend/src/
-├── app.ts                           # Express: rutas, CORS, rate limit, errores
-├── index.ts                         # Arranque del servidor local
-├── client/                          # Clientes de Google (única lectura de credenciales)
-│   ├── google-auth.ts               # Cuenta de servicio, con el alcance pedido
-│   ├── drive.client.ts              # Drive: lectura de archivos
-│   └── sheets.client.ts             # Sheets: lectura de planillas
-├── routes/                          # HTTP de sistema (health, sync, métricas)
-├── chat/                            # Dominio: el flujo de la conversación (index.ts = API pública)
-│   ├── chat.routes.ts               # Controller: POST /api/chat
-│   ├── menu.routes.ts               # Controller: GET /api/menu
-│   ├── chat.service.ts              # Servicio: arma cada turno (menú, respuesta, aclaración, no disponible)
-│   ├── menu.repository.ts           # Repositorio: SQL del menú (categorías, opciones, respuestas)
-│   ├── metricas.repository.ts       # Repositorio: contadores anónimos por turno
-│   └── comisiones.ts                # Lógica pura: pregunta y filtra documentos por comisión
-├── kb/                              # Dominio: búsqueda en la base de conocimiento (index.ts = API pública)
-│   ├── interpretar.ts               # Interpreta el texto libre (exacto, similar, aclaración, saludo)
-│   ├── conocimiento.ts              # Consultas de intenciones (FTS, trigramas, palabras)
-│   └── pasajes.ts                   # Consultas de pasajes (extractos de documentos)
-├── sync/                            # Dominio: sincronización planilla + Drive → base (index.ts = API pública)
-│   ├── planilla.ts                  # Extracción: lee la planilla de Google Sheets y valida encabezados
-│   ├── carga.ts                     # Transformación y carga: convierte, valida y escribe el contenido
-│   ├── drive.ts                     # Extracción: cliente de Drive (listar, descargar, enlazar)
-│   ├── documentos.ts                # Carga: empareja fichas con Drive y regenera fragmentos
-│   ├── extraccion.ts                # Transformación: partir un PDF en secciones por título
-│   ├── sincronizacion.ts            # Orquesta: planilla → base → documentos
-│   └── ejecutar.ts                  # Comando npm run sync
+├── app.ts                          # Express: monta routers, CORS, rate limit, errores
+├── index.ts                        # Arranque del servidor local
+├── routes/                         # Controllers HTTP
+│   ├── chat.routes.ts              # POST /api/chat, /api/chat/documento
+│   ├── menu.routes.ts              # GET /api/menu
+│   └── system.routes.ts            # health, sincronización, métricas
+├── services/                       # Casos de uso: deciden, no hablan SQL ni HTTP
+│   ├── chat.service.ts             # Arma cada turno: menú, respuesta, aclaración, no disponible
+│   ├── kb.service.ts               # Interpreta el texto libre (exacto, similar, aclaración, saludo)
+│   ├── fragmentos.service.ts       # Decide qué extracto mostrar (umbral y límite)
+│   ├── analytics.service.ts        # Métricas de producto (qué consulta y qué respuesta)
+│   ├── sync.service.ts             # Orquesta: planilla → base → documentos
+│   ├── sync-extract.service.ts     # Extracción: lee la planilla y las secciones de los PDFs
+│   ├── sync-transform.service.ts   # Transformación: convierte la planilla
+│   └── sync-load.service.ts        # Carga: escribe el contenido y los documentos (SQL inline, pendiente de repositorio)
+├── repositories/                   # SQL: única capa que toca la base
+│   ├── chat-menu.repository.ts
+│   ├── analytics.repository.ts
+│   ├── kb-conocimiento.repository.ts
+│   └── fragmentos.repository.ts
+├── clients/                        # APIs externas y lectura de archivos
+│   ├── drive.client.ts             # Cliente de la API de Drive
+│   ├── drive.ts                    # Listar, descargar y enlazar archivos de Drive
+│   ├── sheets.client.ts            # Cliente de Google Sheets
+│   ├── pdf.client.ts               # Lee las líneas de texto de un PDF
+│   └── google-auth.ts              # Cuenta de servicio, con el alcance pedido
+├── lib/                            # Lógica pura, sin E/S
+│   ├── normalizar.ts               # Normalización de texto (consulta, variantes y documentos)
+│   ├── comisiones.ts               # Nombre de documento → comisión; filtrado
+│   ├── secciones.ts                # Parte las líneas de un PDF en secciones por título
+│   └── planilla.ts                 # Valida pestañas y encabezados de la planilla
 ├── db/
-│   ├── pool.ts                      # Conexión pg
-│   ├── types.ts                     # Contratos de datos compartidos con el frontend
-│   └── push.ts                      # Aplica el esquema (y --reset)
-└── utils/                           # env, errores, normalización del texto (compartidos)
+│   ├── pool.ts                     # Conexión pg
+│   ├── types.ts                    # Contratos de datos compartidos con el frontend
+│   └── push.ts                     # Aplica el esquema (y --reset)
+├── scripts/
+│   └── sync.ts                     # Comando npm run sync
+├── middleware/                     # CORS, rate limit, errores
+├── config/
+│   └── env.ts                      # Variables de entorno
+└── utils/
+    └── errors.ts                   # Errores HTTP
 ```
 
-Reglas de dependencia: `routes` → `chat` → `kb` → `db`; `sync` → `db`. Ningún dominio importa archivos internos de otro: solo su `index.ts`.
+Organizado por responsabilidad técnica: `routes` → `services` → `repositories` → `db`. `clients` y `lib` no dependen de `services` ni de `repositories`. El dominio aparece en el nombre de cada archivo (`chat.`, `kb.`, `fragmentos.`, `sync-`, `analytics.`).
 
 Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones del menú), `ContactCard.tsx`, `DocumentCard.tsx`, `MessageBubble.tsx`. El estado de la conversación vive en `hooks/useChat.ts`, y el cliente HTTP en `api/client.ts`.
 
