@@ -10,11 +10,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { checkDatabase } from '../db/pool.js';
-import { verificarDrive } from '../services/drive.service.js';
-import { sincronizar } from '../services/sincronizacion.service.js';
-import { topOpciones } from '../services/metricas.service.js';
+import { verificarDrive } from '../clients/drive.js';
+import { sincronizar } from '../services/sync.service.js';
+import { topOpciones } from '../services/analytics.service.js';
 import { asyncHandler } from '../middleware/error.js';
-import { env, hasGoogleDrive } from '../utils/env.js';
+import { env, hasGoogleDrive } from '../config/env.js';
 import { unauthorized } from '../utils/errors.js';
 
 export const healthRouter = Router();

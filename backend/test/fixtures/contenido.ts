@@ -7,7 +7,7 @@
  * de la planilla.
  */
 
-import type { Fila, Pestana } from '../../src/services/fuente-contenido.service.js';
+import type { Fila, Pestana } from '../../src/lib/planilla.js';
 
 export const contenidoPrueba: Partial<Record<Pestana, Fila[]>> = {
   categorias: [

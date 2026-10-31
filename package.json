@@ -19,7 +19,7 @@
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
     "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace frontend",
     "start": "node --import tsx backend/src/index.ts",
-    "sync": "tsx backend/src/db/sincronizar.ts",
+    "sync": "tsx backend/src/scripts/sync.ts",
     "db:push": "tsx backend/src/db/push.ts",
     "db:reset": "tsx backend/src/db/push.ts --reset"
   },

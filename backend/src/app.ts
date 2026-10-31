@@ -14,7 +14,7 @@ import { menuRouter } from './routes/menu.routes.js';
 import { chatRouter } from './routes/chat.routes.js';
 import { healthRouter } from './routes/system.routes.js';
 import { logDbMode } from './db/pool.js';
-import { hasDatabase } from './utils/env.js';
+import { hasDatabase } from './config/env.js';
 
 export function createApp(): express.Express {
   const app = express();

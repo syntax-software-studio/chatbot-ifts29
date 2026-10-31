@@ -25,24 +25,24 @@ import {
   obtenerContactos,
   textoDerivacion,
   CATEGORIA_RAIZ,
-} from '../db/catalogo.js';
-import { registrarMetrica, type Evento } from './metricas.service.js';
-import {
-  interpretarConsulta,
-  CLAVE_METRICA_ACLARACION,
-  CLAVE_METRICA_NO_DISPONIBLE,
-  CLAVE_METRICA_SALUDO,
-} from './nl.service.js';
+} from '../repositories/chat-menu.repository.js';
+import { registrarMetrica, type Evento } from './analytics.service.js';
+import { interpretarConsulta } from './kb.service.js';
+import { buscarExtractos } from './fragmentos.service.js';
 import { badRequest } from '../utils/errors.js';
-import { env } from '../utils/env.js';
-import { buscarPasajes, type Pasaje } from '../db/pasajes.js';
+import { env } from '../config/env.js';
 import {
   claveConComision,
   comisionesAPreguntar,
   filtrarPorComision,
   separarComision,
-} from '../utils/comisiones.js';
-import type { NodoMenu, TurnoChat } from '../db/types.js';
+} from '../lib/comisiones.js';
+import type { Extracto, NodoMenu, TurnoChat } from '../db/types.js';
+
+/** Claves reservadas para las métricas agregadas de las consultas escritas. */
+const CLAVE_METRICA_SALUDO = '(texto_regla)';
+const CLAVE_METRICA_ACLARACION = '(aclaracion)';
+const CLAVE_METRICA_NO_DISPONIBLE = '(no_disponible)';
 
 /** Pregunta que se muestra cuando los documentos de una respuesta dependen de la comisión. */
 export const MENSAJE_COMISION = '¿De qué comisión sos?';
@@ -56,7 +56,7 @@ export async function menuDeCategoria(categoriaClave: string): Promise<NodoMenu>
   return obtenerNodo(categoriaClave);
 }
 
-export interface EntradaChat {
+interface EntradaChat {
   /** Clave de la opción que el estudiante tocó. */
   opcion?: string;
   /** Categoría a la que navega (alternativa explícita a `opcion`). */
@@ -176,23 +176,24 @@ export async function procesarConsulta(texto: string): Promise<TurnoChat> {
       if (turno.tipo === 'error') return turno;
       if (turno.tipo === 'respuesta') {
         // Consulta escrita: si una sección de los documentos responde, se muestra
-        // ese pasaje en lugar del texto general. Sin pasaje, queda el documento completo.
-        const pasajes = await buscarPasajes(
+        // ese extracto en lugar del texto general. Sin extracto, queda el documento completo.
+        const extractos = await buscarExtractos(
           turno.respuesta.documentos.map((d) => d.clave),
           resolucion.terminos,
-          env.lenguajeNatural.umbralPasaje,
-        ).catch((): Pasaje[] => []);
-        if (pasajes.length > 0) {
-          const extractos = pasajes.map(({ titulo, texto }) => ({ titulo, texto }));
+        ).catch((): Extracto[] => []);
+        if (extractos.length > 0) {
           return { ...turno, respuesta: { ...turno.respuesta, extractos }, meta: resolucion.meta };
         }
       }
       return { ...turno, meta: resolucion.meta };
     }
 
-    case 'nodo':
+    case 'saludo': {
+      // La regla de saludos devuelve el menú raíz, no una respuesta de la base.
       await registrarMetrica(CLAVE_METRICA_SALUDO, 'texto_regla');
-      return { tipo: 'nodo', nodo: resolucion.nodo, meta: resolucion.meta };
+      const nodo = await obtenerNodo(CATEGORIA_RAIZ);
+      return { tipo: 'nodo', nodo, meta: resolucion.meta };
+    }
 
     case 'aclaracion':
       await registrarMetrica(CLAVE_METRICA_ACLARACION, 'aclaracion');

@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { menuDeCategoria, menuInicial } from '../services/chat.service.js';
-import { listarCategorias, obtenerNodo, obtenerOpcion, CATEGORIA_RAIZ } from '../db/catalogo.js';
+import { listarCategorias, obtenerNodo, obtenerOpcion, CATEGORIA_RAIZ } from '../repositories/chat-menu.repository.js';
 import { asyncHandler } from '../middleware/error.js';
 import { notFound } from '../utils/errors.js';
 
