@@ -59,8 +59,18 @@ Referencia: [08](08-extractos-de-documentos.md).
 ## 6. Base de datos y reset
 
 - **Respaldo de métricas en `db:reset`.** `rescatarMetricas` guarda las filas solo en memoria: si el proceso se corta entre el `DROP` y la restauración, se pierden. Opciones: escribir un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción. Carga toda la tabla en memoria, lo que no escala bien.
+- **Categoría en métricas.** `metrica_opcion.categoria_clave` queda `NULL` porque `registrarMetrica` no la recibe. Propuesta: completarla al exportar con un join de `opcion_menu` a `categoria`, así el reporte refleja la estructura del menú al momento de publicarlo. Si hiciera falta un historial congelado, habría que pasar la categoría desde el flujo del chat al registrar el evento.
 
 ## 7. Documentación
 
 - **`003_verificacion.sql`** ya se actualizó a las claves vigentes. Falta revisar `sql-coincide.test.ts` si cambian las consultas de la verificación.
 - **Decisión 1:1 o 1:N** para `documento_fragmento`: la implementación usa 1:N, con un fragmento para los documentos cortos. Confirmar si es lo que se quiso decir.
+
+## 8. Operación y administración
+
+- **Exportación mensual de métricas.** Implementada: `GET /api/metricas/exportar-mes-anterior`, llamada por el cron de `vercel.json` el día 1 de cada mes. Publica una pestaña por mes en la planilla de métricas (cuenta de servicio dedicada, con acceso de Editor solo a esa planilla). Pendiente: `db:push` en producción para crear `metrica_exportacion`, variables `CRON_SECRET` y `GOOGLE_METRICAS_*` en Vercel, y verificar la primera ejecución real.
+- **Sincronización automática.** Cron de Vercel que llama a `POST /api/sync` con `SYNC_SECRET`. Sin permisos de escritura en GitHub ni en la planilla. Antes, medir la sync completa en un deploy de prueba: `maxDuration` es 30 s y la primera extracción de PDFs todavía no se midió en Vercel. Si no entra, partir la sync (planilla y documentos en pasos).
+- **Logs persistentes de cada sync.** Tabla `sync_log` (fecha, resultado, errores, documentos actualizados y sin match), expuesta por un endpoint protegido. Hoy los mensajes solo quedan en la consola.
+- **Aprobación de fragmentos.** Estado por fragmento (aprobado, quién y cuándo). La búsqueda usa solo los aprobados; los cambios de md5 dejan los fragmentos nuevos pendientes. Dónde se aprueba (planilla o pantalla) está sin decidir.
+- **Normalización del tipo de documento.** Lista cerrada en `documento.tipo`, para aprobar por tipo y filtrar la búsqueda.
+- **Panel de administración.** Solo si las opciones anteriores no alcanzan. Decisión pendiente con el cliente: planilla más pantalla mínima, o contenido en la base.

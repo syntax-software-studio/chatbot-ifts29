@@ -77,6 +77,13 @@ export const env = {
   },
 
   syncSecret: str('SYNC_SECRET'),
+  cronSecret: str('CRON_SECRET'),
+  // Cuenta dedicada a publicar los reportes de métricas. Solo ve la planilla compartida.
+  metricasSheet: {
+    clientEmail: str('GOOGLE_METRICAS_CLIENT_EMAIL'),
+    privateKey: str('GOOGLE_METRICAS_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    sheetId: str('GOOGLE_METRICAS_SHEET_ID'),
+  },
   rateLimit: {
     windowMs: int('RATE_LIMIT_WINDOW_MS', 60_000),
     max: int('RATE_LIMIT_MAX', 120),
@@ -99,6 +106,9 @@ export const env = {
 } as const;
 
 export const hasDatabase = (): boolean => env.databaseUrl.length > 0;
+
+export const hasMetricasSheet = (): boolean =>
+  env.metricasSheet.clientEmail.length > 0 && env.metricasSheet.privateKey.length > 0 && env.metricasSheet.sheetId.length > 0;
 
 export const hasGoogleDrive = (): boolean =>
   env.google.clientEmail.length > 0 && env.google.privateKey.length > 0;

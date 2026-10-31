@@ -58,7 +58,8 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. |
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-proximas-iteraciones.md), sección 6). |
+| `metrica_exportacion` | Un registro por mes publicado en la planilla de métricas: `mes` (`AAAA-MM`), ID de la planilla, registros, total y fecha de la última publicación. Lo actualiza la exportación mensual; republicar un mes reemplaza su fila. |
 
 ### Vistas
 
