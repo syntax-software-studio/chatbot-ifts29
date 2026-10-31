@@ -133,6 +133,10 @@ CREATE TABLE IF NOT EXISTS documento (
     drive_url           TEXT,
     drive_view_url      TEXT,
     drive_md5           TEXT,
+    -- md5 del archivo con el que se extrajeron sus fragmentos. Si difiere de
+    -- drive_md5, la sincronización vuelve a extraer. Un PDF sin texto queda
+    -- marcado igual, sin volver a descargarlo en cada sync.
+    fragmentos_md5      TEXT,
     drive_modified_time TIMESTAMPTZ,
     drive_carpeta       TEXT,
     vigente             BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -148,6 +152,31 @@ CREATE TABLE IF NOT EXISTS documento (
 
 CREATE INDEX IF NOT EXISTS documento_vigente_idx  ON documento (vigente, estado);
 CREATE INDEX IF NOT EXISTS documento_tipo_idx      ON documento (tipo);
+
+-- ---------------------------------------------------------------------------
+-- 4b. DOCUMENTO_FRAGMENTO  ->  secciones de un documento para la búsqueda de pasajes
+--     Se generan al sincronizar, a partir del PDF de Drive, cuando cambia su md5.
+--     `texto` es el literal del documento (es lo que se muestra). `texto_busqueda`
+--     es el mismo texto normalizado (sin tildes ni signos), y es sobre el que
+--     corre FTS, igual que las variantes de la base de conocimiento.
+--     Un documento sin texto extraíble no tiene filas: se muestra completo.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS documento_fragmento (
+    id              SERIAL PRIMARY KEY,
+    documento_id    INTEGER     NOT NULL REFERENCES documento (id) ON DELETE CASCADE,
+    orden           INTEGER     NOT NULL,
+    titulo          TEXT        NOT NULL DEFAULT '',
+    texto           TEXT        NOT NULL,
+    texto_busqueda  TEXT        NOT NULL,
+    search_vector   tsvector
+        GENERATED ALWAYS AS (to_tsvector('spanish', texto_busqueda)) STORED,
+
+    CONSTRAINT documento_fragmento_orden_uniq UNIQUE (documento_id, orden)
+);
+
+CREATE INDEX IF NOT EXISTS documento_fragmento_fts_idx ON documento_fragmento USING GIN (search_vector);
+
+COMMENT ON TABLE documento_fragmento IS 'Secciones de un documento (por título), para la búsqueda de pasajes. Se regeneran al sincronizar.';
 
 COMMENT ON TABLE  documento                   IS 'Documentos institucionales referenciados desde Drive (solo lectura).';
 COMMENT ON COLUMN documento.drive_file_id     IS 'Identificador del archivo en Google Drive.';
