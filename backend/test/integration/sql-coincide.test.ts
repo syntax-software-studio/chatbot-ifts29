@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const raiz = join(aqui, '..', '..');
+const raiz = join(aqui, '..', '..', '..');
 const leer = (ruta: string) => readFile(join(raiz, ruta), 'utf8');
 
 /** tablas -> columnas, segun los `CREATE TABLE` de los DDL. */

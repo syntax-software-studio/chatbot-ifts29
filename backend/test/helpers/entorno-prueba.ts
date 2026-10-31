@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { Client } from 'pg';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const esquema = join(aqui, '..', '..', 'db', '001_schema.sql');
+const esquema = join(aqui, '..', '..', '..', 'db', '001_schema.sql');
 
 const urlBase = process.env.DATABASE_URL_PRUEBA ?? 'postgresql://postgres:password123@localhost:5432/ifts29_test';
 process.env.DATABASE_URL = urlBase;
@@ -47,16 +47,16 @@ export async function prepararBasePrueba(): Promise<void> {
   if (existe.rowCount === 0) await admin.query(`CREATE DATABASE "${nombre}"`);
   await admin.end();
 
-  const { getPool } = await import('../src/db/pool.js');
+  const { getPool } = await import('../../src/db/pool.js');
   const pool = getPool();
   if (!pool) throw new Error('DATABASE_URL de prueba no quedó configurada.');
 
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await pool.query(await readFile(esquema, 'utf8'));
 
-  const { convertirContenido } = await import('../src/services/sync-transform.service.js');
-  const { aplicarContenido } = await import('../src/services/sync-load.service.js');
-  const { contenidoPrueba } = await import('./fixtures/contenido.js');
+  const { convertirContenido } = await import('../../src/services/sync-transform.service.js');
+  const { aplicarContenido } = await import('../../src/services/sync-load.service.js');
+  const { contenidoPrueba } = await import('../fixtures/contenido.js');
   const conversion = convertirContenido(contenidoPrueba);
   if (!conversion.ok || !conversion.datos) {
     throw new Error(`Los fixtures no son válidos: ${conversion.errores.join('; ')}`);
@@ -66,6 +66,6 @@ export async function prepararBasePrueba(): Promise<void> {
 
 /** Cierra el pool de la aplicación al terminar los tests del archivo. */
 export async function cerrarBasePrueba(): Promise<void> {
-  const { closePool } = await import('../src/db/pool.js');
+  const { closePool } = await import('../../src/db/pool.js');
   await closePool();
 }

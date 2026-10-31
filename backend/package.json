@@ -10,7 +10,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test --test-concurrency=1 \"test/*.test.ts\"",
+    "test": "node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\" \"test/integration/*.test.ts\"",
     "db:push": "tsx src/db/push.ts",
     "sync": "tsx src/scripts/sync.ts",
     "casos:generar": "tsx test/casos/generar-casos.ts",

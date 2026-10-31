@@ -11,9 +11,9 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 // Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
-import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
-import { procesarConsulta } from '../src/services/chat.service.js';
-import { interpretarConsulta, MENSAJE_NO_DISPONIBLE } from '../src/services/kb.service.js';
+import { prepararBasePrueba, cerrarBasePrueba } from '../../../test/helpers/entorno-prueba.js';
+import { procesarConsulta } from '../chat.service.js';
+import { interpretarConsulta, MENSAJE_NO_DISPONIBLE } from '../kb.service.js';
 
 before(async () => {
   await prepararBasePrueba();

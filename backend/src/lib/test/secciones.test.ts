@@ -6,13 +6,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizar } from '../src/lib/normalizar.js';
+import { normalizar } from '../normalizar.js';
 import {
   esEncabezadoMayusculas,
   fragmentar,
   tituloConocido,
   type LineaPdf,
-} from '../src/lib/secciones.js';
+} from '../secciones.js';
 
 const lineas = (...textos: string[]): LineaPdf[] => textos.map((text) => ({ text, page: 1 }));
 

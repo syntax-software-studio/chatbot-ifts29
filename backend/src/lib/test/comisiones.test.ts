@@ -1,21 +1,17 @@
 /**
- * Tests de documentos por comisión: lectura del nombre, pregunta de comisión y
- * filtrado del documento elegido.
+ * Lógica de comisiones: nombre de documento, pregunta y filtrado.
  */
 
-import { test, before, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
-import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
 import {
   claveConComision,
   comisionDeDocumento,
   comisionesAPreguntar,
   filtrarPorComision,
   separarComision,
-} from '../src/lib/comisiones.js';
-import { procesarSeleccion, MENSAJE_COMISION } from '../src/services/chat.service.js';
+} from '../comisiones.js';
 
 /* ==========================================================================
  * Helpers puros
@@ -72,47 +68,3 @@ test('el filtro deja la comisión elegida y los documentos generales', () => {
  * Flujo completo contra la base de prueba
  * ======================================================================== */
 
-before(async () => {
-  await prepararBasePrueba();
-});
-
-after(async () => {
-  await cerrarBasePrueba();
-});
-
-test('si la respuesta tiene varias comisiones, pregunta antes de mostrar documentos', async () => {
-  const turno = await procesarSeleccion({ opcion: 'ABD_OP_COND' });
-  assert.equal(turno.tipo, 'aclaracion');
-  if (turno.tipo === 'aclaracion') {
-    assert.equal(turno.aclaracion.mensaje, MENSAJE_COMISION);
-    assert.deepEqual(
-      turno.aclaracion.opciones.map((o) => [o.clave, o.etiqueta]),
-      [
-        ['ABD_OP_COND@A', 'Comisión A'],
-        ['ABD_OP_COND@B', 'Comisión B'],
-      ],
-    );
-  }
-});
-
-test('elegida la comisión, muestra sólo su documento', async () => {
-  const turno = await procesarSeleccion({ opcion: 'ABD_OP_COND@B' });
-  assert.equal(turno.tipo, 'respuesta');
-  if (turno.tipo === 'respuesta') {
-    assert.deepEqual(
-      turno.respuesta.documentos.map((d) => d.clave),
-      ['ABD_condiciones_B_2026_1C'],
-    );
-  }
-});
-
-test('una respuesta sin comisiones responde directo con sus documentos', async () => {
-  const turno = await procesarSeleccion({ opcion: 'ABD_OP_PROG' });
-  assert.equal(turno.tipo, 'respuesta');
-  if (turno.tipo === 'respuesta') {
-    assert.deepEqual(
-      turno.respuesta.documentos.map((d) => d.clave),
-      ['ABD_programa_2026_1C'],
-    );
-  }
-});

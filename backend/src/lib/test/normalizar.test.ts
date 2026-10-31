@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizar, normalizarConsulta, similitudPorPalabras } from '../src/lib/normalizar.js';
+import { normalizar, normalizarConsulta, similitudPorPalabras } from '../normalizar.js';
 
 test('normalizar quita tildes, mayusculas y puntuacion', () => {
   assert.equal(normalizar('¿Cuándo empiezan las clases?'), 'cuando empiezan las clases');

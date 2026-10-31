@@ -11,13 +11,17 @@ import type { PoolClient } from 'pg';
 import { getPool, query } from '../db/pool.js';
 import { env, hasGoogleDrive } from '../config/env.js';
 import { normalizar, normalizarConsulta } from '../lib/normalizar.js';
-import {
-  type ArchivoDrive,
-  descargarArchivo,
-  enlaceDeDescarga,
-  enlaceDeLectura,
-  listarArchivos,
-} from '../clients/drive.js';
+import * as driveReal from '../clients/drive.js';
+import type { ArchivoDrive } from '../clients/drive.js';
+
+/** Lo que la sincronización necesita de Drive. Por defecto, el cliente real; en pruebas, un fake. */
+export type PuertoDrive = Pick<typeof driveReal, 'listarArchivos' | 'descargarArchivo' | 'enlaceDeLectura' | 'enlaceDeDescarga'>;
+
+export interface OpcionesDocumentos {
+  carpetaId?: string;
+  dryRun?: boolean;
+  drive?: PuertoDrive;
+}
 import { extraerFragmentos } from './sync-extract.service.js';
 import type {
   Alias,
@@ -77,9 +81,10 @@ async function actualizarFragmentos(
   clave: string,
   archivo: { id: string; md5: string | null },
   mensajes: string[],
+  drive: PuertoDrive,
 ): Promise<void> {
   try {
-    const fragmentos = await extraerFragmentos(await descargarArchivo(archivo.id));
+    const fragmentos = await extraerFragmentos(await drive.descargarArchivo(archivo.id));
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
     // entra en el texto de búsqueda: casi ninguna sección lo repite.
     const codigo = clave.split('_')[0]!.toLowerCase();
@@ -120,7 +125,8 @@ async function actualizarFragmentos(
  * `vigente = false` en vez de desaparecer, para que el estudiante nunca reciba un
  * enlace roto (RF07).
  */
-export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryRun?: boolean } = {}): Promise<ResultadoSync> {
+export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): Promise<ResultadoSync> {
+  const drive = opciones.drive ?? driveReal;
   const mensajes: string[] = [];
   const resultado: ResultadoSync = {
     ejecutada: false,
@@ -131,12 +137,12 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
     mensajes,
   };
 
-  if (!hasGoogleDrive()) {
+  if (!opciones.drive && !hasGoogleDrive()) {
     mensajes.push('Google Drive no configurado: se omite la sincronización.');
     return resultado;
   }
 
-  const archivos = await listarArchivos(opciones.carpetaId);
+  const archivos = await drive.listarArchivos(opciones.carpetaId);
   resultado.archivosVistos = archivos.length;
   resultado.ejecutada = true;
 
@@ -173,13 +179,13 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
       // Ya estaba sincronizado. Solo se extrae si los fragmentos no son de esta
       // versión del archivo (por ejemplo, documentos anteriores a la extracción).
       if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== archivo.md5) {
-        await actualizarFragmentos(ficha.clave, archivo, mensajes);
+        await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
       }
       continue;
     }
 
     if (!resultado.dryRun) {
-      const enlace = await enlaceDeLectura(archivo.id);
+      const enlace = await drive.enlaceDeLectura(archivo.id);
       await query(
         `UPDATE documento
             SET drive_file_id        = $1,
@@ -201,7 +207,7 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
           archivo.mimeType,
           archivo.md5,
           archivo.modifiedTime,
-          enlaceDeDescarga(archivo.id),
+          drive.enlaceDeDescarga(archivo.id),
           enlace,
           ficha.clave,
         ],
@@ -209,7 +215,7 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
-      await actualizarFragmentos(ficha.clave, archivo, mensajes);
+      await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
     }
 
     resultado.actualizados += 1;

@@ -6,12 +6,12 @@
  * sincroniza las fichas de documentos con Drive.
  */
 
-import { sincronizarDocumentos, aplicarContenido, type ResultadoSync } from './sync-load.service.js';
-import type { ResumenCarga } from './sync-transform.service.js';
-import { convertirContenido } from './sync-transform.service.js';
+import { sincronizarDocumentos, aplicarContenido, type OpcionesDocumentos, type ResultadoSync } from './sync-load.service.js';
+import { convertirContenido, type ResumenCarga } from './sync-transform.service.js';
 import { leerContenido } from './sync-extract.service.js';
+import type { ResultadoContenido } from '../lib/planilla.js';
 
-interface ResultadoSincronizacion {
+export interface ResultadoSincronizacion {
   ok: boolean;
   /** Problemas de la planilla o de la configuración. Si hay, no se escribió nada. */
   errores: string[];
@@ -19,18 +19,30 @@ interface ResultadoSincronizacion {
   documentos?: ResultadoSync;
 }
 
+/** Pasos que usa la sincronización. Por defecto, los reales; en pruebas, fakes. */
+export interface PasosSincronizacion {
+  leerContenido: () => Promise<ResultadoContenido>;
+  aplicarContenido: typeof aplicarContenido;
+  sincronizarDocumentos: (opciones: OpcionesDocumentos) => Promise<ResultadoSync>;
+}
+
+const pasosReales: PasosSincronizacion = { leerContenido, aplicarContenido, sincronizarDocumentos };
+
 export async function sincronizar(
-  opciones: { carpetaId?: string; dryRun?: boolean } = {},
+  opciones: OpcionesDocumentos = {},
+  pasos: Partial<PasosSincronizacion> = {},
 ): Promise<ResultadoSincronizacion> {
-  const lectura = await leerContenido();
+  const p = { ...pasosReales, ...pasos };
+
+  const lectura = await p.leerContenido();
   if (!lectura.ok) return { ok: false, errores: lectura.errores };
 
   const conversion = convertirContenido(lectura.hojas);
   if (!conversion.ok || !conversion.datos) return { ok: false, errores: conversion.errores };
 
   // En modo de prueba se valida la planilla, pero no se escribe el contenido.
-  const contenido = opciones.dryRun ? undefined : await aplicarContenido(conversion.datos);
-  const documentos = await sincronizarDocumentos(opciones);
+  const contenido = opciones.dryRun ? undefined : await p.aplicarContenido(conversion.datos);
+  const documentos = await p.sincronizarDocumentos(opciones);
 
   return {
     ok: true,

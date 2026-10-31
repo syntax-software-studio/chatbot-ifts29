@@ -31,7 +31,7 @@
 
 ## 3. Pruebas
 
-- [x] **58 pruebas** en 7 archivos de `backend/test/`: 34 unitarias y 24 de integración
+- [x] **88 pruebas** en 12 archivos: 46 unitarias (junto a cada módulo en `backend/src/`) y 42 de integración (junto a cada módulo, o en `backend/test/integration/` si cruzan varios módulos)
 - [x] Las pruebas de integración usan una base de prueba (`ifts29_test`) y fixtures propios; no llaman a Google ni a Neon
 - [x] Ejecución: `npm test --workspace backend` (corre de a un archivo, porque comparten la base de prueba)
 - [x] Evidencias documentadas en `05` y `06`

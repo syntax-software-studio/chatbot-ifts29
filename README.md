@@ -76,7 +76,7 @@ Ver la sección 4 para el resto de la configuración.
 │   │   ├── config/          # env.ts
 │   │   ├── middleware/      # CORS + cabeceras, rate limit, errores
 │   │   └── utils/           # errors.ts
-│   └── test/                # 79 tests con node:test (sin dependencias extra)
+│   └── test/                # 88 tests con node:test (sin dependencias extra)
 ├── frontend/
 │   ├── public/widget.js     # Script inyector para Moodle
 │   └── src/                 # ChatWidget + compositor, tarjetas, burbujas, estilos
@@ -423,14 +423,20 @@ fixtures propios: nunca se conectan a Neon ni a Google.
 
 | Archivo | Qué verifica |
 | --- | --- |
-| `normalizar.test.ts` | Normalización del texto, expansión de siglas y comparación por palabras con errores de tipeo |
-| `conocimiento.test.ts` | Matching exacto y por similitud, y que la ambigüedad se preserve |
-| `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
-| `comisiones.test.ts` | Lectura de la comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
-| `fuente-contenido.test.ts` | Validación de la planilla: encabezados, pestañas y filas |
-| `extraccion-secciones.test.ts` | Partición de un documento en secciones por título, con tolerancia a errores de tipeo |
-| `api.test.ts` | Contrato HTTP de `/api/chat` sobre la app real (Express en un puerto efímero) |
-| `sql-coincide.test.ts` | Que cada columna usada por el SQL exista en los DDL |
+Las pruebas unitarias están junto al módulo que prueban (`src/**/*.test.ts`). Las de integración de un solo módulo, contra la base de prueba, están junto a ese módulo. Las que cruzan varios módulos (`api`, `sql-coincide`) están en `test/integration/`.
+
+| Archivo | Tipo | Qué verifica |
+| --- | --- | --- |
+| `src/lib/test/normalizar.test.ts` | Unitaria | Normalización del texto, expansión de siglas y comparación por palabras con errores de tipeo |
+| `src/lib/test/comisiones.test.ts` | Unitaria | Comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
+| `src/lib/test/planilla.test.ts` | Unitaria | Validación de la planilla: encabezados, pestañas y filas |
+| `src/lib/test/secciones.test.ts` | Unitaria | Partición de un PDF en secciones por título, con tolerancia a errores de tipeo |
+| `src/services/test/sync-transform.service.test.ts` | Unitaria | Conversión de la planilla a tipos de base y validación de referencias |
+| `src/repositories/test/kb-conocimiento.repository.test.ts` | Integración | Matching exacto y por similitud, y que la ambigüedad se preserve |
+| `src/services/test/kb.service.test.ts` | Integración | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
+| `src/services/test/chat.service.test.ts` | Integración | Flujo de documentos por comisión |
+| `test/integration/api.test.ts` | Integración | Contrato HTTP de `/api/*` sobre la app real (Express en un puerto efímero) |
+| `test/integration/sql-coincide.test.ts` | Integración | Que cada columna usada por el SQL exista en los DDL |
 
 Este último evita una falla difícil de detectar: que el SQL de la aplicación use una
 columna que no existe en el esquema. Se verifica en `npm test`, sin base de datos.

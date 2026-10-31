@@ -12,8 +12,8 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
 // Debe ir primero: fija DATABASE_URL de prueba antes de cargar la aplicación.
-import { prepararBasePrueba, cerrarBasePrueba } from './entorno-prueba.js';
-import { createApp } from '../src/app.js';
+import { prepararBasePrueba, cerrarBasePrueba } from '../helpers/entorno-prueba.js';
+import { createApp } from '../../src/app.js';
 
 let servidor: Server;
 let base: string;
