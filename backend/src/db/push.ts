@@ -34,7 +34,7 @@ const reset = process.argv.includes('--reset');
  * Se usa solo en el camino de diagnóstico (ver `ejecutar`): en el camino
  * rápido el archivo entero viaja como una sola consulta multi-sentencia.
  */
-export function dividirSentencias(sql: string): string[] {
+function dividirSentencias(sql: string): string[] {
   const sentencias: string[] = [];
   let actual = '';
   let i = 0;
@@ -267,7 +267,7 @@ async function main(): Promise<void> {
 }
 
 // Solo se ejecuta si el archivo se invoca directamente (`npm run db:push`),
-// no al importarlo: asi `dividirSentencias` se puede testear de forma aislada.
+// no al importarlo: asi el modulo se puede importar sin ejecutarlo.
 // Se normalizan los separadores porque en Windows `process.argv[1]` trae
 // barras invertidas y `fileURLToPath` tambien: compararlos sin normalizar
 // haria que el script no corriera nunca, en silencio.

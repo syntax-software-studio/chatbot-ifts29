@@ -56,7 +56,7 @@ export async function menuDeCategoria(categoriaClave: string): Promise<NodoMenu>
   return obtenerNodo(categoriaClave);
 }
 
-export interface EntradaChat {
+interface EntradaChat {
   /** Clave de la opción que el estudiante tocó. */
   opcion?: string;
   /** Categoría a la que navega (alternativa explícita a `opcion`). */

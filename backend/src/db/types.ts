@@ -81,10 +81,10 @@ export interface Derivacion {
 }
 
 /** Origen del turno: menu guiado o motor de lenguaje natural. */
-export type FuenteTurno = 'menu' | 'kb_question' | 'kb_variant' | 'rule' | 'none';
+type FuenteTurno = 'menu' | 'kb_question' | 'kb_variant' | 'rule' | 'none';
 
 /** Como se resolvio la interpretacion de la consulta (trazabilidad, D18). */
-export type TipoMatch = 'exacto' | 'fts' | 'similar' | 'regla' | 'ninguno';
+type TipoMatch = 'exacto' | 'fts' | 'similar' | 'regla' | 'ninguno';
 
 /**
  * Metadatos internos de la interpretacion.

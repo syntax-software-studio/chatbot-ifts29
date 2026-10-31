@@ -33,7 +33,7 @@ import { env } from '../config/env.js';
 import type { Aclaracion, MetaInterpretacion } from '../db/types.js';
 
 /** Desenlace de una consulta escrita que se resolvió con una opción del menú. */
-export type EventoKb = 'texto_exacto' | 'texto_similar';
+type EventoKb = 'texto_exacto' | 'texto_similar';
 
 /* ==========================================================================
  * Mensajes institucionales
@@ -48,12 +48,12 @@ export const MENSAJE_NO_DISPONIBLE =
   'Podés reformular la consulta o volver al menú.';
 
 /** Si la base de conocimiento no esta disponible, se dice sin inventar nada. */
-export const MENSAJE_MOTOR_NO_DISPONIBLE =
+const MENSAJE_MOTOR_NO_DISPONIBLE =
   'No pude consultar la información en este momento. Podés seguir usando las opciones del menú ' +
   'o intentar de nuevo en un instante.';
 
 /** Encabezado de una aclaracion (las opciones se listan debajo). */
-export const MENSAJE_ACLARACION =
+const MENSAJE_ACLARACION =
   'Podés precisar sobre qué información necesitás:';
 
 /**
@@ -85,7 +85,7 @@ const SALUDOS = new Set([
  * Resultado de la interpretacion
  * ======================================================================== */
 
-export type ResolucionConsulta =
+type ResolucionConsulta =
   /** La intencion se resuelve con una opcion del menu existente. */
   | { clase: 'opcion'; opcionClave: string; evento: EventoKb; meta: MetaInterpretacion; terminos: string[] }
   /** Saludo: el que arma la respuesta es el chat (menu raiz). */

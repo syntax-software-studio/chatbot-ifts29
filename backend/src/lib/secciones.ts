@@ -17,7 +17,7 @@ import { normalizar } from './normalizar.js';
 
 
 /** Títulos que aparecen en los documentos de las materias (lista de trabajo). */
-export const TITULOS_CONOCIDOS = [
+const TITULOS_CONOCIDOS = [
   'fundamentacion', 'presentacion', 'objetivo de la materia', 'objetivos de la materia',
   'objetivos de aprendizaje', 'objetivos especificos', 'recorridos', 'unidades tematicas',
   'contenidos minimos', 'bibliografia', 'formas y criterios de evaluacion',
@@ -34,7 +34,7 @@ const bigramas = (s: string): Set<string> => {
 };
 
 /** Coeficiente de Dice sobre bigramas: tolera errores de tipeo. */
-export function similitudBigramas(a: string, b: string): number {
+function similitudBigramas(a: string, b: string): number {
   const A = bigramas(a);
   const B = bigramas(b);
   let comunes = 0;

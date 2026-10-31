@@ -1,9 +1,8 @@
 /**
  * Acceso a la base de conocimiento conversacional (tablas `kb_*` de PostgreSQL).
  *
- * El índice trigram de `pg_trgm` (`similarity()`) implementa el mismo
- * coeficiente que `similitudTrigram()` del normalizador, así que los umbrales
- * se comportan igual en la búsqueda y en las pruebas.
+ * La similitud (`similarity()` y `word_similarity()` de `pg_trgm`) se calcula
+ * en la base, no en el código.
  *
  * Ninguna consulta de este archivo devuelve texto de respuesta: solo claves.
  * El texto se recupera después con `obtenerRespuesta()` / `obtenerOpcion()`,

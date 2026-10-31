@@ -11,7 +11,7 @@ import type { ResumenCarga } from './sync-transform.service.js';
 import { convertirContenido } from './sync-transform.service.js';
 import { leerContenido } from './sync-extract.service.js';
 
-export interface ResultadoSincronizacion {
+interface ResultadoSincronizacion {
   ok: boolean;
   /** Problemas de la planilla o de la configuración. Si hay, no se escribió nada. */
   errores: string[];

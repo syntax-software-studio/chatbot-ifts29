@@ -121,7 +121,7 @@ export interface DatosContenido {
   ignorados: TerminoIgnorado[];
 }
 
-export interface ResultadoConversion {
+interface ResultadoConversion {
   ok: boolean;
   datos?: DatosContenido;
   errores: string[];

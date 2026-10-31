@@ -18,7 +18,7 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
 /** Cantidad máxima de pasajes por consulta. */
 const LIMITE_PASAJES = 2;
 
-export interface FragmentoBuscado {
+interface FragmentoBuscado {
   titulo: string;
   texto: string;
   confianza: number;

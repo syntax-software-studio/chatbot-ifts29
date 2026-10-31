@@ -15,7 +15,7 @@ const NOMBRE_DOCUMENTO = /^([A-Z]+)_([a-z][a-z-]*)(?:_([A-Z]))?_(\d{4})(?:_([12]
 
 const SEPARADOR_COMISION = '@';
 
-export interface ComisionDeDocumento {
+interface ComisionDeDocumento {
   /** Materia, tipo, año y cuatrimestre: documentos con el mismo grupo son versiones por comisión. */
   grupo: string;
   comision: string | null;

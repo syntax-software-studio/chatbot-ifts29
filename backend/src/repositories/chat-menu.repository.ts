@@ -169,7 +169,7 @@ export async function obtenerNodo(categoriaClave: string = CATEGORIA_RAIZ): Prom
   };
 }
 
-export interface OpcionResuelta {
+interface OpcionResuelta {
   clave: string;
   etiqueta: string;
   tipo: TipoOpcion;
@@ -237,4 +237,3 @@ export async function textoDerivacion(respuestaId: number | null): Promise<strin
   }
 }
 
-export type { Derivacion };
