@@ -112,6 +112,12 @@ export const env = {
     /** Dos intenciones tan parecidas que hay que preguntar (D06). */
     margenAmbiguedad: float('KB_MARGEN_AMBIGUEDAD', 0.05),
     /**
+     * Confianza mínima para mostrar un extracto del documento en lugar del
+     * documento completo (ver docs 08). Empieza alto: un extracto se lee como
+     * respuesta, así que un error se nota más.
+     */
+    umbralPasaje: float('KB_UMBRAL_PASAJE', 0.9),
+    /**
      * Maximo de opciones en una aclaracion (D06).
      *
      * 4 y no 3 a proposito: las consultas genericas del catalogo ("cuando

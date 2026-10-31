@@ -60,10 +60,18 @@ export interface NodoMenu {
   esRaiz: boolean;
 }
 
+/** Sección del documento que responde la consulta (texto literal del PDF). */
+export interface Extracto {
+  titulo: string;
+  texto: string;
+}
+
 /** Respuesta completa de una opcion de tipo `responder`. */
 export interface Respuesta {
   texto: string;
   documentos: Documento[];
+  /** Solo en consultas escritas: pasajes del documento que responden la pregunta. */
+  extractos?: Extracto[];
 }
 
 /** Respuesta completa de una opcion de tipo `derivar`. */

@@ -17,7 +17,19 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { obtenerMenu, enviarSeleccion, enviarMensaje, ApiError } from '../api/client';
-import type { OpcionMenu, TurnoChat } from '../types';
+import type { OpcionMenu, Respuesta, TurnoChat } from '../types';
+
+/**
+ * Texto de una respuesta. Si trae extractos (pasajes del documento que responden
+ * la consulta), se muestran y se indica que el PDF completo va adjunto.
+ */
+function textoDeRespuesta(respuesta: Respuesta): string {
+  if (!respuesta.extractos?.length) return respuesta.texto;
+  const cuerpo = respuesta.extractos
+    .map((e) => (e.titulo ? `${e.titulo}\n${e.texto}` : e.texto))
+    .join('\n\n');
+  return `${cuerpo}\n\nPara más información te adjuntamos el PDF completo.`;
+}
 
 /** Elementos que se renderizan como botones en el menú. */
 
@@ -106,7 +118,7 @@ export function useChat(): EstadoChat {
         case 'respuesta':
           agregarTurno({
             autor: 'bot',
-            texto: turno.respuesta.texto,
+            texto: textoDeRespuesta(turno.respuesta),
             documentos: turno.respuesta.documentos,
           });
           // Una respuesta cierra la hoja: no quedan opciones del menú debajo.

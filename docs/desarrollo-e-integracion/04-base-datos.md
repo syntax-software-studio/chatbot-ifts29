@@ -44,6 +44,14 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 `kb_pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', normalized_text)`) que usa la búsqueda de palabras.
 
+### Fragmentos de documentos
+
+| Tabla | Descripción |
+|---|---|
+| `documento_fragmento` | Secciones de un documento, por título: `titulo`, `texto` (el literal del PDF, lo que se muestra), `texto_busqueda` (normalizado, con el nombre de la materia) y `search_vector` (GIN). Se regeneran al sincronizar |
+
+`documento.fragmentos_md5` guarda el `md5` del archivo con el que se extrajeron los fragmentos. La sincronización extrae solo cuando difiere del `md5` de Drive. Un documento sin texto extraíble no tiene filas en `documento_fragmento`.
+
 Índices: B-tree sobre `normalized_text` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
 
 ### Métricas
@@ -134,3 +142,4 @@ Si el volumen ya existía con una versión anterior del esquema, el arranque no 
 
 - Migración de Neon: el esquema y el contenido nuevos todavía no se aplicaron en producción. Antes de aplicarlos, correr el reset y la sincronización en una rama de prueba y revisar con `\d kb_pregunta_variante` que existan `search_vector` y su índice, y que `kb_termino_ignorado` tenga filas.
 - Documentos que desaparecen de Drive: la sincronización los deja como vigentes y sólo emite una advertencia. Pendiente definir si se archivan.
+- Fragmentos de documentos: validar la búsqueda de pasajes con el conjunto dorado y ajustar el umbral (ver [08](08-extractos-de-documentos.md)).

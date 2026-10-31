@@ -18,6 +18,7 @@
 import { clienteDrive } from '../client/drive.client.js';
 import { env, hasGoogleDrive } from '../utils/env.js';
 import { query } from '../db/pool.js';
+import { extraerFragmentos, normalizarTexto } from './extraccion-secciones.js';
 
 /** Verifica si las credenciales de Drive pueden autenticarse. */
 export async function verificarDrive(): Promise<{ ok: boolean; detalle: string }> {
@@ -159,6 +160,18 @@ export function enlaceDeDescarga(fileId: string): string {
   return `https://drive.google.com/uc?export=download&id=${fileId}`;
 }
 
+/**
+ * Contenido binario de un archivo de Drive. Solo lectura: el alcance
+ * `drive.readonly` alcanza para descargar.
+ */
+export async function descargarArchivo(fileId: string): Promise<Uint8Array> {
+  const r = await clienteDrive().files.get(
+    { fileId, alt: 'media', supportsAllDrives: true },
+    { responseType: 'arraybuffer' },
+  );
+  return new Uint8Array(r.data as ArrayBuffer);
+}
+
 /* ==========================================================================
  * Sincronización
  * ======================================================================== */
@@ -170,6 +183,43 @@ export interface ResultadoSync {
   actualizados: number;
   sinMatch: Array<{ clave: string; archivoEsperado: string }>;
   mensajes: string[];
+}
+
+/**
+ * Reemplaza los fragmentos de un documento a partir de su PDF en Drive.
+ *
+ * Se llama solo cuando el archivo cambió (md5 distinto). Si la descarga o la
+ * extracción fallan, no se tocan los fragmentos anteriores: la sincronización
+ * sigue con los demás documentos y el error queda en los mensajes.
+ */
+async function actualizarFragmentos(
+  clave: string,
+  archivo: { id: string; md5: string | null },
+  mensajes: string[],
+): Promise<void> {
+  try {
+    const fragmentos = await extraerFragmentos(await descargarArchivo(archivo.id));
+    // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
+    // entra en el texto de búsqueda: casi ninguna sección lo repite.
+    const codigo = clave.split('_')[0]!.toLowerCase();
+    const materia = (await query<{ expansion: string }>('SELECT expansion FROM kb_alias WHERE alias = $1', [codigo])).rows[0]?.expansion ?? '';
+    await query('DELETE FROM documento_fragmento WHERE documento_id = (SELECT id FROM documento WHERE clave = $1)', [clave]);
+    for (const [i, f] of fragmentos.entries()) {
+      await query(
+        `INSERT INTO documento_fragmento (documento_id, orden, titulo, texto, texto_busqueda)
+         SELECT id, $2, $3, $4, $5 FROM documento WHERE clave = $1`,
+        [clave, i + 1, f.titulo, f.texto, normalizarTexto(`${materia} ${f.titulo} ${f.texto}`)],
+      );
+    }
+    await query('UPDATE documento SET fragmentos_md5 = $2 WHERE clave = $1', [clave, archivo.md5]);
+    mensajes.push(
+      fragmentos.length > 0
+        ? `fragmentos: ${clave} -> ${fragmentos.length}`
+        : `fragmentos: ${clave} sin texto extraíble (se muestra el documento completo)`,
+    );
+  } catch (err) {
+    mensajes.push(`fragmentos: ${clave} falló: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 function normalizar(nombre: string): string {
@@ -186,6 +236,7 @@ interface FichaDb {
   drive_nombre_archivo: string | null;
   drive_file_id: string | null;
   drive_md5: string | null;
+  fragmentos_md5: string | null;
 }
 
 /**
@@ -231,7 +282,7 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
   }
 
   const fichas = await query<FichaDb>(
-    `SELECT clave, drive_nombre_archivo, drive_file_id, drive_md5
+    `SELECT clave, drive_nombre_archivo, drive_file_id, drive_md5, fragmentos_md5
        FROM documento
       WHERE estado <> 'archivado'
       ORDER BY clave`,
@@ -255,7 +306,11 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
 
     const cambio = archivo.id !== ficha.drive_file_id || archivo.md5 !== ficha.drive_md5;
     if (!cambio && !resultado.dryRun) {
-      // Ya estaba sincronizado: solo se refresca la fecha si el enlace no existe.
+      // Ya estaba sincronizado. Solo se extrae si los fragmentos no son de esta
+      // versión del archivo (por ejemplo, documentos anteriores a la extracción).
+      if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== archivo.md5) {
+        await actualizarFragmentos(ficha.clave, archivo, mensajes);
+      }
       continue;
     }
 
@@ -287,6 +342,10 @@ export async function sincronizarDocumentos(opciones: { carpetaId?: string; dryR
           ficha.clave,
         ],
       );
+    }
+
+    if (cambio && archivo.mimeType === 'application/pdf') {
+      await actualizarFragmentos(ficha.clave, archivo, mensajes);
     }
 
     resultado.actualizados += 1;

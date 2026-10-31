@@ -107,6 +107,7 @@ variables se cargan en *Project Settings → Environment Variables*.
 | `SYNC_SECRET` | API | vacío |
 | `RATE_LIMIT_MAX` | API | `120` req/min por IP |
 | `KB_UMBRAL_ALTO` / `KB_UMBRAL_MEDIO` | API | `0.90` / `0.70` |
+| `KB_UMBRAL_PASAJE` | API | `0.90` |
 | `KB_MAX_MENSAJE` | API | `800` |
 | `VITE_API_BASE_URL` | Build | vacío → mismo origen |
 | `VITE_ALLOWED_ORIGINS` | Build | Moodle + app |
@@ -266,7 +267,7 @@ Códigos: `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`,
    menú; baja → `no_disponible`. Si la opción tiene documentos de varias
    comisiones, pregunta la comisión antes de mostrarlos.
 
-Los umbrales se configuran por entorno (`KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO`,
+Los umbrales se configuran por entorno (`KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO`, `KB_UMBRAL_PASAJE`,
 `KB_MARGEN_AMBIGUEDAD`, `KB_MAX_MENSAJE`, `KB_MAX_OPCIONES_ACLARACION`). Son
 valores iniciales, pensados para calibrarse con consultas reales.
 
@@ -423,6 +424,7 @@ fixtures propios: nunca se conectan a Neon ni a Google.
 | `nl.service.test.ts` | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
 | `comisiones.test.ts` | Lectura de la comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
 | `fuente-contenido.test.ts` | Validación de la planilla: encabezados, pestañas y filas |
+| `extraccion-secciones.test.ts` | Partición de un documento en secciones por título, con tolerancia a errores de tipeo |
 | `api.test.ts` | Contrato HTTP de `/api/chat` sobre la app real (Express en un puerto efímero) |
 | `sql-coincide.test.ts` | Que cada columna usada por el SQL exista en los DDL |
 
