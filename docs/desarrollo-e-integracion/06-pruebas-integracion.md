@@ -1,6 +1,6 @@
 # 6. Pruebas de Integración
 
-**Estado:** vigente. Resultados de la última ejecución: **42 pruebas de integración, todas pasando**.
+**Estado:** vigente. Resultados de la última ejecución: **44 pruebas de integración, todas pasando**.
 
 ## 6.1 Qué son
 
@@ -31,6 +31,7 @@ node --import tsx --test test/integration/api.test.ts        # un archivo
 | `src/services/test/kb.service.test.ts` | 12 | Motor de texto libre: coincidencia exacta, errores de tipeo, aclaración con opciones reales, saludo, consulta fuera de dominio, cobertura de términos, palabras de ruido y plurales. |
 | `src/services/test/chat.service.test.ts` | 3 | Flujo de documentos por comisión: pregunta de comisión, documento de la comisión elegida, y respuesta directa cuando no hay comisiones. |
 | `test/integration/api.test.ts` | 13 | Contrato HTTP: health con la base de datos, menú raíz, navegación a una materia, respuesta con texto y documentos, pantalla de motivos de derivación, contacto asociado a una opción de derivación, consulta escrita, aclaración, validación del cuerpo (400), opción inexistente, y métricas. |
+| `src/services/test/analytics.service.test.ts` | 2 | Reporte mensual contra la base de prueba: incluye los eventos del mes y no los del siguiente; republicar un mes reemplaza su registro de control. La planilla se simula. |
 | `test/integration/sql-coincide.test.ts` | 3 | Las columnas y tablas que usa el SQL de la aplicación existen en el esquema, y los archivos SQL no tienen BOM. |
 
 ## 6.5 Criterio

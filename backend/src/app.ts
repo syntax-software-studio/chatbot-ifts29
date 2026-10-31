@@ -13,6 +13,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { menuRouter } from './routes/menu.routes.js';
 import { chatRouter } from './routes/chat.routes.js';
 import { healthRouter } from './routes/system.routes.js';
+import { metricasRouter } from './routes/metricas.routes.js';
 import { logDbMode } from './db/pool.js';
 import { hasDatabase } from './config/env.js';
 
@@ -57,6 +58,7 @@ export function createApp(): express.Express {
   app.use('/api', menuRouter);
   app.use('/api', chatRouter);
   app.use('/api', healthRouter);
+  app.use('/api', metricasRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

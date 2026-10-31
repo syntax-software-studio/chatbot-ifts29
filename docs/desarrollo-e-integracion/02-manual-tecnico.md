@@ -49,7 +49,8 @@ backend/src/
 ├── routes/                         # Controllers HTTP
 │   ├── chat.routes.ts              # POST /api/chat, /api/chat/documento
 │   ├── menu.routes.ts              # GET /api/menu
-│   └── system.routes.ts            # health, sincronización, métricas
+│   ├── system.routes.ts            # health, sincronización
+│   └── metricas.routes.ts          # Exportación mensual de métricas (la llama el cron)
 ├── services/                       # Casos de uso: deciden, no hablan SQL ni HTTP
 │   ├── chat.service.ts             # Arma cada turno: menú, respuesta, aclaración, no disponible
 │   ├── kb.service.ts               # Interpreta el texto libre (exacto, similar, aclaración, saludo)
@@ -68,13 +69,15 @@ backend/src/
 │   ├── drive.client.ts             # Cliente de la API de Drive
 │   ├── drive.ts                    # Listar, descargar y enlazar archivos de Drive
 │   ├── sheets.client.ts            # Cliente de Google Sheets
+│   ├── sheets-metricas.client.ts   # Publica el reporte mensual en la planilla de métricas
 │   ├── pdf.client.ts               # Lee las líneas de texto de un PDF
 │   └── google-auth.ts              # Cuenta de servicio, con el alcance pedido
 ├── lib/                            # Lógica pura, sin E/S
 │   ├── normalizar.ts               # Normalización de texto (consulta, variantes y documentos)
 │   ├── comisiones.ts               # Nombre de documento → comisión; filtrado
 │   ├── secciones.ts                # Parte las líneas de un PDF en secciones por título
-│   └── planilla.ts                 # Valida pestañas y encabezados de la planilla
+│   ├── planilla.ts                 # Valida pestañas y encabezados de la planilla
+│   └── metricas.ts                 # Calendario del reporte, rango del mes y tabla
 ├── db/
 │   ├── pool.ts                     # Conexión pg
 │   ├── types.ts                    # Contratos de datos compartidos con el frontend
@@ -132,6 +135,7 @@ Sin base de datos la API responde 503 (`BASE_NO_CONFIGURADA`). No hay modo demo:
 | POST | `/api/chat/documento` | Registra la apertura de un documento |
 | POST | `/api/sync` | Carga el contenido de la planilla y sincroniza documentos. Protegido con `SYNC_SECRET` si está definido |
 | GET | `/api/metricas` | Opciones más usadas (agregado, sin datos personales) |
+| GET | `/api/metricas/exportar-mes-anterior` | Publica en la planilla de métricas el reporte del mes anterior (o de `?mes=AAAA-MM`), una pestaña por mes. Requiere `Authorization: Bearer <CRON_SECRET>`; lo llama el cron mensual de Vercel |
 
 **Tipos de respuesta de `/api/chat`:** `nodo`, `respuesta`, `derivacion`, `aclaracion`, `no_disponible`, `error`.
 
@@ -151,6 +155,9 @@ Las variables se leen de `.env` en la raíz del repo (plantilla: `.env.example`)
 | `DRIVE_LINK_CACHE_TTL` | No | Segundos que se cachean los enlaces de Drive (default 3600) |
 | `DRIVE_PUBLIC_LINKS` | No | Debe quedar en `false`: el alcance es de solo lectura |
 | `SYNC_SECRET` | Recomendada | Secreto para `POST /api/sync` |
+| `CRON_SECRET` | Para métricas | Secreto del cron de la exportación mensual (`Authorization: Bearer`). Sin él, el endpoint responde 503 |
+| `GOOGLE_METRICAS_CLIENT_EMAIL`, `GOOGLE_METRICAS_PRIVATE_KEY` | Para métricas | Cuenta de servicio dedicada a las métricas (distinta de la de lectura) |
+| `GOOGLE_METRICAS_SHEET_ID` | Para métricas | ID de la planilla de métricas. La cuenta tiene acceso de Editor solo a esa planilla |
 | `PORT` | No | Puerto de la API (default 3000) |
 | `CORS_ORIGINS`, `VITE_ALLOWED_ORIGINS`, `IFRAME_ANCESTORS` | Sí, para el widget | Orígenes permitidos y dominios que pueden embeber el widget |
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` | No | Límite de peticiones por IP |

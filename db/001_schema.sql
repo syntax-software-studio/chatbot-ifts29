@@ -255,6 +255,16 @@ CREATE TABLE IF NOT EXISTS metrica_opcion (
 
 COMMENT ON TABLE metrica_opcion IS 'Metricas agregadas y anonimas para detectar vacios en la base de conocimiento.';
 
+-- Control de los reportes mensuales publicados en Drive. Los archivos son la
+-- copia que consume el cliente; esta tabla dice cuáles meses ya están publicados.
+CREATE TABLE IF NOT EXISTS metrica_exportacion (
+    mes           CHAR(7)     PRIMARY KEY,
+    archivo_id    TEXT        NOT NULL,
+    registros     INTEGER     NOT NULL CHECK (registros >= 0),
+    total         INTEGER     NOT NULL CHECK (total >= 0),
+    generado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 COMMENT ON COLUMN metrica_opcion.evento IS
     'Resultado del turno: navegacion del menu o desenlace de una consulta escrita '
     '(texto_exacto, texto_similar, texto_regla, aclaracion, no_disponible).';

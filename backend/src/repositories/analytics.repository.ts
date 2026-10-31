@@ -7,6 +7,7 @@
  */
 
 import { query } from '../db/pool.js';
+import type { FilaMetrica } from '../lib/metricas.js';
 
 export type Evento =
   | 'seleccion'
@@ -55,4 +56,35 @@ export async function topOpciones(limite = 20): Promise<
     [limite],
   );
   return r.rows;
+}
+
+/** Eventos de un rango de fechas (`desde` incluido, `hasta` excluido), para el reporte mensual. */
+export async function eventosDelRango(desde: string, hasta: string): Promise<FilaMetrica[]> {
+  const r = await query<FilaMetrica>(
+    `SELECT to_char(fecha, 'YYYY-MM-DD') AS fecha, opcion_clave, categoria_clave, evento, total
+       FROM metrica_opcion
+      WHERE fecha >= $1 AND fecha < $2
+      ORDER BY fecha, opcion_clave, evento`,
+    [desde, hasta],
+  );
+  return r.rows;
+}
+
+/** Registra un reporte publicado. Si el mes ya estaba, lo reemplaza. */
+export async function registrarExportacion(
+  mes: string,
+  archivoId: string,
+  registros: number,
+  total: number,
+): Promise<void> {
+  await query(
+    `INSERT INTO metrica_exportacion (mes, archivo_id, registros, total)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (mes) DO UPDATE
+        SET archivo_id = EXCLUDED.archivo_id,
+            registros = EXCLUDED.registros,
+            total = EXCLUDED.total,
+            generado_en = now()`,
+    [mes, archivoId, registros, total],
+  );
 }
