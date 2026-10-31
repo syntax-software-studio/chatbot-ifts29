@@ -53,6 +53,12 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Flujo de derivación
 - Decisiones y pendientes
 
+### 8. [Extractos de documentos](08-extractos-de-documentos.md) (propuesta)
+- Respuesta con extracto literal del PDF vigente
+- Búsqueda de pasajes sobre los documentos de cada intención
+- Flujo y requisitos técnicos
+- Preguntas abiertas
+
 ---
 
 ## Estructura de Carpetas
@@ -67,6 +73,7 @@ desarrollo-e-integracion/
 ├── 05-pruebas-unitarias.md
 ├── 06-pruebas-integracion.md
 ├── 07-contenido-y-decisiones.md
+├── 08-extractos-de-documentos.md
 └── screenshots/
     ├── manual-usuario/
     ├── pruebas-unitarias/

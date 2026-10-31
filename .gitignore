@@ -20,3 +20,5 @@ planilla-import/
 
 # Casos generados para evaluar el texto libre (se regeneran)
 backend/test/casos/salida/
+
+drive/
