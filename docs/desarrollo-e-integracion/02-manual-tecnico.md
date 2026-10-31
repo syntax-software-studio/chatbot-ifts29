@@ -50,23 +50,34 @@ backend/src/
 │   ├── google-auth.ts               # Cuenta de servicio, con el alcance pedido
 │   ├── drive.client.ts              # Drive: lectura de archivos
 │   └── sheets.client.ts             # Sheets: lectura de planillas
-├── routes/                          # chat, menu, system (health, sync, métricas)
-├── services/
-│   ├── chat.service.ts              # Procesa la selección del menú y las consultas
-│   ├── nl.service.ts                # Interpreta el texto libre (exacto, similar, aclaración)
-│   ├── fuente-contenido.service.ts  # Lee y valida la planilla
-│   ├── carga-contenido.service.ts   # Convierte, valida y escribe el contenido
-│   ├── drive.service.ts             # Sincroniza documentos con Drive
-│   ├── sincronizacion.service.ts    # Orquesta: planilla → base → documentos
-│   └── metricas.service.ts          # Contadores anónimos
+├── routes/                          # HTTP de sistema (health, sync, métricas)
+├── chat/                            # Dominio: el flujo de la conversación (index.ts = API pública)
+│   ├── chat.routes.ts               # Controller: POST /api/chat
+│   ├── menu.routes.ts               # Controller: GET /api/menu
+│   ├── chat.service.ts              # Servicio: arma cada turno (menú, respuesta, aclaración, no disponible)
+│   ├── menu.repository.ts           # Repositorio: SQL del menú (categorías, opciones, respuestas)
+│   ├── metricas.repository.ts       # Repositorio: contadores anónimos por turno
+│   └── comisiones.ts                # Lógica pura: pregunta y filtra documentos por comisión
+├── kb/                              # Dominio: búsqueda en la base de conocimiento (index.ts = API pública)
+│   ├── interpretar.ts               # Interpreta el texto libre (exacto, similar, aclaración, saludo)
+│   ├── conocimiento.ts              # Consultas de intenciones (FTS, trigramas, palabras)
+│   └── pasajes.ts                   # Consultas de pasajes (extractos de documentos)
+├── sync/                            # Dominio: sincronización planilla + Drive → base (index.ts = API pública)
+│   ├── planilla.ts                  # Extracción: lee la planilla de Google Sheets y valida encabezados
+│   ├── carga.ts                     # Transformación y carga: convierte, valida y escribe el contenido
+│   ├── drive.ts                     # Extracción: cliente de Drive (listar, descargar, enlazar)
+│   ├── documentos.ts                # Carga: empareja fichas con Drive y regenera fragmentos
+│   ├── extraccion.ts                # Transformación: partir un PDF en secciones por título
+│   ├── sincronizacion.ts            # Orquesta: planilla → base → documentos
+│   └── ejecutar.ts                  # Comando npm run sync
 ├── db/
 │   ├── pool.ts                      # Conexión pg
-│   ├── catalogo.ts                  # Consultas del menú
-│   ├── conocimiento.ts              # Consultas de la base de conocimiento
-│   ├── push.ts                      # Aplica el esquema (y --reset)
-│   └── sincronizar.ts               # Comando npm run sync
-└── utils/                           # env, errores, normalización del texto
+│   ├── types.ts                     # Contratos de datos compartidos con el frontend
+│   └── push.ts                      # Aplica el esquema (y --reset)
+└── utils/                           # env, errores, normalización del texto (compartidos)
 ```
+
+Reglas de dependencia: `routes` → `chat` → `kb` → `db`; `sync` → `db`. Ningún dominio importa archivos internos de otro: solo su `index.ts`.
 
 Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones del menú), `ContactCard.tsx`, `DocumentCard.tsx`, `MessageBubble.tsx`. El estado de la conversación vive en `hooks/useChat.ts`, y el cliente HTTP en `api/client.ts`.
 

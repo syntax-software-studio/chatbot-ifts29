@@ -67,12 +67,14 @@ Ver la sección 4 para el resto de la configuración.
 │   └── 003_verificacion.sql # Comprueba contra PostgreSQL real que todo responde
 ├── backend/
 │   ├── src/
-│   │   ├── db/              # pool.ts (PostgreSQL), catalogo.ts, conocimiento.ts, push.ts
-│   │   ├── routes/          # menu, chat, system (health / metricas / sync)
-│   │   ├── services/        # chat, nl (intérprete), drive, metricas
+│   │   ├── routes/          # HTTP: menu, chat, system (health / metricas / sync)
+│   │   ├── chat/            # Flujo de la conversación (chat.service, catálogo, comisiones, métricas)
+│   │   ├── kb/              # Búsqueda en la base de conocimiento (intenciones y pasajes)
+│   │   ├── sync/            # Planilla + Drive → base (extracción, transformación, carga)
+│   │   ├── db/              # pool.ts (PostgreSQL), types.ts, push.ts
 │   │   ├── middleware/      # CORS + cabeceras, rate limit, errores
 │   │   └── utils/           # env.ts, normalizar.ts, errors.ts
-│   └── test/                # 58 tests con node:test (sin dependencias extra)
+│   └── test/                # 81 tests con node:test (sin dependencias extra)
 ├── frontend/
 │   ├── public/widget.js     # Script inyector para Moodle
 │   └── src/                 # ChatWidget + compositor, tarjetas, burbujas, estilos

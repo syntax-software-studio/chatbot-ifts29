@@ -20,7 +20,9 @@ Referencias: [02 § 2.9](02-manual-tecnico.md), [04 § 4.9](04-base-datos.md).
 
 ## 2. Refactor por capas
 
-Pendiente tras el merge, en el orden propuesto en la conversación:
+En curso en la rama `refactor/capas`. Hecho en esta rama: dominios `chat/`, `kb/` y `sync/` con barrels (`index.ts`), `drive.service` partido en `sync/drive.ts` y `sync/documentos.ts`, `nl` sin dependencia de `chat` (el saludo lo resuelve el chat), y `extraccion` usando el normalizador de `utils`. Pendiente: el normalizador de la extracción cambia `texto_busqueda` en las letras repetidas, así que en producción hay que volver a extraer los fragmentos.
+
+Pendiente, en el orden propuesto en la conversación:
 
 1. **Un solo normalizador.** Hoy hay cuatro (`utils/normalizar.ts`, `drive.service.ts`, `extraccion-secciones.ts` y la carga de contenido). Es el de mayor riesgo, porque el mismo texto se compara distinto según dónde se procese.
 2. **Dirección de dependencias.** `db/sincronizar.ts` importa servicios, y las rutas `menu` y `system` consultan la base directo.
@@ -54,7 +56,11 @@ Referencia: [08](08-extractos-de-documentos.md).
 - **Fixtures más complejos**, con varias materias, comisiones y documentos con y sin texto.
 - **Tests de la sincronización** con Drive simulado, para no depender de credenciales.
 
-## 6. Documentación
+## 6. Base de datos y reset
+
+- **Respaldo de métricas en `db:reset`.** `rescatarMetricas` guarda las filas solo en memoria: si el proceso se corta entre el `DROP` y la restauración, se pierden. Opciones: escribir un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción. Carga toda la tabla en memoria, lo que no escala bien.
+
+## 7. Documentación
 
 - **`003_verificacion.sql`** ya se actualizó a las claves vigentes. Falta revisar `sql-coincide.test.ts` si cambian las consultas de la verificación.
 - **Decisión 1:1 o 1:N** para `documento_fragmento`: la implementación usa 1:N, con un fragmento para los documentos cortos. Confirmar si es lo que se quiso decir.
