@@ -91,7 +91,7 @@ export const CLAVE_METRICA_NO_DISPONIBLE = '(no_disponible)';
 
 export type ResolucionConsulta =
   /** La intencion se resuelve con una opcion del menu existente. */
-  | { clase: 'opcion'; opcionClave: string; evento: Evento; meta: MetaInterpretacion }
+  | { clase: 'opcion'; opcionClave: string; evento: Evento; meta: MetaInterpretacion; terminos: string[] }
   /** Respuesta directa que no pasa por el menu (regla de saludos). */
   | { clase: 'nodo'; nodo: NodoMenu; meta: MetaInterpretacion }
   | { clase: 'aclaracion'; aclaracion: Aclaracion; meta: MetaInterpretacion }
@@ -160,6 +160,20 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
  * ======================================================================== */
 
 /**
+ * Fuente opcional de la búsqueda: si falla, la búsqueda sigue con las demás.
+ * Por ahora el error se registra solo en NODE_ENV=local; una solución de logs
+ * más robusta queda pendiente.
+ */
+const fuenteOpcional =
+  <T>(nombre: string, vacio: T) =>
+  (err: unknown): T => {
+    if (env.nodeEnv === 'local') {
+      console.warn(`[nl] ${nombre} falló, se sigue sin esta fuente:`, err instanceof Error ? err.message : err);
+    }
+    return vacio;
+  };
+
+/**
  * Interpreta una consulta escrita y devuelve la intencion resuelta.
  *
  * No propaga errores de la base de conocimiento: si no puede interpretar,
@@ -168,8 +182,8 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
  */
 export async function interpretarConsulta(texto: string): Promise<ResolucionConsulta> {
   const { umbralAlto, umbralMedio, margenAmbiguedad } = env.lenguajeNatural;
-  const alias = await obtenerAlias().catch(() => new Map<string, string>());
-  const ignorados = await obtenerTerminosIgnorados().catch(() => new Set<string>());
+  const alias = await obtenerAlias().catch(fuenteOpcional('alias', new Map<string, string>()));
+  const ignorados = await obtenerTerminosIgnorados().catch(fuenteOpcional('ignorados', new Set<string>()));
   const normalizado = normalizarConsulta(texto, alias);
 
   // Nivel C: saludos -> menu raiz (respuesta autorizada, no generada).
@@ -189,7 +203,7 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
     } else {
       // FTS falla en silencio si la columna search_vector todavía no existe
       // (base sin migrar). El resto de la cascada sigue funcionando igual.
-      const porFts      = await buscarPorFts(normalizado, ignorados).catch(() => [] as CandidatoKb[]);
+      const porFts      = await buscarPorFts(normalizado, ignorados).catch(fuenteOpcional('FTS', [] as CandidatoKb[]));
       const porTrigram  = await buscarSimilares(normalizado, umbralMedio, undefined, ignorados);
       const porPalabras = await buscarPorPalabras(normalizado, umbralMedio);
       candidatos = combinarPorMaximo([...porFts, ...porTrigram], porPalabras).filter(esResoluble);
@@ -250,10 +264,14 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
     };
   }
 
+  // Términos significativos de la consulta: los que usa la búsqueda de pasajes.
+  const terminos = normalizado.split(' ').filter((t) => t.length > 2 && !ignorados.has(t));
+
   return {
     clase: 'opcion',
     opcionClave: primero.opcionClave,
     evento: esExacto ? 'texto_exacto' : 'texto_similar',
     meta: meta(primero.intentKey, confianza, source, matchType),
+    terminos,
   };
 }

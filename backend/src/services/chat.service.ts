@@ -34,6 +34,8 @@ import {
   CLAVE_METRICA_SALUDO,
 } from './nl.service.js';
 import { badRequest } from '../utils/errors.js';
+import { env } from '../utils/env.js';
+import { buscarPasajes, type Pasaje } from '../db/pasajes.js';
 import {
   claveConComision,
   comisionesAPreguntar,
@@ -172,6 +174,19 @@ export async function procesarConsulta(texto: string): Promise<TurnoChat> {
       const turno = await procesarSeleccion({ opcion: resolucion.opcionClave }, resolucion.evento);
       // Un turno de error no lleva metadatos de interpretación.
       if (turno.tipo === 'error') return turno;
+      if (turno.tipo === 'respuesta') {
+        // Consulta escrita: si una sección de los documentos responde, se muestra
+        // ese pasaje en lugar del texto general. Sin pasaje, queda el documento completo.
+        const pasajes = await buscarPasajes(
+          turno.respuesta.documentos.map((d) => d.clave),
+          resolucion.terminos,
+          env.lenguajeNatural.umbralPasaje,
+        ).catch((): Pasaje[] => []);
+        if (pasajes.length > 0) {
+          const extractos = pasajes.map(({ titulo, texto }) => ({ titulo, texto }));
+          return { ...turno, respuesta: { ...turno.respuesta, extractos }, meta: resolucion.meta };
+        }
+      }
       return { ...turno, meta: resolucion.meta };
     }
 
