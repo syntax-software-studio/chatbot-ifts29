@@ -59,12 +59,13 @@ backend/src/
 │   ├── sync.service.ts             # Orquesta: planilla → base → documentos
 │   ├── sync-extract.service.ts     # Extracción: lee la planilla y las secciones de los PDFs
 │   ├── sync-transform.service.ts   # Transformación: convierte la planilla
-│   └── sync-load.service.ts        # Carga: escribe el contenido y los documentos (SQL inline, pendiente de repositorio)
+│   └── sync-load.service.ts        # Carga: escribe el contenido y los documentos (el SQL está en el repositorio)
 ├── repositories/                   # SQL: única capa que toca la base
 │   ├── chat-menu.repository.ts
 │   ├── analytics.repository.ts
 │   ├── kb-conocimiento.repository.ts
-│   └── fragmentos.repository.ts
+│   ├── fragmentos.repository.ts
+│   └── sync-load.repository.ts
 ├── clients/                        # APIs externas y lectura de archivos
 │   ├── drive.client.ts             # Cliente de la API de Drive
 │   ├── drive.ts                    # Listar, descargar y enlazar archivos de Drive
@@ -187,9 +188,3 @@ npm run typecheck                   # tipos de backend y frontend
 
 Los tests del backend no necesitan base ni red. Ver [05-pruebas-unitarias.md](05-pruebas-unitarias.md) y [06-pruebas-integracion.md](06-pruebas-integracion.md).
 
-## 2.9 Pendientes técnicos
-
-- **Conjunto dorado** para medir el motor de texto libre.
-- **Pruebas con fixtures más complejos** (más materias, varias comisiones y documentos) para cubrir la pregunta de comisión y la cobertura de términos.
-- **Métricas en `db:reset`.** Ver [04-base-datos.md](04-base-datos.md), sección 4.5.
-- **Despliegue en Neon.** Pendiente de revisión. Incluye la tabla `documento_fragmento` y la columna `documento.fragmentos_md5`: como el esquema usa `CREATE TABLE IF NOT EXISTS`, hace falta el mismo reset que en local.
