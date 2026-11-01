@@ -58,6 +58,7 @@
 - [x] Convención de nombres de documentos, aplicada en Drive (ver `07`)
 - [x] Cuenta de servicio con acceso de solo lectura a la planilla y a la carpeta
 - [ ] Revisar el texto de las respuestas y de la derivación con el equipo institucional
+- [ ] Pestaña "Léeme" en la planilla: una descripción por pestaña, un ejemplo de fila, el orden de carga, y errores de sincronización en lenguaje de planilla (ver `11`)
 - [ ] `EAM_condiciones`: el documento no existe en Drive; el bot no le muestra enlace hasta que se suba
 - [ ] Submenú por comisión para los documentos de materia (ver `09`)
 - [ ] Informe mensual de métricas verificado en producción

@@ -25,6 +25,7 @@ import {
   buscarPorPalabras,
   buscarPorFts,
   obtenerAlias,
+  obtenerPalabrasVacias,
   obtenerTerminosIgnorados,
   type CandidatoKb,
 } from '../repositories/kb-conocimiento.repository.js';
@@ -180,7 +181,8 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
   const { umbralAlto, umbralMedio, margenAmbiguedad } = env.lenguajeNatural;
   const alias = await obtenerAlias().catch(fuenteOpcional('alias', new Map<string, string>()));
   const ignorados = await obtenerTerminosIgnorados().catch(fuenteOpcional('ignorados', new Set<string>()));
-  const normalizado = normalizarConsulta(texto, alias);
+  const vacias = await obtenerPalabrasVacias().catch(fuenteOpcional('palabras_vacias', new Set<string>()));
+  const normalizado = normalizarConsulta(texto, alias, vacias);
 
   // Nivel C: saludos. No es una respuesta de la base: el chat decide el menu raiz.
   if (SALUDOS.has(normalizado)) {

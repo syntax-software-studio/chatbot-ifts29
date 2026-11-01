@@ -366,6 +366,16 @@ CREATE TABLE IF NOT EXISTS termino_ignorado (
 COMMENT ON TABLE termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
 
 -- ---------------------------------------------------------------------------
+-- 10e. PALABRA_VACIA  ->  articulos y preposiciones que no aportan significado
+--     Se cargan desde la pestaña `palabras_vacias`. Se quitan de la consulta y de las variantes.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS palabra_vacia (
+    termino TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE palabra_vacia IS 'Palabras que se quitan al normalizar consultas y variantes (de, la, y...).';
+
+-- ---------------------------------------------------------------------------
 -- 10d. TERMINO_RECONOCIMIENTO_SECCION  ->  títulos que parten un PDF en secciones
 --     Se cargan desde la pestaña del mismo nombre. Ya normalizados.
 -- ---------------------------------------------------------------------------

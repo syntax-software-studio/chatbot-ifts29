@@ -26,7 +26,7 @@ test('normalizar recorta letras repetidas de tipeo', () => {
 
 test('normalizarConsulta expande siglas y quita palabras vacías', () => {
   const alias = new Map([['abd', 'administracion bases datos']]);
-  assert.equal(normalizarConsulta('Programa de ABD', alias), 'programa administracion bases datos');
+  assert.equal(normalizarConsulta('Programa de ABD', alias, new Set(['de'])), 'programa administracion bases datos');
 });
 
 test('similitudPorPalabras cuenta las palabras en común y tolera un error de tipeo', () => {

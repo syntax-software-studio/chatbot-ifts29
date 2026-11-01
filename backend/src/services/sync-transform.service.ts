@@ -112,6 +112,7 @@ export interface DatosContenido {
   contactos: Contacto[];
   alias: Alias[];
   ignorados: TerminoIgnorado[];
+  palabrasVacias: string[];
   terminosFragmento: string[];
 }
 
@@ -243,7 +244,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   ).values()];
 
   // --- Alias (siglas) ---
-  const alias: Alias[] = filas('alias').map((f) => ({
+  const alias: Alias[] = filas('equivalentes').map((f) => ({
     alias: normalizar(f.alias!),
     expansion: normalizar(f.expansion!),
   }));
@@ -254,6 +255,16 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     aliasVistos.add(a.alias);
   }
   const mapaAlias = new Map(alias.map((a) => [a.alias, a.expansion] as const));
+
+  // --- Palabras vacías: se quitan de la consulta y de las variantes ---
+  const palabrasVacias: string[] = filas('palabras_vacias').map((f) => normalizar(f.termino!));
+  const vaciasSet = new Set(palabrasVacias);
+  const vaciasVistas = new Set<string>();
+  for (const p of palabrasVacias) {
+    if (!p) errores.push('palabras_vacias: hay una fila vacía.');
+    if (vaciasVistas.has(p)) errores.push(`palabras_vacias "${p}" está repetida.`);
+    vaciasVistas.add(p);
+  }
 
   // --- Términos ignorados (ruido de la consulta) ---
   const ignorados: TerminoIgnorado[] = filas('ignorados').map((f) => ({
@@ -267,11 +278,11 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   }
 
   // --- Términos que reconocen una sección dentro de los PDF ---
-  const terminosFragmento: string[] = filas('termino_reconocimiento_fragmento').map((f) => normalizar(f.termino!));
+  const terminosFragmento: string[] = filas('reconocimiento_fragmentos').map((f) => normalizar(f.termino!));
   const fragmentoVistos = new Set<string>();
   for (const t of terminosFragmento) {
-    if (!t) errores.push('termino_reconocimiento_fragmento: hay una fila vacía.');
-    if (fragmentoVistos.has(t)) errores.push(`termino_reconocimiento_fragmento "${t}" está repetido.`);
+    if (!t) errores.push('reconocimiento_fragmentos: hay una fila vacía.');
+    if (fragmentoVistos.has(t)) errores.push(`reconocimiento_fragmentos "${t}" está repetido.`);
     fragmentoVistos.add(t);
   }
 
@@ -301,7 +312,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       opcion: f.opcion!,
       pregunta: f.pregunta!,
       texto: f.texto_original!,
-      normalizado: normalizarConsulta(f.texto_original!, mapaAlias),
+      normalizado: normalizarConsulta(f.texto_original!, mapaAlias, vaciasSet),
       peso: decimal(f.peso!, `${donde} peso`),
     };
   });
@@ -350,6 +361,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       alias,
       ignorados,
       terminosFragmento,
+      palabrasVacias,
     },
   };
 }

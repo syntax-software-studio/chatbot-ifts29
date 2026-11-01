@@ -30,7 +30,7 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | `preguntas` | opcion, pregunta, prioridad, umbral_minimo |
 | `variantes` | opcion, pregunta, texto_original, peso |
 | `contactos` | clave, nombre, area, comision, email, url_perfil, motivo, orden, opcion |
-| `alias` | alias, expansion |
+| `equivalentes` | alias, expansion |
 | `ignorados` | termino (palabras de la consulta que se descartan al buscar: "como", "para", "una"...) |
 
 La sincronización valida los encabezados y las referencias entre pestañas antes de escribir. Si hay un error, muestra todos y **no cambia nada**.

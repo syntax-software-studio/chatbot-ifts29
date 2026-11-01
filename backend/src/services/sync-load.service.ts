@@ -24,6 +24,7 @@ import {
   insertarAdjunto,
   insertarAlias,
   insertarIgnorado,
+  insertarPalabraVacia,
   insertarTerminoFragmento,
   terminosFragmento,
   insertarPregunta,
@@ -287,6 +288,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const a of datos.alias) await insertarAlias(client, a);
   for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
+  for (const p of datos.palabrasVacias) await insertarPalabraVacia(client, p);
   for (const t of datos.terminosFragmento) await insertarTerminoFragmento(client, t);
 
   const preguntaIdPorClave = new Map<string, number>();

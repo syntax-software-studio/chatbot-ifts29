@@ -28,6 +28,7 @@ export interface FichaDb {
 export async function vaciarDependientes(client: PoolClient): Promise<void> {
   await client.query('DELETE FROM termino_equivalente');
   await client.query('DELETE FROM termino_ignorado');
+  await client.query('DELETE FROM palabra_vacia');
   await client.query('DELETE FROM termino_reconocimiento_fragmento');
   await client.query('DELETE FROM pregunta_variante');
   await client.query('DELETE FROM pregunta');
@@ -269,4 +270,8 @@ export async function insertarTerminoFragmento(client: PoolClient, termino: stri
 export async function terminosFragmento(): Promise<string[]> {
   const r = await query<{ termino: string }>('SELECT termino FROM termino_reconocimiento_fragmento ORDER BY termino');
   return r.rows.map((x) => x.termino);
+}
+
+export async function insertarPalabraVacia(client: PoolClient, termino: string): Promise<void> {
+  await client.query('INSERT INTO palabra_vacia (termino) VALUES ($1)', [termino]);
 }

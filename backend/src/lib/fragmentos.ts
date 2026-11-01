@@ -7,7 +7,7 @@
  * venir de Drive o de una prueba. No escribe en la base.
  *
  * La detección de títulos combina:
- *  1. títulos de la lista de reconocimiento (pestaña `termino_reconocimiento_fragmento`),
+ *  1. títulos de la lista de reconocimiento (pestaña `reconocimiento_fragmentos`),
  *     comparados con tolerancia a errores de tipeo (similitud por bigramas);
  *  2. títulos al inicio de línea seguidos de `:` (por ejemplo "FINAL: ...");
  *  3. encabezados en mayúsculas, cortos y sin viñetas ni datos de tabla.

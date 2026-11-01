@@ -25,6 +25,7 @@ const contenidoValido = (): Hojas => ({
     { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
+  palabras_vacias: [{ termino: 'de' }],
   preguntas: [{ opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', prioridad: '30', umbral_minimo: '0,7' }],
   variantes: [
     { opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'Programa de ABD', peso: '1' },

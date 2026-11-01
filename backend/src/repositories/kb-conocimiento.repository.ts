@@ -240,6 +240,12 @@ export async function obtenerAlias(): Promise<Map<string, string>> {
  * Vienen de la pestaña `ignorados` de la planilla. No afectan la normalización
  * de las variantes, así que cambiarlas no requiere volver a sincronizar.
  */
+/** Palabras vacías de la pestaña `palabras_vacias`: se quitan de la consulta y de las variantes. */
+export async function obtenerPalabrasVacias(): Promise<Set<string>> {
+  const r = await query<{ termino: string }>('SELECT termino FROM palabra_vacia');
+  return new Set(r.rows.map((x) => x.termino));
+}
+
 export async function obtenerTerminosIgnorados(): Promise<Set<string>> {
   const r = await query<{ termino: string }>('SELECT termino FROM termino_ignorado');
   return new Set(r.rows.map((x) => x.termino));
