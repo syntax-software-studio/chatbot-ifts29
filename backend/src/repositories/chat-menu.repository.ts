@@ -111,21 +111,21 @@ const toContacto = (r: RawContacto): Contacto => ({
 
 const SQL_CATEGORIA_POR_CLAVE = `
   SELECT id, clave, nombre, mensaje, orden, es_raiz
-    FROM categoria
+    FROM menu_categoria
    WHERE clave = $1 AND activo
    LIMIT 1`;
 
 const SQL_OPCIONES = `
   SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono
-    FROM opcion_menu o
+    FROM menu_opcion o
    WHERE o.categoria_id = $1 AND o.activo
    ORDER BY o.orden, o.id`;
 
 const SQL_OPCION_POR_CLAVE = `
   SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
          o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
-    FROM opcion_menu o
-    JOIN categoria c ON c.id = o.categoria_id
+    FROM menu_opcion o
+    JOIN menu_categoria c ON c.id = o.categoria_id
    WHERE o.clave = $1 AND o.activo AND c.activo
    LIMIT 1`;
 
@@ -188,7 +188,7 @@ export async function obtenerOpcion(opcionClave: string): Promise<OpcionResuelta
 
   let destino: string | null = null;
   if (row.categoria_destino_id) {
-    const d = await query<{ clave: string }>('SELECT clave FROM categoria WHERE id = $1', [row.categoria_destino_id]);
+    const d = await query<{ clave: string }>('SELECT clave FROM menu_categoria WHERE id = $1', [row.categoria_destino_id]);
     destino = d.rows[0]?.clave ?? null;
   }
 
@@ -221,7 +221,7 @@ export async function obtenerContactos(opcionId: number): Promise<Contacto[]> {
 /** Categorías del árbol, útil para el mapa de navegación y las pruebas. */
 export async function listarCategorias(): Promise<Categoria[]> {
   const r = await query<RawCategoria>(
-    'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM categoria WHERE activo ORDER BY orden, id',
+    'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM menu_categoria WHERE activo ORDER BY orden, id',
   );
   return r.rows.map(toCategoria);
 }

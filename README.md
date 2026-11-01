@@ -160,20 +160,20 @@ se vuelve a sincronizar.
 
 `db/001_schema.sql` define el esquema completo, las dos mitades del sistema:
 
-- `categoria`, `opcion_menu`, `respuesta`, `documento`, `contacto`
+- `menu_categoria`, `menu_opcion`, `respuesta`, `documento`, `contacto`
 - Tablas de relación: `opcion_contacto`, `respuesta_documento`
 - `metrica_opcion` (métricas agregadas, sin datos personales)
-- La base de conocimiento de las consultas escritas: `kb_intencion` (qué
-  intención corresponde a qué opción del menú), `kb_pregunta` (la formulación
-  canónica) y `kb_pregunta_variante` (las redacciones alternativas ya
+- La base de conocimiento de las consultas escritas: `intencion` (qué
+  intención corresponde a qué opción del menú), `pregunta` (la formulación
+  canónica) y `pregunta_variante` (las redacciones alternativas ya
   normalizadas)
 - Índices: B-tree para la coincidencia exacta, GIN sobre `search_vector` para la
   búsqueda de palabras y GIN `gin_trgm_ops` para la similitud; extensiones
   `pgcrypto` y `pg_trgm`
-- Trigger `touch_actualizado_en` y vistas `v_arbol_menu` y `v_kb_resolucion`
+- Trigger `touch_actualizado_en` y vistas `v_menu_arbol` y `v_cobertura_intenciones`
   para control
 
-Cada intención apunta a una opción de `opcion_menu` y a una `respuesta` ya
+Cada intención apunta a una opción de `menu_opcion` y a una `respuesta` ya
 validada (`ON DELETE RESTRICT`): el contenido no se duplica ni se genera, se
 reutiliza.
 

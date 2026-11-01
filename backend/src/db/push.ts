@@ -251,14 +251,14 @@ async function main(): Promise<void> {
     kb_variante: number;
   }>(
     `SELECT
-       (SELECT count(*)::int FROM categoria WHERE activo)     AS categoria,
-       (SELECT count(*)::int FROM opcion_menu WHERE activo)   AS opcion,
+       (SELECT count(*)::int FROM menu_categoria WHERE activo)     AS categoria,
+       (SELECT count(*)::int FROM menu_opcion WHERE activo)   AS opcion,
        (SELECT count(*)::int FROM respuesta WHERE activo)     AS respuesta,
        (SELECT count(*)::int FROM documento)                   AS documento,
        (SELECT count(*)::int FROM contacto WHERE activo)      AS contacto,
-       (SELECT count(*)::int FROM kb_intencion WHERE activo)   AS kb_intencion,
-       (SELECT count(*)::int FROM kb_pregunta WHERE activo)    AS kb_pregunta,
-       (SELECT count(*)::int FROM kb_pregunta_variante WHERE activo) AS kb_variante`,
+       (SELECT count(*)::int FROM intencion WHERE activo)   AS kb_intencion,
+       (SELECT count(*)::int FROM pregunta WHERE activo)    AS kb_pregunta,
+       (SELECT count(*)::int FROM pregunta_variante WHERE activo) AS kb_variante`,
   );
 
   console.log('\n[db] conteos actuales:');

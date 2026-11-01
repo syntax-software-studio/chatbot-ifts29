@@ -11,7 +11,7 @@
  *
  *   normalizacion (siglas de la pestaña `alias` y palabras vacías)
  *     -> regla de saludos (Nivel C, menu raiz)
- *     -> coincidencia exacta sobre `kb_pregunta_variante.normalized_text`
+ *     -> coincidencia exacta sobre `pregunta_variante.normalized_text`
  *     -> variantes / similitud trigram (`pg_trgm`)
  *     -> ranking y umbrales
  *     -> intencion | aclaracion | no_disponible
@@ -204,7 +204,7 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       candidatos = combinarPorMaximo([...porFts, ...porTrigram], porPalabras).filter(esResoluble);
     }
   } catch (err) {
-    // Sin `pg_trgm` o sin tablas `kb_*` la base no puede interpretar.
+    // Sin `pg_trgm` o sin las tablas de conocimiento la base no puede interpretar.
     console.warn('[nl] base de conocimiento no disponible:', err instanceof Error ? err.message : err);
     return {
       clase: 'error',

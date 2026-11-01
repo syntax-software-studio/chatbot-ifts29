@@ -85,9 +85,9 @@ async function main(): Promise<void> {
 
   const r = await pool.query<{ original_text: string; pregunta: string; intencion: string; opcion: string }>(
     `SELECT v.original_text, p.pregunta, i.clave AS intencion, i.opcion_clave AS opcion
-       FROM kb_pregunta_variante v
-       JOIN kb_pregunta p ON p.id = v.pregunta_id AND p.activo
-       JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+       FROM pregunta_variante v
+       JOIN pregunta p ON p.id = v.pregunta_id AND p.activo
+       JOIN intencion i ON i.id = p.intencion_id AND i.activo
       WHERE v.activo
       ORDER BY i.clave, v.original_text`,
   );

@@ -9,9 +9,9 @@
  *
  * Reglas de escritura. La planilla es la única fuente: lo que no está en ella
  * no se conserva en la base.
- *  - Base de conocimiento (`kb_*`, incluidos los alias), `respuesta_documento` y `opcion_contacto`:
+ *  - Base de conocimiento (`intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente`, `termino_ignorado`), `respuesta_documento` y `opcion_contacto`:
  *    se vacían y se vuelven a cargar. No tienen historial propio.
- *  - Menú (`categoria`, `opcion_menu`, `respuesta`), contactos y documentos:
+ *  - Menú (`menu_categoria`, `menu_opcion`, `respuesta`), contactos y documentos:
  *    upsert por clave, y se borra lo que ya no está en la planilla.
  *  - Documentos: la ficha se crea por nombre de archivo; la sincronización con
  *    Drive completa el resto (enlaces, IDs, MD5).

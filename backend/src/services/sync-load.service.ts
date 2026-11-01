@@ -239,8 +239,8 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   for (const r of datos.respuestas) await upsertRespuesta(client, r);
 
   // Opciones: necesitan los ids de categoría y respuesta.
-  await borrarFueraDe(client, 'opcion_menu', claves(datos.opciones));
-  const categoriaId = await idsPorClave(client, 'categoria');
+  await borrarFueraDe(client, 'menu_opcion', claves(datos.opciones));
+  const categoriaId = await idsPorClave(client, 'menu_categoria');
   const respuestaId = await idsPorClave(client, 'respuesta');
   for (const o of datos.opciones) {
     await upsertOpcion(client, {
@@ -254,7 +254,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       orden: o.orden,
     });
   }
-  await borrarFueraDe(client, 'categoria', claves(datos.categorias));
+  await borrarFueraDe(client, 'menu_categoria', claves(datos.categorias));
   await borrarFueraDe(client, 'respuesta', claves(datos.respuestas));
 
   // Documentos: fichas por nombre de archivo. Las que la planilla ya no referencia
@@ -278,7 +278,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
 
   // Derivación: cada contacto pertenece a una sola opción de tipo 'derivar'.
   const contactoId = await idsPorClave(client, 'contacto');
-  const opcionMenuId = await idsPorClave(client, 'opcion_menu');
+  const opcionMenuId = await idsPorClave(client, 'menu_opcion');
   for (const c of datos.contactos) {
     await insertarOpcionContacto(client, {
       opcionId: opcionMenuId.get(c.opcion),
@@ -292,7 +292,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   for (const a of datos.alias) await insertarAlias(client, a);
   for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
   for (const i of datos.intenciones) await insertarIntencion(client, i);
-  const intencionId = await idsPorClave(client, 'kb_intencion');
+  const intencionId = await idsPorClave(client, 'intencion');
 
   const preguntaIdPorClave = new Map<string, number>();
   for (const p of datos.preguntas) {

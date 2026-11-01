@@ -10,7 +10,7 @@ import { query } from '../db/pool.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 
 /** Tablas que la carga identifica por `clave`. */
-export type Tabla = 'categoria' | 'respuesta' | 'opcion_menu' | 'documento' | 'contacto' | 'kb_intencion';
+export type Tabla = 'menu_categoria' | 'respuesta' | 'menu_opcion' | 'documento' | 'contacto' | 'intencion';
 
 export interface FichaDb {
   clave: string;
@@ -26,11 +26,11 @@ export interface FichaDb {
 
 /** Vacía las tablas que dependen de otras, para que no bloqueen los borrados que siguen. */
 export async function vaciarDependientes(client: PoolClient): Promise<void> {
-  await client.query('DELETE FROM kb_alias');
-  await client.query('DELETE FROM kb_termino_ignorado');
-  await client.query('DELETE FROM kb_pregunta_variante');
-  await client.query('DELETE FROM kb_pregunta');
-  await client.query('DELETE FROM kb_intencion');
+  await client.query('DELETE FROM termino_equivalente');
+  await client.query('DELETE FROM termino_ignorado');
+  await client.query('DELETE FROM pregunta_variante');
+  await client.query('DELETE FROM pregunta');
+  await client.query('DELETE FROM intencion');
   await client.query('DELETE FROM respuesta_documento');
   await client.query('DELETE FROM opcion_contacto');
 }
@@ -51,7 +51,7 @@ export async function upsertCategoria(
   c: { clave: string; nombre: string; mensaje: string | null; orden: number; esRaiz: boolean },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz, activo)
+    `INSERT INTO menu_categoria (clave, nombre, mensaje, orden, es_raiz, activo)
      VALUES ($1, $2, $3, $4, $5, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        nombre = EXCLUDED.nombre, mensaje = EXCLUDED.mensaje,
@@ -83,7 +83,7 @@ export async function upsertOpcion(
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
+    `INSERT INTO menu_opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        categoria_id = EXCLUDED.categoria_id, etiqueta = EXCLUDED.etiqueta, tipo = EXCLUDED.tipo,
@@ -150,11 +150,11 @@ export async function insertarOpcionContacto(
 }
 
 export async function insertarAlias(client: PoolClient, a: { alias: string; expansion: string }): Promise<void> {
-  await client.query('INSERT INTO kb_alias (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
+  await client.query('INSERT INTO termino_equivalente (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
 }
 
 export async function insertarIgnorado(client: PoolClient, termino: string): Promise<void> {
-  await client.query('INSERT INTO kb_termino_ignorado (termino) VALUES ($1)', [termino]);
+  await client.query('INSERT INTO termino_ignorado (termino) VALUES ($1)', [termino]);
 }
 
 export async function insertarIntencion(
@@ -162,7 +162,7 @@ export async function insertarIntencion(
   i: { clave: string; nombre: string; dominio: string; opcion: string },
 ): Promise<void> {
   await client.query(
-    'INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
+    'INSERT INTO intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
     [i.clave, i.nombre, i.dominio, i.opcion],
   );
 }
@@ -173,7 +173,7 @@ export async function insertarPregunta(
   p: { intencionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
 ): Promise<number> {
   const r = await client.query<{ id: number }>(
-    `INSERT INTO kb_pregunta (intencion_id, pregunta, priority, minimum_threshold, activo)
+    `INSERT INTO pregunta (intencion_id, pregunta, priority, minimum_threshold, activo)
      VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
     [p.intencionId, p.pregunta, p.prioridad, p.umbral],
   );
@@ -185,7 +185,7 @@ export async function insertarVariante(
   v: { preguntaId: number | undefined; texto: string; normalizado: string; peso: number },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO kb_pregunta_variante (pregunta_id, original_text, normalized_text, weight, activo)
+    `INSERT INTO pregunta_variante (pregunta_id, original_text, normalized_text, weight, activo)
      VALUES ($1, $2, $3, $4, TRUE)`,
     [v.preguntaId, v.texto, v.normalizado, v.peso],
   );
@@ -197,7 +197,7 @@ export async function insertarVariante(
 
 /** Expansión del alias de una materia, por ejemplo "abd" → "administracion bases datos". */
 export async function expansionDeAlias(alias: string): Promise<string | undefined> {
-  const r = await query<{ expansion: string }>('SELECT expansion FROM kb_alias WHERE alias = $1', [alias]);
+  const r = await query<{ expansion: string }>('SELECT expansion FROM termino_equivalente WHERE alias = $1', [alias]);
   return r.rows[0]?.expansion;
 }
 

@@ -58,7 +58,7 @@ flowchart LR
 
     subgraph QRY["Consulta (en la API)"]
         direction TB
-        Q1["Consulta normalizada"] --> Q2["Intención<br/>[FTS + word_similarity<br/>sobre kb_pregunta_variante]"]
+        Q1["Consulta normalizada"] --> Q2["Intención<br/>[FTS + word_similarity<br/>sobre pregunta_variante]"]
         Q2 --> Q3["Documentos de la intención<br/>[respuesta_documento]"]
         Q3 --> Q4["Pasaje<br/>[ts_rank / cobertura de términos<br/>sobre documento_fragmento]"]
         Q4 --> Q5{"Confianza ≥ umbral alto?"}
@@ -73,7 +73,7 @@ flowchart LR
 
 | Componente | Concepto | Dónde se aplica | Tabla o índice |
 |---|---|---|---|
-| Intención | FTS en español, cobertura de términos, trigramas por término | Variantes de preguntas, textos cortos | `kb_pregunta_variante` (`search_vector`, índice trigram) |
+| Intención | FTS en español, cobertura de términos, trigramas por término | Variantes de preguntas, textos cortos | `pregunta_variante` (`search_vector`, índice trigram) |
 | Pasaje | FTS en español, cobertura de términos | Texto de cada sección de un documento | `documento_fragmento` (`search_vector`, GIN) |
 | Pasaje, complemento | Trigramas por término (`word_similarity`) | Errores de tipeo en los fragmentos | Índice trigram sobre `texto` o sobre `titulo` |
 | Umbral | Confianza mínima sobre el promedio de cobertura | Pasaje: umbral alto, inicialmente 0,9 | Configurable por entorno |

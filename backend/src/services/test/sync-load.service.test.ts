@@ -53,7 +53,7 @@ async function fichasConNombre(): Promise<Array<{ clave: string; drive_nombre_ar
 
 test('aplicar la misma planilla dos veces deja los mismos conteos', async () => {
   const contar = async () =>
-    (await query<{ n: number }>('SELECT count(*)::int AS n FROM kb_pregunta_variante')).rows[0]!.n;
+    (await query<{ n: number }>('SELECT count(*)::int AS n FROM pregunta_variante')).rows[0]!.n;
   const antes = await contar();
   await aplicarContenido(datosPrueba());
   assert.equal(await contar(), antes);
@@ -68,7 +68,7 @@ test('lo que la planilla ya no trae se borra de la base', async () => {
     variantes: datos.variantes.filter((v) => v.intencion !== 'condiciones_ABD'),
   };
   await aplicarContenido(sinCondiciones);
-  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM kb_intencion WHERE clave = 'condiciones_ABD'");
+  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM intencion WHERE clave = 'condiciones_ABD'");
   assert.equal(r.rows[0]!.n, 0);
 
   // Se restaura para no afectar las demás pruebas del archivo.

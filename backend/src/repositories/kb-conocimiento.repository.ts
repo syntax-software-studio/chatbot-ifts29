@@ -1,5 +1,5 @@
 /**
- * Acceso a la base de conocimiento conversacional (tablas `kb_*` de PostgreSQL).
+ * Acceso a la base de conocimiento conversacional (tablas `intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente` y `termino_ignorado`).
  *
  * La similitud (`similarity()` y `word_similarity()` de `pg_trgm`) se calcula
  * en la base, no en el código.
@@ -103,9 +103,9 @@ const SQL_FTS = `
          v.weight,
          s.score AS similarity,
          s.cubiertos
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN intencion i ON i.id = p.intencion_id AND i.activo
     CROSS JOIN LATERAL (
       -- Por cada término: 1 si coincide con stemming, la similitud si es un
       -- error de tipeo (>= $2), 0 si no aparece. La cobertura es el promedio.
@@ -141,9 +141,9 @@ const SQL_EXACTO = `
          v.normalized_text,
          v.weight,
          1.0::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo
      AND v.normalized_text = $1
    ORDER BY p.priority DESC, v.weight DESC
@@ -168,9 +168,9 @@ const SQL_SIMILARES_TERMINO = `
          v.normalized_text,
          v.weight,
          word_similarity($1, v.normalized_text)::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo
      AND word_similarity($1, v.normalized_text) >= $2
      -- Las coincidencias exactas (y con stemming) son de FTS. Aca sólo interesan
@@ -213,9 +213,9 @@ const SQL_TODAS_VARIANTES = `
          v.normalized_text,
          v.weight,
          0::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo`;
 
 /* ==========================================================================
@@ -231,7 +231,7 @@ const SQL_TODAS_VARIANTES = `
  */
 /** Siglas de la consulta con su expansión, para normalizar antes de buscar. */
 export async function obtenerAlias(): Promise<Map<string, string>> {
-  const r = await query<{ alias: string; expansion: string }>('SELECT alias, expansion FROM kb_alias');
+  const r = await query<{ alias: string; expansion: string }>('SELECT alias, expansion FROM termino_equivalente');
   return new Map(r.rows.map((x) => [x.alias, x.expansion] as const));
 }
 
@@ -241,7 +241,7 @@ export async function obtenerAlias(): Promise<Map<string, string>> {
  * de las variantes, así que cambiarlas no requiere volver a sincronizar.
  */
 export async function obtenerTerminosIgnorados(): Promise<Set<string>> {
-  const r = await query<{ termino: string }>('SELECT termino FROM kb_termino_ignorado');
+  const r = await query<{ termino: string }>('SELECT termino FROM termino_ignorado');
   return new Set(r.rows.map((x) => x.termino));
 }
 

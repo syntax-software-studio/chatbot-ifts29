@@ -27,18 +27,20 @@ Detalle en [08](08-extractos-de-documentos.md).
 - **Reglamento y protocolo de exámenes:** son imágenes. Pedir al cliente un PDF con texto seleccionable.
 - **Lógica Computacional:** migrarla a la regla de comisiones (decisión 13 de [07](07-contenido-y-decisiones.md)). Opcional.
 - **Submenú por comisión** para los documentos de materia.
+- **Reglas de contenido fuera del código:** que los títulos de sección y las palabras vacías vivan en la planilla de Drive, y no en `secciones.ts` ni en `normalizar.ts`. Decidir qué reglas quedan en código y cuáles pasan a datos (ver [11](11-revision-modelo-de-datos.md), §11.4.4 y §11.7.3).
 
 ## 4. Pruebas
 
 - **Pregunta por comisión en la interfaz:** los tests del backend cubren el flujo, no el renderizado en el navegador.
 - **Fixtures más complejos:** varias materias, comisiones y documentos con y sin texto.
 - **Fixtures desde la planilla:** una copia versionada, para que las pruebas no dependan de la red.
+- **Conjunto de consultas de referencia:** actualizarlo y ampliarlo con consultas reales y respuesta esperada. Prioridad baja: no bloquea el MVP.
 
 ## 5. Base de datos y reset
 
 - **Respaldo en `db:reset`:** `rescatarMetricas` guarda las filas solo en memoria; si el proceso se corta, se pierden. Opciones: un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción.
 - **Automatizar el respaldo** manual de `metrica_opcion` ([10.6](10-operacion.md#106-respaldo-de-metrica_opcion)).
-- **Categoría en métricas:** `metrica_opcion.categoria_clave` queda `NULL`. Propuesta: completarla al exportar con un join de `opcion_menu` a `categoria`.
+- **Categoría en métricas:** `metrica_opcion.categoria_clave` queda `NULL`. Propuesta: completarla al exportar con un join de `menu_opcion` a `categoria`.
 
 ## 6. Operación y administración
 
@@ -47,3 +49,8 @@ Detalle en [08](08-extractos-de-documentos.md).
 - **Aprobación de fragmentos:** estado por fragmento, y la búsqueda usa solo los aprobados. Falta decidir dónde se aprueba (planilla o pantalla).
 - **Normalización del tipo de documento:** lista cerrada en `documento.tipo`.
 - **Panel de administración:** solo si lo anterior no alcanza. Decisión con el cliente: planilla más pantalla mínima, o contenido en la base.
+
+## 7. Después del MVP
+
+- **Ciclo de mejora continua:** revisar periódicamente las consultas que terminaron en `no_disponible` o en aclaración (`metrica_opcion`), y convertirlas en variantes, términos equivalentes o contenido nuevo. Lo hace quien gestiona el sistema, con el registro mensual que ya se publica en Drive.
+- **Calibración de umbrales con datos reales:** revisar los casos de similitud intermedia (`texto_similar`) y ajustar `KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO` y `KB_UMBRAL_PASAJE` con un procedimiento documentado, en lugar de a ojo.
