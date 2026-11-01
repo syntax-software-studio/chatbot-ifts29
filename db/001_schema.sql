@@ -391,6 +391,16 @@ CREATE TABLE IF NOT EXISTS termino_ignorado (
 COMMENT ON TABLE termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
 
 -- ---------------------------------------------------------------------------
+-- 10d. TERMINO_RECONOCIMIENTO_SECCION  ->  títulos que parten un PDF en secciones
+--     Se cargan desde la pestaña del mismo nombre. Ya normalizados.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS termino_reconocimiento_fragmento (
+    termino TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE termino_reconocimiento_fragmento IS 'Títulos de sección que se reconocen dentro de los PDF para partirlos en fragmentos. Ya normalizados.';
+
+-- ---------------------------------------------------------------------------
 -- 11. Trigger de mantenimiento: actualizado_en
 --     Una sola funcion para todas las tablas con columna `actualizado_en`,
 --     del menu y de la base de conocimiento.

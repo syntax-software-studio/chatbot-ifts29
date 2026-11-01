@@ -7,24 +7,14 @@
  * venir de Drive o de una prueba. No escribe en la base.
  *
  * La detección de títulos combina:
- *  1. títulos conocidos (lista de trabajo), comparados con tolerancia a errores
- *     de tipeo (similitud por bigramas);
+ *  1. títulos de la lista de reconocimiento (pestaña `termino_reconocimiento_fragmento`),
+ *     comparados con tolerancia a errores de tipeo (similitud por bigramas);
  *  2. títulos al inicio de línea seguidos de `:` (por ejemplo "FINAL: ...");
  *  3. encabezados en mayúsculas, cortos y sin viñetas ni datos de tabla.
  */
 
+import { createHash } from 'node:crypto';
 import { normalizar } from './normalizar.js';
-
-
-/** Títulos que aparecen en los documentos de las materias (lista de trabajo). */
-const TITULOS_CONOCIDOS = [
-  'fundamentacion', 'presentacion', 'objetivo de la materia', 'objetivos de la materia',
-  'objetivos de aprendizaje', 'objetivos especificos', 'recorridos', 'unidades tematicas',
-  'contenidos minimos', 'bibliografia', 'formas y criterios de evaluacion',
-  'metodologia de ensenanza y aprendizaje', 'regimen de cursada y evaluacion',
-  'condiciones de regularizacion de la cursada', 'condiciones de aprobacion de la materia',
-  'promocion', 'final', 'cronograma',
-] as const;
 
 const bigramas = (s: string): Set<string> => {
   const t = ` ${s} `;
@@ -42,15 +32,18 @@ function similitudBigramas(a: string, b: string): number {
   return (2 * comunes) / (A.size + B.size);
 }
 
-/** Título conocido si el texto es ese título (no una oración que lo contiene). */
-export function tituloConocido(texto: string): string | null {
+/**
+ * Título reconocido si el texto es uno de la lista (no una oración que lo contiene).
+ * La lista llega normalizada al cargarse (ver sync-transform).
+ */
+export function tituloConocido(texto: string, titulos: readonly string[]): string | null {
   const t = texto.trim();
   // Un título no termina en punto ni empieza con viñeta.
   if (/[.;,]$/.test(t) || /^[●○•·-]/.test(t)) return null;
   const n = normalizar(t);
   if (!n) return null;
   let mejor = { score: 0, titulo: '' };
-  for (const c of TITULOS_CONOCIDOS) {
+  for (const c of titulos) {
     const sc = similitudBigramas(n, c);
     if (sc > mejor.score) mejor = { score: sc, titulo: c };
   }
@@ -66,6 +59,15 @@ export function esEncabezadoMayusculas(t: string): boolean {
     && !/[●○•/|°\d]/.test(t);
 }
 
+/**
+ * Huella de la extracción: el md5 del PDF más la lista de títulos. Si cambia
+ * cualquiera de los dos, los fragmentos guardados ya no corresponden y hay que
+ * volver a extraer.
+ */
+export function firmaExtraccion(md5: string, titulos: readonly string[]): string {
+  return createHash('md5').update(`${md5}\n${[...titulos].sort().join('\n')}`).digest('hex');
+}
+
 export interface LineaPdf {
   text: string;
   page: number;
@@ -79,7 +81,7 @@ export interface Fragmento {
 }
 
 /** Parte las líneas en fragmentos por título. Pura: se prueba sin PDF. */
-export function fragmentar(lineas: LineaPdf[]): Fragmento[] {
+export function fragmentar(lineas: LineaPdf[], titulos: readonly string[]): Fragmento[] {
   const fragmentos: Array<{ titulo: string; cuerpo: string[] }> = [];
   let actual: { titulo: string; cuerpo: string[] } = { titulo: '', cuerpo: [] };
 
@@ -89,15 +91,15 @@ export function fragmentar(lineas: LineaPdf[]): Fragmento[] {
 
   for (const l of lineas) {
     const t = l.text;
-    // 1. La línea entera es un título conocido.
-    if (t.length <= 70 && tituloConocido(t.replace(/\s*:\s*$/, ''))) {
+    // 1. La línea entera es un título reconocido.
+    if (t.length <= 70 && tituloConocido(t.replace(/\s*:\s*$/, ''), titulos)) {
       cerrar();
       actual = { titulo: t, cuerpo: [] };
       continue;
     }
     // 2. Título al inicio de la línea seguido de `:`.
     const m = /^([^:]{2,60}):\s*(.*)$/.exec(t);
-    if (m && tituloConocido(m[1]!)) {
+    if (m && tituloConocido(m[1]!, titulos)) {
       cerrar();
       actual = { titulo: m[1]!.trim(), cuerpo: m[2] ? [m[2]] : [] };
       continue;
@@ -114,4 +116,3 @@ export function fragmentar(lineas: LineaPdf[]): Fragmento[] {
 
   return fragmentos.map((f) => ({ titulo: f.titulo, texto: f.cuerpo.join(' ') }));
 }
-

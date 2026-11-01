@@ -76,7 +76,7 @@ backend/src/
 ├── lib/                            # Lógica pura, sin E/S
 │   ├── normalizar.ts               # Normalización de texto (consulta, variantes y documentos)
 │   ├── comisiones.ts               # Nombre de documento → comisión; filtrado
-│   ├── secciones.ts                # Parte las líneas de un PDF en secciones por título
+│   ├── fragmentos.ts                # Parte las líneas de un PDF en fragmentos por título
 │   ├── planilla.ts                 # Valida pestañas y encabezados de la planilla
 │   └── metricas.ts                 # Calendario del reporte, rango del mes y tabla
 ├── db/

@@ -81,6 +81,9 @@ export const contenidoPrueba: Partial<Record<Pestana, Fila[]>> = {
     'como', 'cuando', 'donde', 'cual', 'cuales', 'para', 'necesito', 'quiero',
     'puedo', 'hay', 'tiene', 'tengo', 'sobre', 'informacion', 'una', 'uno',
   ].map((termino) => ({ termino })),
+  termino_reconocimiento_fragmento: [
+    'fundamentacion', 'presentacion', 'bibliografia', 'promocion', 'final', 'cronograma',
+  ].map((termino) => ({ termino })),
   contactos: [
     {
       clave: 'bedelia',

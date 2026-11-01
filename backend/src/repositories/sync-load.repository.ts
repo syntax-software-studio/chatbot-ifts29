@@ -28,6 +28,7 @@ export interface FichaDb {
 export async function vaciarDependientes(client: PoolClient): Promise<void> {
   await client.query('DELETE FROM termino_equivalente');
   await client.query('DELETE FROM termino_ignorado');
+  await client.query('DELETE FROM termino_reconocimiento_fragmento');
   await client.query('DELETE FROM pregunta_variante');
   await client.query('DELETE FROM pregunta');
   await client.query('DELETE FROM intencion');
@@ -277,4 +278,14 @@ export async function desvincularDocumentos(claves: string[]): Promise<void> {
       WHERE clave = ANY($1::text[])`,
     [claves],
   );
+}
+
+export async function insertarTerminoFragmento(client: PoolClient, termino: string): Promise<void> {
+  await client.query('INSERT INTO termino_reconocimiento_fragmento (termino) VALUES ($1)', [termino]);
+}
+
+/** Títulos que reconocen una sección dentro de los PDF. Llegan ya normalizados. */
+export async function terminosFragmento(): Promise<string[]> {
+  const r = await query<{ termino: string }>('SELECT termino FROM termino_reconocimiento_fragmento ORDER BY termino');
+  return r.rows.map((x) => x.termino);
 }

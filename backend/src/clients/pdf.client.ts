@@ -1,14 +1,14 @@
 /**
  * Cliente de PDF: lee las líneas de texto de un PDF, en orden de lectura.
  * Usa pdfjs-dist (JavaScript puro, sin binarios). 
- * No decide secciones: eso lo hace * `lib/secciones.ts`.
+ * No decide secciones: eso lo hace * `lib/fragmentos.ts`.
  */
 
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { LineaPdf } from '../lib/secciones.js';
+import type { LineaPdf } from '../lib/fragmentos.js';
 
 /** Carga perezosa de pdfjs-dist, resuelta desde el package.json del backend. */
 let pdfjsPromesa: Promise<PdfjsModulo> | null = null;

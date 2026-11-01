@@ -117,6 +117,7 @@ export interface DatosContenido {
   contactos: Contacto[];
   alias: Alias[];
   ignorados: TerminoIgnorado[];
+  terminosFragmento: string[];
 }
 
 interface ResultadoConversion {
@@ -263,6 +264,15 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     ignoradosVistos.add(t.termino);
   }
 
+  // --- Términos que reconocen una sección dentro de los PDF ---
+  const terminosFragmento: string[] = filas('termino_reconocimiento_fragmento').map((f) => normalizar(f.termino!));
+  const fragmentoVistos = new Set<string>();
+  for (const t of terminosFragmento) {
+    if (!t) errores.push('termino_reconocimiento_fragmento: hay una fila vacía.');
+    if (fragmentoVistos.has(t)) errores.push(`termino_reconocimiento_fragmento "${t}" está repetido.`);
+    fragmentoVistos.add(t);
+  }
+
   // --- Base de conocimiento ---
   const intenciones: Intencion[] = filas('intenciones').map((f) => {
     const donde = `intenciones "${f.clave}"`;
@@ -351,6 +361,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       contactos,
       alias,
       ignorados,
+      terminosFragmento,
     },
   };
 }

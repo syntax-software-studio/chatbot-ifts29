@@ -27,6 +27,7 @@ const contenidoValido = (): Record<string, Valores> => ({
   contactos: pestana('contactos', ['bedelia', 'Bedelía', 'Bedelía', 'General', 'bedelia@bue.edu.ar', '', 'Trámites', '3', 'DERIVACION_OP_TRAMITES']),
   alias: pestana('alias'),
   ignorados: pestana('ignorados', ['como']),
+  termino_reconocimiento_fragmento: pestana('termino_reconocimiento_fragmento', ['bibliografia']),
 });
 
 test('un contenido válido se interpreta completo y sin errores', () => {

@@ -24,6 +24,8 @@ import {
   insertarAdjunto,
   insertarAlias,
   insertarIgnorado,
+  insertarTerminoFragmento,
+  terminosFragmento,
   insertarIntencion,
   insertarOpcionContacto,
   insertarPregunta,
@@ -37,6 +39,7 @@ import {
   vaciarDependientes,
 } from '../repositories/sync-load.repository.js';
 import { extraerFragmentos } from './sync-extract.service.js';
+import { firmaExtraccion } from '../lib/fragmentos.js';
 import type { DatosContenido, ResumenCarga } from './sync-transform.service.js';
 
 /** Lo que la sincronización necesita de Drive. Por defecto, el cliente real; en pruebas, un fake. */
@@ -83,9 +86,10 @@ async function actualizarFragmentos(
   archivo: { id: string; md5: string | null },
   mensajes: string[],
   drive: PuertoDrive,
+  titulos: string[],
 ): Promise<void> {
   try {
-    const fragmentos = await extraerFragmentos(await drive.descargarArchivo(archivo.id));
+    const fragmentos = await extraerFragmentos(await drive.descargarArchivo(archivo.id), titulos);
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
     // entra en el texto de búsqueda: casi ninguna sección lo repite.
     const codigo = clave.split('_')[0]!.toLowerCase();
@@ -98,7 +102,7 @@ async function actualizarFragmentos(
         texto: f.texto,
         textoBusqueda: normalizar(`${materia} ${f.titulo} ${f.texto}`),
       })),
-      archivo.md5,
+      firmaExtraccion(archivo.md5 ?? '', titulos),
     );
     mensajes.push(
       fragmentos.length > 0
@@ -154,6 +158,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   }
 
   const fichas = await fichasDocumentos();
+  const titulos = await terminosFragmento();
 
   for (const ficha of fichas) {
     if (!parsearDocumento(ficha.clave)) {
@@ -178,8 +183,8 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     if (!cambio && !resultado.dryRun) {
       // Ya estaba sincronizado. Solo se extrae si los fragmentos no son de esta
       // versión del archivo (por ejemplo, documentos anteriores a la extracción).
-      if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== archivo.md5) {
-        await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
+      if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== firmaExtraccion(archivo.md5 ?? '', titulos)) {
+        await actualizarFragmentos(ficha.clave, archivo, mensajes, drive, titulos);
       }
       continue;
     }
@@ -191,7 +196,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
-      await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
+      await actualizarFragmentos(ficha.clave, archivo, mensajes, drive, titulos);
     }
 
     resultado.actualizados += 1;
@@ -291,6 +296,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const a of datos.alias) await insertarAlias(client, a);
   for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
+  for (const t of datos.terminosFragmento) await insertarTerminoFragmento(client, t);
   for (const i of datos.intenciones) await insertarIntencion(client, i);
   const intencionId = await idsPorClave(client, 'intencion');
 

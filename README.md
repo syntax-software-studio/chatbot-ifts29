@@ -430,7 +430,7 @@ Las pruebas unitarias están junto al módulo que prueban (`src/**/*.test.ts`). 
 | `src/lib/test/normalizar.test.ts` | Unitaria | Normalización del texto, expansión de siglas y comparación por palabras con errores de tipeo |
 | `src/lib/test/comisiones.test.ts` | Unitaria | Comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
 | `src/lib/test/planilla.test.ts` | Unitaria | Validación de la planilla: encabezados, pestañas y filas |
-| `src/lib/test/secciones.test.ts` | Unitaria | Partición de un PDF en secciones por título, con tolerancia a errores de tipeo |
+| `src/lib/test/fragmentos.test.ts` | Unitaria | Partición de un PDF en secciones por título, con tolerancia a errores de tipeo |
 | `src/services/test/sync-transform.service.test.ts` | Unitaria | Conversión de la planilla a tipos de base y validación de referencias |
 | `src/repositories/test/kb-conocimiento.repository.test.ts` | Integración | Matching exacto y por similitud, y que la ambigüedad se preserve |
 | `src/services/test/kb.service.test.ts` | Integración | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |
