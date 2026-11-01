@@ -6,6 +6,7 @@
  */
 
 import { query } from '../db/pool.js';
+import { urlDeLectura } from '../clients/drive.js';
 import { notFound } from '../utils/errors.js';
 import type { Categoria, Contacto, Documento, NodoMenu, OpcionMenu, Respuesta, Derivacion, TipoOpcion } from '../db/types.js';
 
@@ -42,13 +43,12 @@ interface RawRespuesta {
 interface RawDocumento {
   id: number;
   clave: string;
-  nombre: string;
-  descripcion: string | null;
-  tipo: string;
-  mime_type: string;
-  drive_view_url: string | null;
-  vigente: boolean;
-  estado: Documento['estado'];
+  tipo: string | null;
+  materia: string | null;
+  comision: string | null;
+  anio: number | null;
+  cuatrimestre: string | null;
+  drive_file_id: string | null;
   actualizado_en: string | null;
   sincronizado_en: string | null;
 }
@@ -84,13 +84,14 @@ const toOpcion = (r: RawOpcion): OpcionMenu => ({
 const toDocumento = (r: RawDocumento): Documento => ({
   id: r.id,
   clave: r.clave,
-  nombre: r.nombre,
-  descripcion: r.descripcion,
-  tipo: r.tipo,
-  mimeType: r.mime_type,
-  url: r.drive_view_url,
-  vigente: r.vigente,
-  estado: r.estado,
+  nombre: `${r.clave}.pdf`,
+  tipo: r.tipo ?? 'documento',
+  materia: r.materia,
+  comision: r.comision,
+  anio: r.anio,
+  cuatrimestre: r.cuatrimestre,
+  mimeType: 'application/pdf',
+  url: r.drive_file_id ? urlDeLectura(r.drive_file_id) : null,
   fechaActualizacion: r.actualizado_en,
   sincronizado: r.sincronizado_en !== null,
 });
@@ -136,11 +137,11 @@ const SQL_RESPUESTA = `
    LIMIT 1`;
 
 const SQL_DOCUMENTOS_DE_RESPUESTA = `
-  SELECT d.id, d.clave, d.nombre, d.descripcion, d.tipo, d.mime_type,
-         d.drive_view_url, d.vigente, d.estado, d.actualizado_en, d.sincronizado_en
+  SELECT d.id, d.clave, d.tipo, d.materia, d.comision, d.anio, d.cuatrimestre,
+         d.drive_file_id, d.actualizado_en, d.sincronizado_en
     FROM respuesta_documento rd
     JOIN documento d ON d.id = rd.documento_id
-   WHERE rd.respuesta_id = $1 AND d.estado <> 'archivado'
+   WHERE rd.respuesta_id = $1
    ORDER BY rd.orden, d.id`;
 
 const SQL_CONTACTOS_DE_OPCION = `

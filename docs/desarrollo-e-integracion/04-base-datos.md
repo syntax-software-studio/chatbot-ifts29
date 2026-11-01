@@ -19,7 +19,7 @@
 | `menu_categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
 | `menu_opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
 | `respuesta` | Texto institucional validado | `clave` (única) |
-| `documento` | Ficha de un archivo de Drive | `clave` (única), `drive_file_id` (única), `drive_nombre_archivo` |
+| `documento` | Ficha de un archivo de Drive. `materia`, `tipo`, `comision`, `anio` y `cuatrimestre` se leen del nombre del archivo. Disponible = está en la carpeta de Drive | `clave` (única), `drive_file_id` (única; NULL = no está en la carpeta) |
 | `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
 | `contacto` | Persona o área de derivación | `clave` (única), `comision`, `motivo` |
 | `opcion_contacto` | Contacto de una opción de derivación | (`opcion_id`, `contacto_id`) |

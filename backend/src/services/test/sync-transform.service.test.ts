@@ -47,10 +47,10 @@ test('el umbral con coma decimal se convierte a número', () => {
   assert.equal(r.datos?.preguntas[0]?.umbral, 0.7);
 });
 
-test('el documento se identifica por el nombre sin .pdf, y conserva el nombre de archivo', () => {
+test('el documento se identifica por el nombre sin .pdf', () => {
   const r = convertirContenido(contenidoValido());
   assert.deepEqual(r.datos?.documentos, [
-    { clave: 'ABD_programa_2026_1C', nombreArchivo: 'ABD_programa_2026_1C.pdf' },
+    { clave: 'ABD_programa_2026_1C' },
   ]);
   assert.equal(r.datos?.respuestaDocumentos[0]?.documento, 'ABD_programa_2026_1C');
 });

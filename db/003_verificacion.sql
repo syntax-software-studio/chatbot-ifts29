@@ -50,11 +50,11 @@ SELECT r.id, r.clave, LEFT(r.texto, 60) AS texto
 
 \echo ''
 \echo '=== 6. Documentos adjuntos de ABD_OP_CRONO (A y B: pregunta de comision) ==='
-SELECT d.clave, d.mime_type, d.vigente, d.estado, d.sincronizado_en
+SELECT d.clave, d.materia, d.tipo, d.comision, d.drive_file_id, d.sincronizado_en
   FROM menu_opcion o
   JOIN respuesta_documento rd ON rd.respuesta_id = o.respuesta_id
   JOIN documento d            ON d.id = rd.documento_id
- WHERE o.clave = 'ABD_OP_CRONO' AND d.estado <> 'archivado'
+ WHERE o.clave = 'ABD_OP_CRONO'
  ORDER BY rd.orden, d.id;
 
 \echo ''
@@ -83,17 +83,12 @@ ROLLBACK;
 BEGIN;
 UPDATE documento
    SET drive_file_id        = '1TESTdriveFileId0000000000000000',
-       drive_view_url       = 'https://drive.google.com/file/d/1TESTdriveFileId0000000000000000/view',
-       drive_url            = 'https://drive.google.com/uc?export=download&id=1TESTdriveFileId0000000000000000',
        drive_md5            = 'deadbeef',
-       drive_modified_time  = now(),
        sincronizado_en      = now(),
-       actualizado_en       = now(),
-       vigente              = TRUE,
-       estado               = 'vigente'
+       actualizado_en       = now()
  WHERE clave = 'TP_programa_2026_1C';
 
-SELECT clave, nombre, drive_view_url, vigente, estado, sincronizado_en
+SELECT clave, drive_file_id, drive_md5, sincronizado_en
   FROM documento WHERE clave = 'TP_programa_2026_1C';
 ROLLBACK;
 
@@ -112,7 +107,7 @@ SELECT c.clave AS categoria,
 \echo ''
 \echo '=== 11. Vista de mantenimiento v_menu_arbol (menu raiz y una materia) ==='
 SELECT categoria_clave, opcion_clave, opcion_tipo, es_volver,
-       respuesta_clave, documento_clave, documento_estado
+       respuesta_clave, documento_clave, documento_url
   FROM v_menu_arbol
  WHERE categoria_clave IN ('RAIZ', 'M_TECNICAS_PROGRAMACION')
  ORDER BY orden;

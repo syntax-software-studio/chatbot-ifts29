@@ -11,6 +11,13 @@
 import { clienteDrive } from '../clients/drive.client.js';
 import { env, hasGoogleDrive } from '../config/env.js';
 
+/** Vista de lectura de un archivo de Drive (enlace canónico). */
+export const urlDeLectura = (fileId: string): string => `https://drive.google.com/file/d/${fileId}/view`;
+
+/** Descarga directa de un archivo de Drive. */
+export const urlDeDescarga = (fileId: string): string => `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+
 /** Verifica si las credenciales de Drive pueden autenticarse. */
 export async function verificarDrive(): Promise<{ ok: boolean; detalle: string }> {
   if (!hasGoogleDrive()) {
@@ -122,7 +129,7 @@ const cacheEnlaces = new Map<string, { url: string; expira: number }>();
  *   en la carpeta, o que la carpeta ya sea pública.
  */
 export async function enlaceDeLectura(fileId: string): Promise<string> {
-  const canonico = `https://drive.google.com/file/d/${fileId}/view`;
+  const canonico = urlDeLectura(fileId);
 
   const cacheado = cacheEnlaces.get(fileId);
   if (cacheado && cacheado.expira > Date.now()) return cacheado.url;
@@ -148,7 +155,7 @@ export async function enlaceDeLectura(fileId: string): Promise<string> {
 
 /** Construye la URL de descarga directa (descarga el archivo, no la vista). */
 export function enlaceDeDescarga(fileId: string): string {
-  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  return urlDeDescarga(fileId);
 }
 
 /**

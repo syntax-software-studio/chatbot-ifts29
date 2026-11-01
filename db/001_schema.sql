@@ -115,43 +115,34 @@ COMMENT ON COLUMN menu_opcion.categoria_destino_id IS 'Categoria a la que navega
 COMMENT ON COLUMN menu_opcion.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
 
 -- ---------------------------------------------------------------------------
--- 4. DOCUMENTO  ->  ficha del archivo institucional alojado en Google Drive
---    Nunca se guarda el binario: solo el fileId y la metadata de vigencia.
---    (RF07: diferenciar vigente de histórico / reemplazado / de ejemplo)
+-- 4. DOCUMENTO  ->  ficha de un archivo de Drive
+--    Nunca se guarda el binario ni los enlaces: se calculan desde drive_file_id.
+--    Disponible = el archivo está en la carpeta de Drive. No hay estados: si el
+--    archivo sale de la carpeta, la sincronización quita drive_file_id.
+--    materia, tipo, comision, anio y cuatrimestre se leen del nombre del archivo
+--    (ver docs/desarrollo-e-integracion/07). Quedan NULL si el nombre no cumple
+--    la convención.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS documento (
     id                  SERIAL PRIMARY KEY,
     clave               TEXT        NOT NULL UNIQUE,
-    nombre              TEXT        NOT NULL,
-    descripcion         TEXT,
-    tipo                TEXT        NOT NULL DEFAULT 'documento'
-                            CHECK (tipo IN ('programa', 'cronograma', 'condiciones_aprobacion',
-                                            'instructivo', 'presentacion', 'planilla', 'documento')),
+    materia             TEXT,
+    tipo                TEXT,
+    comision            TEXT        CHECK (comision ~ '^[A-Z]$'),
+    anio                INTEGER,
+    cuatrimestre        TEXT        CHECK (cuatrimestre IN ('1C', '2C')),
     drive_file_id       TEXT        UNIQUE,
-    drive_nombre_archivo TEXT,
-    mime_type           TEXT        NOT NULL DEFAULT 'application/pdf',
-    drive_url           TEXT,
-    drive_view_url      TEXT,
     drive_md5           TEXT,
     -- md5 del archivo con el que se extrajeron sus fragmentos. Si difiere de
     -- drive_md5, la sincronización vuelve a extraer. Un PDF sin texto queda
     -- marcado igual, sin volver a descargarlo en cada sync.
     fragmentos_md5      TEXT,
-    drive_modified_time TIMESTAMPTZ,
-    drive_carpeta       TEXT,
-    vigente             BOOLEAN     NOT NULL DEFAULT TRUE,
-    estado              TEXT        NOT NULL DEFAULT 'vigente'
-                            CHECK (estado IN ('borrador', 'revision', 'vigente', 'reemplazado', 'archivado')),
-    vigencia_desde      DATE,
-    vigencia_hasta      DATE,
-    observaciones       TEXT,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
     sincronizado_en     TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS documento_vigente_idx  ON documento (vigente, estado);
-CREATE INDEX IF NOT EXISTS documento_tipo_idx      ON documento (tipo);
+CREATE INDEX IF NOT EXISTS documento_materia_idx ON documento (materia, tipo);
 
 -- ---------------------------------------------------------------------------
 -- 4b. DOCUMENTO_FRAGMENTO  ->  secciones de un documento para la búsqueda de pasajes
@@ -179,9 +170,8 @@ CREATE INDEX IF NOT EXISTS documento_fragmento_fts_idx ON documento_fragmento US
 COMMENT ON TABLE documento_fragmento IS 'Secciones de un documento (por título), para la búsqueda de pasajes. Se regeneran al sincronizar.';
 
 COMMENT ON TABLE  documento                   IS 'Documentos institucionales referenciados desde Drive (solo lectura).';
-COMMENT ON COLUMN documento.drive_file_id     IS 'Identificador del archivo en Google Drive.';
-COMMENT ON COLUMN documento.drive_view_url    IS 'Enlace publico de lectura generado/verificado por la sincronizacion.';
-COMMENT ON COLUMN documento.estado            IS 'Ciclo de vida: borrador -> revision -> vigente -> reemplazado/archivado.';
+COMMENT ON COLUMN documento.drive_file_id     IS 'Identificador del archivo en Drive. NULL = no está en la carpeta: el bot no ofrece enlace.';
+COMMENT ON COLUMN documento.comision          IS 'Comision leida del nombre del archivo (una letra). NULL si el documento no depende de la comision.';
 
 -- ---------------------------------------------------------------------------
 -- 5. RESPUESTA_DOCUMENTO  ->  documentos adjuntos a una respuesta
@@ -447,9 +437,10 @@ SELECT
     r.clave              AS respuesta_clave,
     r.texto              AS respuesta_texto,
     d.clave              AS documento_clave,
-    d.nombre             AS documento_nombre,
-    d.drive_view_url     AS documento_url,
-    d.estado             AS documento_estado
+    d.clave || '.pdf'    AS documento_nombre,
+    CASE WHEN d.drive_file_id IS NOT NULL
+         THEN 'https://drive.google.com/file/d/' || d.drive_file_id || '/view'
+    END                  AS documento_url
 FROM menu_opcion o
 JOIN menu_categoria   c  ON c.id = o.categoria_id
 LEFT JOIN menu_categoria cd ON cd.id = o.categoria_destino_id

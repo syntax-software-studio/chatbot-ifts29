@@ -1,6 +1,6 @@
 # 11 · Revisión del modelo de datos y contrato de contenido
 
-**Estado:** propuesta (borrador). Describe lo que hay hoy y propone cambios. Implementado: renombrado de tablas y vistas, columnas (§11.6 y §11.8) y encabezados de la planilla, en código y SQL. Pendientes: bases existentes (local y Neon) y las decisiones de §11.7.
+**Estado:** propuesta (borrador). Describe lo que hay hoy y propone cambios. Implementado: renombrado de tablas y vistas, columnas (§11.6 y §11.8) y encabezados de la planilla, en código y SQL. Implementado además: tabla `documento` sin estados (§11.7.1), con campos del nombre del archivo. Pendientes: bases existentes (local y Neon).
 
 **Para quién:** el equipo de desarrollo y, en la entrega, quien gestione el contenido del asistente. Los nombres de tablas y columnas se revisan con ese criterio: que alguien sin formación técnica pueda entender qué carga y qué significa.
 
@@ -136,7 +136,7 @@ Los nombres de tablas no cambian la planilla. Cambian el SQL, los repositorios y
 
 ## 11.7 Decisiones abiertas
 
-1. **Ciclo de vida de los documentos.** ¿Alcanza con `vigente` / `archivado`, o se necesitan `borrador`, `revision` y `reemplazado`? Si es lo segundo, la sincronización deja de pisar el estado.
+1. **Ciclo de vida de los documentos. Decidido:** sin estados. Un documento está disponible si y solo si su archivo está en la carpeta de Drive. Se eliminan `estado` y `vigente`. Si el archivo sale de la carpeta, la sincronización quita su enlace y el bot deja de ofrecerlo. Si un documento debe dejar de mostrarse y seguir en Drive, no se contempla: el archivo se retira de la carpeta.
 2. **Contacto y opción.** Hoy la relación es 1:1 y se propone una columna `opcion_id` en `contacto`. Si en el futuro un contacto puede estar en varias opciones, se vuelve a la tabla N:M.
 3. **Títulos de sección.** ¿Pasan a la planilla o quedan en código?
 4. **Idioma.** Se mantiene el castellano en las tablas y columnas. Los términos técnicos estándar (`search_vector`, `gin_trgm_ops`) quedan en inglés.

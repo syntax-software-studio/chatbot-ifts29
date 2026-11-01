@@ -15,12 +15,9 @@ export interface Documento {
   id: number;
   clave: string;
   nombre: string;
-  descripcion: string | null;
   tipo: string;
   mimeType: string;
   url: string | null;
-  vigente: boolean;
-  estado: 'borrador' | 'revision' | 'vigente' | 'reemplazado' | 'archivado';
   fechaActualizacion: string | null;
   sincronizado: boolean;
 }

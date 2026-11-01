@@ -6,6 +6,7 @@
  */
 
 import type { PoolClient } from 'pg';
+import { parsearDocumento } from '../lib/comisiones.js';
 import { query } from '../db/pool.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 
@@ -14,7 +15,6 @@ export type Tabla = 'menu_categoria' | 'respuesta' | 'menu_opcion' | 'documento'
 
 export interface FichaDb {
   clave: string;
-  drive_nombre_archivo: string | null;
   drive_file_id: string | null;
   drive_md5: string | null;
   fragmentos_md5: string | null;
@@ -93,13 +93,16 @@ export async function upsertOpcion(
   );
 }
 
-/** Ficha del documento, por nombre de archivo. Drive completa el resto después. */
-export async function upsertDocumento(client: PoolClient, d: { clave: string; nombreArchivo: string }): Promise<void> {
+/** Ficha del documento, por nombre de archivo. Los campos del nombre se guardan; Drive completa el resto después. */
+export async function upsertDocumento(client: PoolClient, d: { clave: string }): Promise<void> {
+  const p = parsearDocumento(d.clave);
   await client.query(
-    `INSERT INTO documento (clave, nombre, tipo, drive_nombre_archivo, vigente, estado)
-     VALUES ($1, $2, 'documento', $2, TRUE, 'vigente')
-     ON CONFLICT (clave) DO UPDATE SET drive_nombre_archivo = EXCLUDED.drive_nombre_archivo, vigente = TRUE, estado = 'vigente'`,
-    [d.clave, d.nombreArchivo],
+    `INSERT INTO documento (clave, materia, tipo, comision, anio, cuatrimestre)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (clave) DO UPDATE
+        SET materia = EXCLUDED.materia, tipo = EXCLUDED.tipo, comision = EXCLUDED.comision,
+            anio = EXCLUDED.anio, cuatrimestre = EXCLUDED.cuatrimestre`,
+    [d.clave, p?.materia ?? null, p?.tipo ?? null, p?.comision ?? null, p?.anio ?? null, p?.cuatrimestre ?? null],
   );
 }
 
@@ -203,36 +206,23 @@ export async function expansionDeAlias(alias: string): Promise<string | undefine
 
 export async function fichasDocumentos(): Promise<FichaDb[]> {
   const r = await query<FichaDb>(
-    `SELECT clave, drive_nombre_archivo, drive_file_id, drive_md5, fragmentos_md5
+    `SELECT clave, drive_file_id, drive_md5, fragmentos_md5
        FROM documento
-      WHERE estado <> 'archivado'
       ORDER BY clave`,
   );
   return r.rows;
 }
 
-/** Datos de Drive que guarda la ficha al sincronizarla. */
-export async function actualizarFicha(
-  clave: string,
-  archivo: Pick<ArchivoDrive, 'id' | 'nombre' | 'mimeType' | 'md5' | 'modifiedTime'>,
-  enlaces: { descarga: string; lectura: string },
-): Promise<void> {
+/** Vincula la ficha con el archivo de Drive que le corresponde. */
+export async function actualizarFicha(clave: string, archivo: Pick<ArchivoDrive, 'id' | 'md5'>): Promise<void> {
   await query(
     `UPDATE documento
-        SET drive_file_id        = $1,
-            drive_nombre_archivo = $2,
-            mime_type            = $3,
-            drive_md5            = $4,
-            drive_modified_time  = $5,
-            drive_url            = $6,
-            drive_view_url       = $7,
-            nombre               = COALESCE(NULLIF(nombre, ''), $2),
-            sincronizado_en      = now(),
-            actualizado_en       = now(),
-            vigente              = TRUE,
-            estado               = 'vigente'
-      WHERE clave = $8`,
-    [archivo.id, archivo.nombre, archivo.mimeType, archivo.md5, archivo.modifiedTime, enlaces.descarga, enlaces.lectura, clave],
+        SET drive_file_id   = $1,
+            drive_md5       = $2,
+            sincronizado_en = now(),
+            actualizado_en  = now()
+      WHERE clave = $3`,
+    [archivo.id, archivo.md5, clave],
   );
 }
 
@@ -257,15 +247,34 @@ export async function reemplazarFragmentos(
   await query('UPDATE documento SET fragmentos_md5 = $2 WHERE clave = $1', [clave, md5]);
 }
 
-/** Documentos vigentes cuyo archivo ya no aparece en Drive. */
-export async function contarHuerfanos(idsVistos: string[]): Promise<number> {
-  const r = await query<{ n: number }>(
-    `SELECT count(*)::int AS n
+/** Documentos vinculados cuyo archivo ya no está en la carpeta de Drive. */
+export async function documentosAusentes(idsVistos: string[]): Promise<string[]> {
+  const r = await query<{ clave: string }>(
+    `SELECT clave
        FROM documento
       WHERE drive_file_id IS NOT NULL
-        AND estado = 'vigente'
-        AND drive_file_id <> ALL($1::text[])`,
+        AND drive_file_id <> ALL($1::text[])
+      ORDER BY clave`,
     [idsVistos],
   );
-  return r.rows[0]?.n ?? 0;
+  return r.rows.map((x) => x.clave);
+}
+
+/**
+ * Quita el archivo a los documentos que salieron de la carpeta. Sin archivo no hay
+ * enlace ni texto que mostrar, así que también se borran sus fragmentos.
+ */
+export async function desvincularDocumentos(claves: string[]): Promise<void> {
+  if (claves.length === 0) return;
+  await query(
+    `DELETE FROM documento_fragmento
+      WHERE documento_id IN (SELECT id FROM documento WHERE clave = ANY($1::text[]))`,
+    [claves],
+  );
+  await query(
+    `UPDATE documento
+        SET drive_file_id = NULL, drive_md5 = NULL, fragmentos_md5 = NULL, actualizado_en = now()
+      WHERE clave = ANY($1::text[])`,
+    [claves],
+  );
 }

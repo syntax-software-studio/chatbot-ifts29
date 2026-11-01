@@ -9,13 +9,15 @@
 import type { PoolClient } from 'pg';
 import { getPool } from '../db/pool.js';
 import { hasGoogleDrive } from '../config/env.js';
+import { parsearDocumento } from '../lib/comisiones.js';
 import { normalizar } from '../lib/normalizar.js';
 import * as driveReal from '../clients/drive.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 import {
   actualizarFicha,
   borrarFueraDe,
-  contarHuerfanos,
+  desvincularDocumentos,
+  documentosAusentes,
   expansionDeAlias,
   fichasDocumentos,
   idsPorClave,
@@ -121,9 +123,9 @@ async function actualizarFragmentos(
  * peor que un enlace ausente (RF07), por eso los que no coinciden se reportan
  * en `sinMatch` para que el equipo renombre el archivo en Drive.
  *
- * No borra documentos: los que dejan de aparecer en Drive se marcan como
- * `vigente = false` en vez de desaparecer, para que el estudiante nunca reciba un
- * enlace roto (RF07).
+ * No borra documentos: los que dejan de aparecer en Drive pierden su archivo
+ * (`drive_file_id`). Sin archivo el bot no ofrece enlace, así que el estudiante
+ * nunca recibe uno roto (RF07).
  */
 export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): Promise<ResultadoSync> {
   const drive = opciones.drive ?? driveReal;
@@ -154,7 +156,10 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   const fichas = await fichasDocumentos();
 
   for (const ficha of fichas) {
-    const esperado = ficha.drive_nombre_archivo;
+    if (!parsearDocumento(ficha.clave)) {
+      mensajes.push(`nombre fuera de la convención: ${ficha.clave} (sus campos de materia, tipo y año quedan vacíos)`);
+    }
+    const esperado = `${ficha.clave}.pdf`;
     let archivo: ArchivoDrive | undefined;
 
     if (ficha.drive_file_id) {
@@ -180,11 +185,9 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     }
 
     if (!resultado.dryRun) {
-      const enlace = await drive.enlaceDeLectura(archivo.id);
-      await actualizarFicha(ficha.clave, archivo, {
-        descarga: drive.enlaceDeDescarga(archivo.id),
-        lectura: enlace,
-      });
+      // Hace público el archivo si la configuración lo pide. El enlace se calcula al consultar.
+      await drive.enlaceDeLectura(archivo.id);
+      await actualizarFicha(ficha.clave, archivo);
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
@@ -195,14 +198,11 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     mensajes.push(`${cambio ? 'actualizado' : 'verificado'}: ${ficha.clave} -> ${archivo.nombre}`);
   }
 
-  // Fichas ya sincronizadas cuyo archivo desapareció de Drive.
-  if (!resultado.dryRun) {
-    const huerfanos = await contarHuerfanos(archivos.map((a) => a.id));
-    if (huerfanos > 0) {
-      mensajes.push(
-        `${huerfanos} documento(s) marcados como vigente pero ausentes de Drive: revisar antes de publicar.`,
-      );
-    }
+  // Documentos vinculados cuyo archivo ya no está en la carpeta.
+  const ausentes = await documentosAusentes(archivos.map((a) => a.id));
+  if (!resultado.dryRun) await desvincularDocumentos(ausentes);
+  for (const clave of ausentes) {
+    mensajes.push(`sin archivo en Drive: ${clave} (el bot no ofrece enlace hasta que se vuelva a subir)`);
   }
 
   return resultado;

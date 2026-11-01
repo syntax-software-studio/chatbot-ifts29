@@ -49,10 +49,8 @@ export interface Opcion {
 }
 
 export interface Documento {
-  /** Nombre del archivo sin extensión: identifica la ficha. */
+  /** Nombre del archivo sin extensión: identifica la ficha y el archivo en Drive. */
   clave: string;
-  /** Nombre completo del archivo en Drive. */
-  nombreArchivo: string;
 }
 
 export interface RespuestaDocumento {
@@ -238,7 +236,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     };
   });
   const documentos: Documento[] = [...new Map(
-    respuestaDocumentos.map((rd) => [rd.documento, { clave: rd.documento, nombreArchivo: `${rd.documento}.pdf` }]),
+    respuestaDocumentos.map((rd) => [rd.documento, { clave: rd.documento }]),
   ).values()];
 
   // --- Alias (siglas) ---

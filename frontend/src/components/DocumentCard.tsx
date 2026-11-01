@@ -50,7 +50,6 @@ export function DocumentCard({ doc }: PropsDocumento) {
         <span className="ifts-doc__nombre">📄 {doc.nombre}</span>
         <span className="ifts-doc__meta">
           <span className="ifts-doc__tipo">{etiquetaTipo(doc)}</span>
-          {doc.vigente ? <span>Vigente</span> : <span>Histórico</span>}
           {actualizado ? <span>· Actualizado {actualizado}</span> : null}
         </span>
 
