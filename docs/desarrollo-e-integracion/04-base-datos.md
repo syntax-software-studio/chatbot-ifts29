@@ -1,6 +1,6 @@
 # 4. Base de Datos
 
-**Estado:** vigente. Describe el esquema y el flujo de carga actuales.
+Describe el esquema y el flujo de carga actuales.
 
 ## 4.1 Resumen
 
@@ -37,8 +37,10 @@ Una restricción de la tabla impide combinaciones inválidas.
 |---|---|
 | `pregunta` | Formulación canónica de una opción del menú (`opcion_id`), con prioridad y umbral |
 | `pregunta_variante` | Redacciones posibles, ya normalizadas (`texto_normalizado`), con peso |
-| `termino_equivalente` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
+| `termino_equivalente` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `equivalentes` |
 | `termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
+| `palabra_vacia` | Palabras que se quitan al normalizar consultas y variantes ("de", "la", "y"...). Se cargan desde la pestaña `palabras_vacias` |
+| `termino_reconocimiento_fragmento` | Títulos de sección que reconocen los PDF para partirlos en fragmentos. Se cargan desde la pestaña `reconocimiento_fragmentos` |
 
 `pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', texto_normalizado)`) que usa la búsqueda de palabras.
 
@@ -56,7 +58,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-proximas-iteraciones.md), sección 5). |
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-post-mvp.md), sección 5). |
 | `metrica_exportacion` | Un registro por mes publicado en la planilla de métricas: `mes` (`AAAA-MM`), ID de la planilla, registros, total y fecha de la última publicación. Lo actualiza la exportación mensual; republicar un mes reemplaza su fila. |
 
 ### Vistas
@@ -68,16 +70,15 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 ```mermaid
 erDiagram
-    CATEGORIA ||--o{ OPCION_MENU : contiene
-    CATEGORIA ||--o{ OPCION_MENU : "destino de navegar"
-    RESPUESTA ||--o{ OPCION_MENU : muestra
+    MENU_CATEGORIA ||--o{ OPCION : contiene
+    MENU_CATEGORIA ||--o{ OPCION : "destino de navegar"
+    RESPUESTA ||--o{ OPCION : muestra
     RESPUESTA ||--o{ RESPUESTA_DOCUMENTO : adjunta
     DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : "es adjunto de"
-    OPCION_MENU ||--o{ OPCION_CONTACTO : deriva
-    CONTACTO ||--o{ OPCION_CONTACTO : "es derivado por"
-    OPCION_MENU ||--o{ PREGUNTA : "se busca por"
+    OPCION ||--o{ CONTACTO : deriva
+    OPCION ||--o{ PREGUNTA : "se busca por"
     PREGUNTA ||--o{ PREGUNTA_VARIANTE : tiene
-    OPCION_MENU ||--o{ METRICA_OPCION : "se registra en"
+    OPCION ||--o{ METRICA_OPCION : "se registra en"
 ```
 
 ## 4.4 Carga y sincronización

@@ -1,6 +1,6 @@
 # 6. Pruebas de Integración
 
-**Estado:** vigente. Resultados de la última ejecución: **44 pruebas de integración, todas pasando**.
+Resultados de la última ejecución: **16 pruebas de integración, todas pasando**.
 
 ## 6.1 Qué son
 

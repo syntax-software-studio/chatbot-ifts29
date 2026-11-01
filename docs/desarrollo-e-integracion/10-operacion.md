@@ -1,6 +1,6 @@
 # 10. Tareas operativas
 
-**Estado:** vigente. Lista de las tareas que se repiten sobre la base, la sincronización y la exportación de métricas. Cada tarea dice cuándo se hace, cómo, cómo se verifica y qué riesgo tiene.
+Lista de las tareas que se repiten sobre la base, la sincronización y la exportación de métricas. Cada tarea dice cuándo se hace, cómo, cómo se verifica y qué riesgo tiene.
 
 **Para quién:** quien opera el sistema en local o en producción (Neon y Vercel).
 
@@ -72,7 +72,7 @@ UPDATE documento SET fragmentos_md5 = NULL;
 
 Después, correr la sincronización ([10.2](#102-sincronizar-el-contenido)). Como el MD5 ya no coincide, cada documento se descarga y se extrae de nuevo.
 
-- Son todos los documentos, con sus descargas de Drive. Hacerlo en local es más seguro que dentro de la función de Vercel, que tiene 30 s de máximo (ver [09](09-pendientes-proximas-iteraciones.md), sección 6).
+- Son todos los documentos, con sus descargas de Drive. Hacerlo en local es más seguro que dentro de la función de Vercel, que tiene 30 s de máximo (ver [09](09-pendientes-post-mvp.md), sección 6).
 - Si la sincronización se corta a mitad, los documentos sin `fragmentos_md5` quedan como pendientes. Volver a correr la sincronización los completa.
 
 **Verificar:** `SELECT count(*) FROM documento WHERE fragmentos_md5 IS NULL;` debe dar `0` al terminar, y una consulta de extracto (por ejemplo, `como apruebo abd`) devuelve pasajes.
@@ -107,7 +107,7 @@ psql "$DATABASE_URL" -c "\copy metrica_opcion TO 'metrica_opcion_AAAA-MM-DD.csv'
 
 Un respaldo verificable también se puede comprobar contando las filas: el número debe coincidir con `SELECT count(*) FROM metrica_opcion`.
 
-La automatización (un comando `npm run metricas:respaldo`) está pendiente, ver [09](09-pendientes-proximas-iteraciones.md), sección 5.
+La automatización (un comando `npm run metricas:respaldo`) está pendiente, ver [09](09-pendientes-post-mvp.md), sección 5.
 
 ## 10.7 Rotación de secretos y claves
 
@@ -134,4 +134,4 @@ Después de rotar una clave de cuenta de servicio, verificar la tarea que la usa
 4. Variables de entorno cargadas en Vercel (`DATABASE_URL`, `SYNC_SECRET`, `CRON_SECRET`, `GOOGLE_*`, `GOOGLE_METRICAS_*`).
 5. `GET /api/health` en `"ok"`, y consultas de referencia del widget.
 
-Referencias: [04 § 4.4 a 4.5](04-base-datos.md), [02 § 2.5 y 2.6](02-manual-tecnico.md), [09](09-pendientes-proximas-iteraciones.md).
+Referencias: [04 § 4.4 a 4.5](04-base-datos.md), [02 § 2.5 y 2.6](02-manual-tecnico.md), [09](09-pendientes-post-mvp.md).

@@ -10,8 +10,8 @@
 - [x] `02-manual-tecnico.md` - arquitectura, estructura del código, API, configuración, desarrollo local
 - [x] `03-manual-usuario.md` - recorridos del menú, texto libre y derivación por pantallas
 - [x] `04-base-datos.md` - tablas, relaciones (DER en Mermaid), carga, reset y configuración
-- [x] `05-pruebas-unitarias.md` - 50 pruebas, todas pasando
-- [x] `06-pruebas-integracion.md` - 44 pruebas contra la base de prueba, todas pasando
+- [x] `05-pruebas-unitarias.md` - 80 pruebas, todas pasando
+- [x] `06-pruebas-integracion.md` - 16 pruebas contra la base de prueba, todas pasando
 - [x] `07-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
 - [ ] PDF integrado con toda la documentación
 - [ ] Capturas del manual de usuario (5 a 8 imágenes de la interfaz actual)
@@ -31,7 +31,7 @@
 
 ## 3. Pruebas
 
-- [x] **94 pruebas** en 14 archivos: 50 unitarias (junto a cada módulo en `backend/src/`) y 44 de integración (junto a cada módulo, o en `backend/test/integration/` si cruzan varios módulos)
+- [x] **96 pruebas**: 80 unitarias (junto a cada módulo en `backend/src/`) y 16 de integración (junto a cada módulo, o en `backend/test/integration/` si cruzan varios módulos)
 - [x] Las pruebas de integración usan una base de prueba (`ifts29_test`) y fixtures propios; no llaman a Google ni a Neon
 - [x] Ejecución: `npm test --workspace backend` (corre de a un archivo, porque comparten la base de prueba)
 - [x] Evidencias documentadas en `05` y `06`

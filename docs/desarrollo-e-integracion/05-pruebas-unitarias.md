@@ -1,6 +1,6 @@
 # 5. Pruebas Unitarias
 
-**Estado:** vigente. Resultados de la última ejecución: **50 pruebas unitarias, todas pasando**.
+Resultados de la última ejecución: **80 pruebas unitarias, todas pasando**.
 
 ## 5.1 Qué son
 
