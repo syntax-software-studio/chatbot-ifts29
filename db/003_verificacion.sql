@@ -176,7 +176,7 @@ SELECT i.clave            AS intencion,
 
 \echo ''
 \echo '=== 16. Coincidencia EXACTA: cuando hay que pedir ACLARACION ==='
--- La consulta se resuelve primero por igualdad de `normalized_text` (B-tree).
+-- La consulta se resuelve primero por igualdad de `texto_normalizado` (B-tree).
 -- Si el texto coincide con variantes de MAS de una intencion, el motor pide
 -- aclaracion con esas opciones del menu.
 -- Textos ya normalizados (alias expandidos, sin palabras vacias), como los ve el motor.
@@ -193,7 +193,7 @@ SELECT q.texto,
             ELSE 'ACLARACION' END      AS desenlace,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
   FROM consultas q
-  LEFT JOIN pregunta_variante v ON v.normalized_text = q.texto AND v.activo
+  LEFT JOIN pregunta_variante v ON v.texto_normalizado = q.texto AND v.activo
   LEFT JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
   LEFT JOIN intencion i ON i.id = p.intencion_id AND i.activo
  GROUP BY q.texto
@@ -221,7 +221,7 @@ terminos AS (
 ),
 candidatos AS (
   SELECT tm.texto, tm.termino, i.clave AS intencion,
-         MAX(word_similarity(tm.termino, v.normalized_text)) AS similitud
+         MAX(word_similarity(tm.termino, v.texto_normalizado)) AS similitud
     FROM terminos tm
     JOIN pregunta_variante v ON v.activo
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
@@ -247,16 +247,16 @@ SELECT indexname FROM pg_indexes
 
 \echo ''
 \echo '=== 19. Cobertura por intencion (vista v_cobertura_intenciones) ==='
-SELECT intencion_clave, opcion_clave, priority, minimum_threshold,
+SELECT intencion_clave, opcion_clave, prioridad, umbral_minimo,
        variantes, LEFT(pregunta, 46) AS pregunta
   FROM v_cobertura_intenciones
- ORDER BY domain, intencion_clave, priority DESC;
+ ORDER BY dominio, intencion_clave, prioridad DESC;
 
 \echo ''
 \echo '=== 20. Textos compartidos entre intenciones (disparan ACLARACION) ==='
 -- No es un error: son las redacciones genericas que existen en varias materias
 -- a proposito, para que el motor pregunte en lugar de adivinar.
-SELECT v.normalized_text,
+SELECT v.texto_normalizado,
        COUNT(DISTINCT p.id)           AS preguntas,
        COUNT(DISTINCT p.intencion_id) AS intenciones,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
@@ -264,6 +264,6 @@ SELECT v.normalized_text,
   JOIN pregunta p   ON p.id = v.pregunta_id AND p.activo
   JOIN intencion i  ON i.id = p.intencion_id AND i.activo
  WHERE v.activo
- GROUP BY v.normalized_text
+ GROUP BY v.texto_normalizado
 HAVING COUNT(DISTINCT p.intencion_id) > 1
- ORDER BY intenciones DESC, v.normalized_text;
+ ORDER BY intenciones DESC, v.texto_normalizado;

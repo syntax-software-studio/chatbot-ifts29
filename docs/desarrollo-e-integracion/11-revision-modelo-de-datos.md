@@ -1,6 +1,6 @@
 # 11 · Revisión del modelo de datos y contrato de contenido
 
-**Estado:** propuesta (borrador). Describe lo que hay hoy y propone cambios. Implementado hasta ahora: renombrado de tablas y vistas (§11.6), en código y SQL. Pendientes: columnas (§11.6, "Alinear planilla y base") y bases existentes (local y Neon).
+**Estado:** propuesta (borrador). Describe lo que hay hoy y propone cambios. Implementado: renombrado de tablas y vistas, columnas (§11.6 y §11.8) y encabezados de la planilla, en código y SQL. Pendientes: bases existentes (local y Neon) y las decisiones de §11.7.
 
 **Para quién:** el equipo de desarrollo y, en la entrega, quien gestione el contenido del asistente. Los nombres de tablas y columnas se revisan con ese criterio: que alguien sin formación técnica pueda entender qué carga y qué significa.
 

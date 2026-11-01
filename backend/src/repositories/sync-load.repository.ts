@@ -162,7 +162,7 @@ export async function insertarIntencion(
   i: { clave: string; nombre: string; dominio: string; opcion: string },
 ): Promise<void> {
   await client.query(
-    'INSERT INTO intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
+    'INSERT INTO intencion (clave, nombre, dominio, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
     [i.clave, i.nombre, i.dominio, i.opcion],
   );
 }
@@ -173,7 +173,7 @@ export async function insertarPregunta(
   p: { intencionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
 ): Promise<number> {
   const r = await client.query<{ id: number }>(
-    `INSERT INTO pregunta (intencion_id, pregunta, priority, minimum_threshold, activo)
+    `INSERT INTO pregunta (intencion_id, pregunta, prioridad, umbral_minimo, activo)
      VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
     [p.intencionId, p.pregunta, p.prioridad, p.umbral],
   );
@@ -185,7 +185,7 @@ export async function insertarVariante(
   v: { preguntaId: number | undefined; texto: string; normalizado: string; peso: number },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO pregunta_variante (pregunta_id, original_text, normalized_text, weight, activo)
+    `INSERT INTO pregunta_variante (pregunta_id, texto_original, texto_normalizado, peso, activo)
      VALUES ($1, $2, $3, $4, TRUE)`,
     [v.preguntaId, v.texto, v.normalizado, v.peso],
   );

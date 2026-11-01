@@ -11,7 +11,7 @@
  *
  *   normalizacion (siglas de la pestaña `alias` y palabras vacías)
  *     -> regla de saludos (Nivel C, menu raiz)
- *     -> coincidencia exacta sobre `pregunta_variante.normalized_text`
+ *     -> coincidencia exacta sobre `pregunta_variante.texto_normalizado`
  *     -> variantes / similitud trigram (`pg_trgm`)
  *     -> ranking y umbrales
  *     -> intencion | aclaracion | no_disponible

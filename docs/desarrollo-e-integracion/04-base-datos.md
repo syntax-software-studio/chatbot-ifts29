@@ -38,11 +38,11 @@ Una restricción de la tabla impide combinaciones inválidas.
 |---|---|
 | `intencion` | Qué tipo de consulta responde una opción del menú (`opcion_clave`) |
 | `pregunta` | Formulación canónica de una intención, con prioridad y umbral |
-| `pregunta_variante` | Redacciones posibles, ya normalizadas (`normalized_text`), con peso |
+| `pregunta_variante` | Redacciones posibles, ya normalizadas (`texto_normalizado`), con peso |
 | `termino_equivalente` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
 | `termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
 
-`pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', normalized_text)`) que usa la búsqueda de palabras.
+`pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', texto_normalizado)`) que usa la búsqueda de palabras.
 
 ### Fragmentos de documentos
 
@@ -52,7 +52,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 `documento.fragmentos_md5` guarda el `md5` del archivo con el que se extrajeron los fragmentos. La sincronización extrae solo cuando difiere del `md5` de Drive. Un documento sin texto extraíble no tiene filas en `documento_fragmento`.
 
-Índices: B-tree sobre `normalized_text` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
+Índices: B-tree sobre `texto_normalizado` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
 
 ### Métricas
 

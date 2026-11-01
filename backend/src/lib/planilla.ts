@@ -21,9 +21,9 @@ export const ESQUEMA_CONTENIDO = {
   respuestas: ['clave', 'texto', 'orden'],
   respuesta_documentos: ['respuesta', 'documento', 'orden'],
   intenciones: ['clave', 'nombre', 'dominio', 'opcion'],
-  preguntas: ['intencion', 'pregunta', 'prioridad', 'umbral'],
-  variantes: ['intencion', 'pregunta', 'texto', 'peso'],
-  contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'perfil', 'motivo', 'orden', 'opcion'],
+  preguntas: ['intencion', 'pregunta', 'prioridad', 'umbral_minimo'],
+  variantes: ['intencion', 'pregunta', 'texto_original', 'peso'],
+  contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'url_perfil', 'motivo', 'orden', 'opcion'],
   alias: ['alias', 'expansion'],
   ignorados: ['termino'],
 } as const;

@@ -20,12 +20,12 @@
 --   * El menú es un árbol genérico (categoria -> opcion -> respuesta o
 --     subcategoria). Una pregunta es una categoria; una subpregunta es una
 --     opcion que abre otra categoria (RNF10).
---   * `normalized_text` (KB) es el texto ya normalizado por el MISMO
+--   * `texto_normalizado` (KB) es el texto ya normalizado por el MISMO
 --     normalizador que usa la API, para que el indice y los umbrales de
 --     similitud sean comparables.
 --
 --  Indices de la base de conocimiento:
---   * B-tree sobre `normalized_text` para la coincidencia EXACTA (Nivel A).
+--   * B-tree sobre `texto_normalizado` para la coincidencia EXACTA (Nivel A).
 --   * GIN tsvector para full-text search (Nivel B_FTS, config `spanish`).
 --   * GIN con `gin_trgm_ops` para la similitud trigram (Nivel B_TRG, `pg_trgm`).
 -- ============================================================================
@@ -293,8 +293,8 @@ CREATE TABLE IF NOT EXISTS intencion (
     id              SERIAL PRIMARY KEY,
     clave           TEXT        NOT NULL UNIQUE,
     nombre          TEXT        NOT NULL,
-    domain          TEXT        NOT NULL DEFAULT 'administrativo'
-                            CHECK (domain IN ('administrativo', 'academico')),
+    dominio          TEXT        NOT NULL DEFAULT 'administrativo'
+                            CHECK (dominio IN ('administrativo', 'academico')),
     opcion_clave    TEXT        NOT NULL REFERENCES menu_opcion (clave)
                             ON UPDATE CASCADE ON DELETE RESTRICT,
     activo          BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -304,23 +304,23 @@ CREATE TABLE IF NOT EXISTS intencion (
 
 COMMENT ON TABLE  intencion                IS 'Intenciones conversacionales; cada una reusa una opcion del menu (no inventan respuestas).';
 COMMENT ON COLUMN intencion.clave          IS 'Identidad estable de la intencion (ej: dias_cursada_TP).';
-COMMENT ON COLUMN intencion.domain         IS 'administrativo (trámites) | academico (materias).';
+COMMENT ON COLUMN intencion.dominio         IS 'administrativo (trámites) | academico (materias).';
 COMMENT ON COLUMN intencion.opcion_clave   IS 'Opcion del menu que emite la respuesta autorizada.';
 COMMENT ON COLUMN intencion.activo         IS 'FALSE = fuera de la busqueda, sin borrar el registro.';
 
 -- ---------------------------------------------------------------------------
 -- 9. KB_PREGUNTA  ->  la formulacion canonica de la consulta
 --     Una intencion puede tener varias preguntas (por ejemplo, una por materia
---     o una version corta y una larga); el ranking usa `priority`.
+--     o una version corta y una larga); el ranking usa `prioridad`.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS pregunta (
     id                SERIAL PRIMARY KEY,
     intencion_id      INTEGER     NOT NULL REFERENCES intencion (id) ON DELETE CASCADE,
     pregunta          TEXT        NOT NULL,
     respuesta_id      INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
-    priority          INTEGER     NOT NULL DEFAULT 0,
-    minimum_threshold NUMERIC(4,3) NOT NULL DEFAULT 0.700
-                              CHECK (minimum_threshold >= 0 AND minimum_threshold <= 1),
+    prioridad          INTEGER     NOT NULL DEFAULT 0,
+    umbral_minimo NUMERIC(4,3) NOT NULL DEFAULT 0.700
+                              CHECK (umbral_minimo >= 0 AND umbral_minimo <= 1),
     activo            BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -332,12 +332,12 @@ CREATE INDEX IF NOT EXISTS pregunta_intencion_idx ON pregunta (intencion_id);
 
 COMMENT ON TABLE  pregunta                IS 'Formulaciones canonicas de una intencion.';
 COMMENT ON COLUMN pregunta.respuesta_id   IS 'Respuesta autorizada a emitir; NULL deriva en la opcion del menu.';
-COMMENT ON COLUMN pregunta.priority       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
-COMMENT ON COLUMN pregunta.minimum_threshold IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
+COMMENT ON COLUMN pregunta.prioridad       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
+COMMENT ON COLUMN pregunta.umbral_minimo IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
 
 -- ---------------------------------------------------------------------------
 -- 10. KB_PREGUNTA_VARIANTE  ->  las formas en que se puede escribir
---     Una misma pregunta admite varias redacciones; `weight` pondera la
+--     Una misma pregunta admite varias redacciones; `peso` pondera la
 --     variante en el ranking. Las variantes genericas (sin materia, por
 --     ejemplo "dias de cursada") se repiten en varias preguntas a proposito:
 --     son las que permiten pedir aclaracion en vez de adivinar (D06).
@@ -345,10 +345,10 @@ COMMENT ON COLUMN pregunta.minimum_threshold IS 'Corte inferior de similitud par
 CREATE TABLE IF NOT EXISTS pregunta_variante (
     id              SERIAL PRIMARY KEY,
     pregunta_id     INTEGER     NOT NULL REFERENCES pregunta (id) ON DELETE CASCADE,
-    original_text   TEXT        NOT NULL,
-    normalized_text TEXT        NOT NULL,
-    weight          NUMERIC(3,2) NOT NULL DEFAULT 1.00
-                            CHECK (weight > 0 AND weight <= 1),
+    texto_original   TEXT        NOT NULL,
+    texto_normalizado TEXT        NOT NULL,
+    peso          NUMERIC(3,2) NOT NULL DEFAULT 1.00
+                            CHECK (peso > 0 AND peso <= 1),
     activo          BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -357,14 +357,14 @@ CREATE TABLE IF NOT EXISTS pregunta_variante (
     -- diacriticos (el normalizador JS los elimino), asi que no hace falta el
     -- wrapper immutable de unaccent.
     search_vector   tsvector
-        GENERATED ALWAYS AS (to_tsvector('spanish', normalized_text)) STORED,
+        GENERATED ALWAYS AS (to_tsvector('spanish', texto_normalizado)) STORED,
 
-    CONSTRAINT kb_variante_uniq UNIQUE (pregunta_id, normalized_text)
+    CONSTRAINT kb_variante_uniq UNIQUE (pregunta_id, texto_normalizado)
 );
 
 -- Nivel A: coincidencia exacta por igualdad del texto normalizado.
 CREATE INDEX IF NOT EXISTS kb_variante_normalized_idx
-    ON pregunta_variante (normalized_text);
+    ON pregunta_variante (texto_normalizado);
 
 -- Nivel B_FTS: full-text search.
 CREATE INDEX IF NOT EXISTS kb_variante_fts_idx
@@ -372,10 +372,10 @@ CREATE INDEX IF NOT EXISTS kb_variante_fts_idx
 
 -- Nivel B_TRG: similitud trigram. El GIN acelera el filtro `similarity(...) >= x`.
 CREATE INDEX IF NOT EXISTS kb_variante_trgm_idx
-    ON pregunta_variante USING GIN (normalized_text gin_trgm_ops);
+    ON pregunta_variante USING GIN (texto_normalizado gin_trgm_ops);
 
 COMMENT ON TABLE  pregunta_variante         IS 'Redacciones alternativas de una pregunta, ya normalizadas.';
-COMMENT ON COLUMN pregunta_variante.weight IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
+COMMENT ON COLUMN pregunta_variante.peso IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
 
 -- ---------------------------------------------------------------------------
 -- 10b. KB_ALIAS  ->  siglas y abreviaturas que se expanden antes de buscar
@@ -468,17 +468,17 @@ CREATE OR REPLACE VIEW v_cobertura_intenciones AS
 SELECT
     i.clave            AS intencion_clave,
     i.nombre           AS intencion_nombre,
-    i.domain,
+    i.dominio,
     i.opcion_clave     AS opcion_clave,
-    p.priority         AS priority,
-    p.minimum_threshold,
+    p.prioridad         AS prioridad,
+    p.umbral_minimo,
     p.pregunta,
     count(v.id)        AS variantes
 FROM intencion i
 JOIN pregunta p          ON p.intencion_id = i.id
 LEFT JOIN pregunta_variante v ON v.pregunta_id = p.id AND v.activo
 WHERE i.activo AND p.activo
-GROUP BY i.clave, i.nombre, i.domain, i.opcion_clave, p.id, p.priority, p.minimum_threshold, p.pregunta
-ORDER BY i.domain, i.clave, p.priority DESC;
+GROUP BY i.clave, i.nombre, i.dominio, i.opcion_clave, p.id, p.prioridad, p.umbral_minimo, p.pregunta
+ORDER BY i.dominio, i.clave, p.prioridad DESC;
 
 COMMENT ON VIEW v_cobertura_intenciones IS 'Cobertura de la base de conocimiento por intencion y pregunta.';

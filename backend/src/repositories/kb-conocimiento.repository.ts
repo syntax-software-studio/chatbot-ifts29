@@ -46,16 +46,16 @@ export interface CandidatoKb {
 interface RawCandidato {
   intent_key: string;
   intent_name: string;
-  domain: 'administrativo' | 'academico';
+  dominio: 'administrativo' | 'academico';
   opcion_clave: string | null;
   respuesta_id: number | null;
   pregunta_id: number;
   question: string;
-  priority: number;
-  minimum_threshold: string | number;
-  original_text: string;
-  normalized_text: string;
-  weight: string | number;
+  prioridad: number;
+  umbral_minimo: string | number;
+  texto_original: string;
+  texto_normalizado: string;
+  peso: string | number;
   similarity: string | number;
   cubiertos?: string[] | null;
 }
@@ -91,16 +91,16 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
 const SQL_FTS = `
   SELECT i.clave    AS intent_key,
          i.nombre   AS intent_name,
-         i.domain,
+         i.dominio,
          i.opcion_clave,
          p.id       AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
+         p.prioridad,
+         p.umbral_minimo,
          p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          s.score AS similarity,
          s.cubiertos
     FROM pregunta_variante v
@@ -115,8 +115,8 @@ const SQL_FTS = `
           SELECT t.termino,
                  CASE
                    WHEN v.search_vector @@ plainto_tsquery('spanish', t.termino) THEN 1.0
-                   WHEN word_similarity(t.termino, v.normalized_text) >= $2
-                     THEN word_similarity(t.termino, v.normalized_text)
+                   WHEN word_similarity(t.termino, v.texto_normalizado) >= $2
+                     THEN word_similarity(t.termino, v.texto_normalizado)
                    ELSE 0.0
                  END AS mejor
             FROM unnest($1::text[]) AS t(termino)
@@ -124,29 +124,29 @@ const SQL_FTS = `
     ) s
    WHERE v.activo
      AND s.score > 0
-   ORDER BY similarity DESC, p.priority DESC, v.weight DESC
+   ORDER BY similarity DESC, p.prioridad DESC, v.peso DESC
    LIMIT $3`;
 
 const SQL_EXACTO = `
   SELECT i.clave    AS intent_key,
          i.nombre  AS intent_name,
-         i.domain,
+         i.dominio,
          i.opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
+         p.prioridad,
+         p.umbral_minimo,
          p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          1.0::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
     JOIN intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo
-     AND v.normalized_text = $1
-   ORDER BY p.priority DESC, v.weight DESC
+     AND v.texto_normalizado = $1
+   ORDER BY p.prioridad DESC, v.peso DESC
    LIMIT $2`;
 
 /**
@@ -157,27 +157,27 @@ const SQL_EXACTO = `
 const SQL_SIMILARES_TERMINO = `
   SELECT i.clave    AS intent_key,
          i.nombre  AS intent_name,
-         i.domain,
+         i.dominio,
          i.opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
+         p.prioridad,
+         p.umbral_minimo,
          p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
-         word_similarity($1, v.normalized_text)::float8 AS similarity
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
+         word_similarity($1, v.texto_normalizado)::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
     JOIN intencion i ON i.id = p.intencion_id AND i.activo
    WHERE v.activo
-     AND word_similarity($1, v.normalized_text) >= $2
+     AND word_similarity($1, v.texto_normalizado) >= $2
      -- Las coincidencias exactas (y con stemming) son de FTS. Aca sólo interesan
      -- los errores de tipeo: si no, las palabras compartidas por todas las
      -- variantes de una materia empatan a todas las intenciones en 1.00.
-     AND word_similarity($1, v.normalized_text) < 1
-   ORDER BY similarity DESC, p.priority DESC, v.weight DESC
+     AND word_similarity($1, v.texto_normalizado) < 1
+   ORDER BY similarity DESC, p.prioridad DESC, v.peso DESC
    LIMIT $3`;
 
 /** Términos más cortos que esto no aportan señal (ruido de 2-3 letras). */
@@ -186,32 +186,32 @@ const LARGO_MIN_TERMINO = 4;
 const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentKey: r.intent_key,
   intentName: r.intent_name,
-  domain: r.domain,
+  domain: r.dominio,
   opcionClave: r.opcion_clave ?? '',
   respuestaId: r.respuesta_id,
   preguntaId: r.pregunta_id,
   question: r.question,
-  priority: num(r.priority),
-  minimumThreshold: num(r.minimum_threshold, 0.7),
-  originalText: r.original_text,
-  normalizedText: r.normalized_text,
-  weight: num(r.weight, 1),
+  priority: num(r.prioridad),
+  minimumThreshold: num(r.umbral_minimo, 0.7),
+  originalText: r.texto_original,
+  normalizedText: r.texto_normalizado,
+  weight: num(r.peso, 1),
   similarity: num(r.similarity),
 });
 
 const SQL_TODAS_VARIANTES = `
   SELECT i.clave    AS intent_key,
          i.nombre  AS intent_name,
-         i.domain,
+         i.dominio,
          i.opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
+         p.prioridad,
+         p.umbral_minimo,
          p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          0::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
@@ -262,7 +262,7 @@ export async function buscarPorPalabras(normalizado: string, minimo: number): Pr
   return r.rows
     .map((row) => ({
       ...toCandidato(row),
-      similarity: similitudPorPalabras(normalizado, row.normalized_text),
+      similarity: similitudPorPalabras(normalizado, row.texto_normalizado),
       fuenteNivel: 'palabras' as const,
     }))
     .filter((c) => c.similarity >= minimo)

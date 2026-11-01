@@ -259,7 +259,7 @@ Códigos: `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`,
    letras repetidas recortadas (`normalizar`, el mismo código que carga las
    variantes).
 2. **Regla de saludos**: `hola`, `buen día`… devuelven el menú raíz.
-3. **Coincidencia exacta** sobre `normalized_text` (índice B-tree). Si el texto
+3. **Coincidencia exacta** sobre `texto_normalizado` (índice B-tree). Si el texto
    coincide con variantes de varias intenciones, se devuelven **todas**: es el
    caso que dispara la aclaración.
 4. **Cobertura de términos (FTS)**: cada término de la consulta (sin las palabras

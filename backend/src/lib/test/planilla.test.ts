@@ -39,7 +39,7 @@ test('un contenido válido se interpreta completo y sin errores', () => {
     area: 'Bedelía',
     comision: 'General',
     email: 'bedelia@bue.edu.ar',
-    perfil: '',
+    url_perfil: '',
     motivo: 'Trámites',
     orden: '3',
     opcion: 'DERIVACION_OP_TRAMITES',
@@ -74,12 +74,12 @@ test('una pestaña faltante se reporta por nombre', () => {
 
 test('encabezados distintos al esquema se reportan con lo esperado y lo encontrado', () => {
   const c = contenidoValido();
-  c.preguntas = [['intencion', 'texto_pregunta', 'prioridad', 'umbral']];
+  c.preguntas = [['intencion', 'texto_pregunta', 'prioridad', 'umbral_minimo']];
   const r = interpretarContenido(c);
   assert.equal(r.ok, false);
   const error = r.errores.find((e) => e.includes('"preguntas"'));
   assert.ok(error, 'debe reportar la pestaña preguntas');
-  assert.ok(error.includes('intencion, pregunta, prioridad, umbral'));
+  assert.ok(error.includes('intencion, pregunta, prioridad, umbral_minimo'));
   assert.ok(error.includes('texto_pregunta'));
 });
 

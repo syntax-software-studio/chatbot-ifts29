@@ -288,7 +288,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       intencion: f.intencion!,
       pregunta: f.pregunta!,
       prioridad: entero(f.prioridad!, `${donde} prioridad`),
-      umbral: decimal(f.umbral!, `${donde} umbral`),
+      umbral: decimal(f.umbral_minimo!, `${donde} umbral`),
     };
   });
   const preguntaClave = (intencion: string, pregunta: string) => `${intencion}\u0000${pregunta}`;
@@ -296,15 +296,15 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   if (preguntasSet.size !== preguntas.length) errores.push('preguntas: hay preguntas repetidas dentro de una intención.');
 
   const variantes: Variante[] = filas('variantes').map((f) => {
-    const donde = `variantes "${f.intencion}" / "${f.pregunta}" → "${f.texto}"`;
+    const donde = `variantes "${f.intencion}" / "${f.pregunta}" → "${f.texto_original}"`;
     if (!preguntasSet.has(preguntaClave(f.intencion!, f.pregunta!))) {
       errores.push(`${donde}: la pregunta no existe en preguntas.`);
     }
     return {
       intencion: f.intencion!,
       pregunta: f.pregunta!,
-      texto: f.texto!,
-      normalizado: normalizarConsulta(f.texto!, mapaAlias),
+      texto: f.texto_original!,
+      normalizado: normalizarConsulta(f.texto_original!, mapaAlias),
       peso: decimal(f.peso!, `${donde} peso`),
     };
   });
@@ -330,7 +330,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       area: opcional(f.area!),
       comision: opcional(f.comision!),
       email: opcional(f.email!),
-      perfil: opcional(f.perfil!),
+      perfil: opcional(f.url_perfil!),
       motivo: opcional(f.motivo!),
       orden: entero(f.orden!, `${donde} orden`),
       opcion: f.opcion!,

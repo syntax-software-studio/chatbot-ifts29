@@ -26,12 +26,12 @@ const contenidoValido = (): Hojas => ({
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
   intenciones: [{ clave: 'programa_ABD', nombre: 'Programa de ABD', dominio: 'academico', opcion: 'ACAD_OP_ABD' }],
-  preguntas: [{ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', prioridad: '30', umbral: '0,7' }],
+  preguntas: [{ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', prioridad: '30', umbral_minimo: '0,7' }],
   variantes: [
-    { intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto: 'Programa de ABD', peso: '1' },
+    { intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'Programa de ABD', peso: '1' },
   ],
   contactos: [
-    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
+    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', url_perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
   ],
 });
 
@@ -108,7 +108,7 @@ test('un número inválido es un error', () => {
 
 test('dos variantes iguales después de normalizar son un error', () => {
   const h = contenidoValido();
-  h.variantes!.push({ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto: 'PROGRAMA DE ABD', peso: '1' });
+  h.variantes!.push({ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'PROGRAMA DE ABD', peso: '1' });
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.some((e) => e.includes('repetida')));
