@@ -26,7 +26,6 @@ import {
   insertarIgnorado,
   insertarTerminoFragmento,
   terminosFragmento,
-  insertarIntencion,
   insertarPregunta,
   insertarVariante,
   reemplazarFragmentos,
@@ -243,7 +242,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   for (const r of datos.respuestas) await upsertRespuesta(client, r);
 
   // Opciones: necesitan los ids de categoría y respuesta.
-  await borrarFueraDe(client, 'menu_opcion', claves(datos.opciones));
+  await borrarFueraDe(client, 'opcion', claves(datos.opciones));
   const categoriaId = await idsPorClave(client, 'menu_categoria');
   const respuestaId = await idsPorClave(client, 'respuesta');
   for (const o of datos.opciones) {
@@ -256,6 +255,8 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       respuestaId: o.respuesta ? respuestaId.get(o.respuesta) : undefined,
       esVolver: o.esVolver,
       orden: o.orden,
+      nombre: o.nombre,
+      dominio: o.dominio,
     });
   }
   await borrarFueraDe(client, 'menu_categoria', claves(datos.categorias));
@@ -277,7 +278,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   }
 
   // Contactos: cada uno pertenece a una sola opción de derivación ('derivar').
-  const opcionMenuId = await idsPorClave(client, 'menu_opcion');
+  const opcionMenuId = await idsPorClave(client, 'opcion');
   for (const c of datos.contactos) {
     await upsertContacto(client, { ...c, opcionId: opcionMenuId.get(c.opcion) });
   }
@@ -287,23 +288,21 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   for (const a of datos.alias) await insertarAlias(client, a);
   for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
   for (const t of datos.terminosFragmento) await insertarTerminoFragmento(client, t);
-  for (const i of datos.intenciones) await insertarIntencion(client, i);
-  const intencionId = await idsPorClave(client, 'intencion');
 
   const preguntaIdPorClave = new Map<string, number>();
   for (const p of datos.preguntas) {
     const id = await insertarPregunta(client, {
-      intencionId: intencionId.get(p.intencion),
+      opcionId: opcionMenuId.get(p.opcion),
       pregunta: p.pregunta,
       prioridad: p.prioridad,
       umbral: p.umbral,
     });
-    preguntaIdPorClave.set(`${p.intencion}\u0000${p.pregunta}`, id);
+    preguntaIdPorClave.set(`${p.opcion}\u0000${p.pregunta}`, id);
   }
 
   for (const v of datos.variantes) {
     await insertarVariante(client, {
-      preguntaId: preguntaIdPorClave.get(`${v.intencion}\u0000${v.pregunta}`),
+      preguntaId: preguntaIdPorClave.get(`${v.opcion}\u0000${v.pregunta}`),
       texto: v.texto,
       normalizado: v.normalizado,
       peso: v.peso,
@@ -316,7 +315,6 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     opciones: datos.opciones.length,
     documentos: datos.documentos.length,
     respuestaDocumentos: datos.respuestaDocumentos.length,
-    intenciones: datos.intenciones.length,
     preguntas: datos.preguntas.length,
     variantes: datos.variantes.length,
     contactos: datos.contactos.length,

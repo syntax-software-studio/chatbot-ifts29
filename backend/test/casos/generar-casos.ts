@@ -84,12 +84,12 @@ async function main(): Promise<void> {
   if (!pool) throw new Error('DATABASE_URL no configurada: no hay variantes para generar casos.');
 
   const r = await pool.query<{ texto_original: string; pregunta: string; intencion: string; opcion: string }>(
-    `SELECT v.texto_original, p.pregunta, i.clave AS intencion, i.opcion_clave AS opcion
+    `SELECT v.texto_original, p.pregunta, o.clave AS intencion, o.clave AS opcion
        FROM pregunta_variante v
        JOIN pregunta p ON p.id = v.pregunta_id AND p.activo
-       JOIN intencion i ON i.id = p.intencion_id AND i.activo
+       JOIN opcion o ON o.id = p.opcion_id AND o.activo
       WHERE v.activo
-      ORDER BY i.clave, v.texto_original`,
+      ORDER BY o.clave, v.texto_original`,
   );
 
   const casos: Caso[] = [];

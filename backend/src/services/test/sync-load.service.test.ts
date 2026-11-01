@@ -61,12 +61,11 @@ test('lo que la planilla ya no trae se borra de la base', async () => {
   const datos = datosPrueba();
   const sinCondiciones = {
     ...datos,
-    intenciones: datos.intenciones.filter((i) => i.clave !== 'condiciones_ABD'),
-    preguntas: datos.preguntas.filter((p) => p.intencion !== 'condiciones_ABD'),
-    variantes: datos.variantes.filter((v) => v.intencion !== 'condiciones_ABD'),
+    preguntas: datos.preguntas.filter((p) => p.opcion !== 'ABD_OP_COND'),
+    variantes: datos.variantes.filter((v) => v.opcion !== 'ABD_OP_COND'),
   };
   await aplicarContenido(sinCondiciones);
-  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM intencion WHERE clave = 'condiciones_ABD'");
+  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM pregunta p JOIN opcion o ON o.id = p.opcion_id WHERE o.clave = 'ABD_OP_COND'");
   assert.equal(r.rows[0]!.n, 0);
 
   // Se restaura para no afectar las demás pruebas del archivo.

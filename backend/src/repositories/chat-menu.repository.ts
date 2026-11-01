@@ -118,14 +118,14 @@ const SQL_CATEGORIA_POR_CLAVE = `
 
 const SQL_OPCIONES = `
   SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono
-    FROM menu_opcion o
+    FROM opcion o
    WHERE o.categoria_id = $1 AND o.activo
    ORDER BY o.orden, o.id`;
 
 const SQL_OPCION_POR_CLAVE = `
   SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
          o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
-    FROM menu_opcion o
+    FROM opcion o
     JOIN menu_categoria c ON c.id = o.categoria_id
    WHERE o.clave = $1 AND o.activo AND c.activo
    LIMIT 1`;

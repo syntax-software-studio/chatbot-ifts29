@@ -40,7 +40,7 @@ Detalle en [08](08-extractos-de-documentos.md).
 
 - **Respaldo en `db:reset`:** `rescatarMetricas` guarda las filas solo en memoria; si el proceso se corta, se pierden. Opciones: un JSON de respaldo antes del `DROP`, o hacer el reset en una transacción.
 - **Automatizar el respaldo** manual de `metrica_opcion` ([10.6](10-operacion.md#106-respaldo-de-metrica_opcion)).
-- **Categoría en métricas:** `metrica_opcion.categoria_clave` queda `NULL`. Propuesta: completarla al exportar con un join de `menu_opcion` a `categoria`.
+- **Categoría en métricas:** `metrica_opcion.categoria_clave` queda `NULL`. Propuesta: completarla al exportar con un join de `opcion` a `categoria`.
 
 ## 6. Operación y administración
 

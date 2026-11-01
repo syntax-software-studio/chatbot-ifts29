@@ -89,10 +89,10 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
  * "condiciones" y no hace falta una aclaración para resolverlo.
  */
 const SQL_FTS = `
-  SELECT i.clave    AS intent_key,
-         i.nombre   AS intent_name,
-         i.dominio,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.nombre   AS intent_name,
+         o.dominio,
+         o.clave AS opcion_clave,
          p.id       AS pregunta_id,
          p.pregunta AS question,
          p.prioridad,
@@ -105,7 +105,7 @@ const SQL_FTS = `
          s.cubiertos
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
     CROSS JOIN LATERAL (
       -- Por cada término: 1 si coincide con stemming, la similitud si es un
       -- error de tipeo (>= $2), 0 si no aparece. La cobertura es el promedio.
@@ -128,10 +128,10 @@ const SQL_FTS = `
    LIMIT $3`;
 
 const SQL_EXACTO = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.dominio,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.nombre  AS intent_name,
+         o.dominio,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
          p.prioridad,
@@ -143,7 +143,7 @@ const SQL_EXACTO = `
          1.0::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo
      AND v.texto_normalizado = $1
    ORDER BY p.prioridad DESC, v.peso DESC
@@ -155,10 +155,10 @@ const SQL_EXACTO = `
  * en una palabra no se diluye por el largo de la frase.
  */
 const SQL_SIMILARES_TERMINO = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.dominio,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.nombre  AS intent_name,
+         o.dominio,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
          p.prioridad,
@@ -170,7 +170,7 @@ const SQL_SIMILARES_TERMINO = `
          word_similarity($1, v.texto_normalizado)::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo
      AND word_similarity($1, v.texto_normalizado) >= $2
      -- Las coincidencias exactas (y con stemming) son de FTS. Aca sólo interesan
@@ -200,10 +200,10 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
 });
 
 const SQL_TODAS_VARIANTES = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.dominio,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.nombre  AS intent_name,
+         o.dominio,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
          p.prioridad,
@@ -215,7 +215,7 @@ const SQL_TODAS_VARIANTES = `
          0::float8 AS similarity
     FROM pregunta_variante v
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo`;
 
 /* ==========================================================================

@@ -246,17 +246,17 @@ async function main(): Promise<void> {
     respuesta: number;
     documento: number;
     contacto: number;
-    kb_intencion: number;
+    opciones_buscables: number;
     kb_pregunta: number;
     kb_variante: number;
   }>(
     `SELECT
        (SELECT count(*)::int FROM menu_categoria WHERE activo)     AS categoria,
-       (SELECT count(*)::int FROM menu_opcion WHERE activo)   AS opcion,
+       (SELECT count(*)::int FROM opcion WHERE activo)   AS opcion,
        (SELECT count(*)::int FROM respuesta WHERE activo)     AS respuesta,
        (SELECT count(*)::int FROM documento)                   AS documento,
        (SELECT count(*)::int FROM contacto WHERE activo)      AS contacto,
-       (SELECT count(*)::int FROM intencion WHERE activo)   AS kb_intencion,
+       (SELECT count(*)::int FROM opcion WHERE activo AND nombre IS NOT NULL) AS opciones_buscables,
        (SELECT count(*)::int FROM pregunta WHERE activo)    AS kb_pregunta,
        (SELECT count(*)::int FROM pregunta_variante WHERE activo) AS kb_variante`,
   );

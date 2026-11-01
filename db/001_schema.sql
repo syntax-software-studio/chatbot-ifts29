@@ -78,7 +78,7 @@ COMMENT ON TABLE respuesta IS 'Respuestas predefinidas validadas por la instituc
 --    Una opcion 'responder' es tambien el destino de las consultas escritas:
 --    la base de conocimiento la ubica y devuelve exactamente su respuesta.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS menu_opcion (
+CREATE TABLE IF NOT EXISTS opcion (
     id                  SERIAL PRIMARY KEY,
     clave               TEXT        NOT NULL UNIQUE,
     categoria_id        INTEGER     NOT NULL REFERENCES menu_categoria (id) ON DELETE CASCADE,
@@ -90,12 +90,14 @@ CREATE TABLE IF NOT EXISTS menu_opcion (
     respuesta_id        INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     es_volver           BOOLEAN     NOT NULL DEFAULT FALSE,
     icono               TEXT,
+    nombre              TEXT,
+    dominio             TEXT        CHECK (dominio IN ('administrativo', 'academico')),
     orden               INTEGER     NOT NULL DEFAULT 0,
     activo              BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT menu_opcion_destino_ck
+    CONSTRAINT opcion_destino_ck
         CHECK (
             (tipo = 'navegar'   AND categoria_destino_id IS NOT NULL AND respuesta_id IS NULL)
          OR (tipo = 'responder' AND respuesta_id         IS NOT NULL AND categoria_destino_id IS NULL)
@@ -103,16 +105,18 @@ CREATE TABLE IF NOT EXISTS menu_opcion (
         )
 );
 
-CREATE INDEX IF NOT EXISTS menu_opcion_categoria_idx ON menu_opcion (categoria_id, orden);
-CREATE UNIQUE INDEX IF NOT EXISTS menu_opcion_navegar_uniq
-    ON menu_opcion (categoria_id, categoria_destino_id)
+CREATE INDEX IF NOT EXISTS opcion_categoria_idx ON opcion (categoria_id, orden);
+CREATE UNIQUE INDEX IF NOT EXISTS opcion_navegar_uniq
+    ON opcion (categoria_id, categoria_destino_id)
     WHERE tipo = 'navegar' AND categoria_destino_id IS NOT NULL;
 
-COMMENT ON TABLE  menu_opcion               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
-COMMENT ON COLUMN menu_opcion.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
-COMMENT ON COLUMN menu_opcion.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
-COMMENT ON COLUMN menu_opcion.categoria_destino_id IS 'Categoria a la que navega la opcion.';
-COMMENT ON COLUMN menu_opcion.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
+COMMENT ON TABLE  opcion               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
+COMMENT ON COLUMN opcion.nombre   IS 'Nombre con el que se busca esta opcion por texto libre. NULL si no se busca por texto.';
+COMMENT ON COLUMN opcion.dominio  IS 'administrativo (trámites) | academico (materias). NULL si no se busca por texto.';
+COMMENT ON COLUMN opcion.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
+COMMENT ON COLUMN opcion.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
+COMMENT ON COLUMN opcion.categoria_destino_id IS 'Categoria a la que navega la opcion.';
+COMMENT ON COLUMN opcion.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
 
 -- ---------------------------------------------------------------------------
 -- 4. DOCUMENTO  ->  ficha de un archivo de Drive
@@ -197,7 +201,7 @@ CREATE TABLE IF NOT EXISTS contacto (
     id          SERIAL PRIMARY KEY,
     clave       TEXT        NOT NULL UNIQUE,
     nombre      TEXT        NOT NULL,
-    opcion_id   INTEGER     NOT NULL REFERENCES menu_opcion (id) ON DELETE CASCADE,
+    opcion_id   INTEGER     NOT NULL REFERENCES opcion (id) ON DELETE CASCADE,
     area        TEXT,
     email       TEXT,
     url_perfil  TEXT,
@@ -262,7 +266,7 @@ COMMENT ON COLUMN metrica_opcion.evento IS
 --  intencion y devuelve la MISMA opcion del menu que ya existia.
 --
 --  Principios (los mismos de arriba):
---   * Toda intencion esta atada a una opcion de `menu_opcion` y a una
+--   * Toda intencion esta atada a una opcion de `opcion` y a una
 --     `respuesta` ya validada: el texto libre no puede inventar contenido,
 --     solo localizarlo.
 --   * Versionado con `activo`: desactivar una variante la saca de la busqueda
@@ -270,37 +274,13 @@ COMMENT ON COLUMN metrica_opcion.evento IS
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
--- 8. KB_INTENCION  ->  a que tipo de consulta responde cada opcion del menu
---     `clave` es la identidad estable (no el id) para que la carga sea
---     idempotente y para poder comparar con el catalogo local.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS intencion (
-    id              SERIAL PRIMARY KEY,
-    clave           TEXT        NOT NULL UNIQUE,
-    nombre          TEXT        NOT NULL,
-    dominio          TEXT        NOT NULL DEFAULT 'administrativo'
-                            CHECK (dominio IN ('administrativo', 'academico')),
-    opcion_clave    TEXT        NOT NULL REFERENCES menu_opcion (clave)
-                            ON UPDATE CASCADE ON DELETE RESTRICT,
-    activo          BOOLEAN     NOT NULL DEFAULT TRUE,
-    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-COMMENT ON TABLE  intencion                IS 'Intenciones conversacionales; cada una reusa una opcion del menu (no inventan respuestas).';
-COMMENT ON COLUMN intencion.clave          IS 'Identidad estable de la intencion (ej: dias_cursada_TP).';
-COMMENT ON COLUMN intencion.dominio         IS 'administrativo (trámites) | academico (materias).';
-COMMENT ON COLUMN intencion.opcion_clave   IS 'Opcion del menu que emite la respuesta autorizada.';
-COMMENT ON COLUMN intencion.activo         IS 'FALSE = fuera de la busqueda, sin borrar el registro.';
-
--- ---------------------------------------------------------------------------
 -- 9. KB_PREGUNTA  ->  la formulacion canonica de la consulta
---     Una intencion puede tener varias preguntas (por ejemplo, una por materia
+--     Una opcion puede tener varias preguntas (por ejemplo, una por materia
 --     o una version corta y una larga); el ranking usa `prioridad`.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS pregunta (
     id                SERIAL PRIMARY KEY,
-    intencion_id      INTEGER     NOT NULL REFERENCES intencion (id) ON DELETE CASCADE,
+    opcion_id         INTEGER     NOT NULL REFERENCES opcion (id) ON DELETE CASCADE,
     pregunta          TEXT        NOT NULL,
     respuesta_id      INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     prioridad          INTEGER     NOT NULL DEFAULT 0,
@@ -310,12 +290,12 @@ CREATE TABLE IF NOT EXISTS pregunta (
     creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT pregunta_uniq UNIQUE (intencion_id, pregunta)
+    CONSTRAINT pregunta_uniq UNIQUE (opcion_id, pregunta)
 );
 
-CREATE INDEX IF NOT EXISTS pregunta_intencion_idx ON pregunta (intencion_id);
+CREATE INDEX IF NOT EXISTS pregunta_opcion_idx ON pregunta (opcion_id);
 
-COMMENT ON TABLE  pregunta                IS 'Formulaciones canonicas de una intencion.';
+COMMENT ON TABLE  pregunta                IS 'Formulaciones canonicas de una opcion del menu (la que se busca por texto).';
 COMMENT ON COLUMN pregunta.respuesta_id   IS 'Respuesta autorizada a emitir; NULL deriva en la opcion del menu.';
 COMMENT ON COLUMN pregunta.prioridad       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
 COMMENT ON COLUMN pregunta.umbral_minimo IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
@@ -412,9 +392,9 @@ DECLARE
     t TEXT;
 BEGIN
     FOREACH t IN ARRAY ARRAY[
-        'menu_categoria', 'menu_opcion', 'respuesta',
+        'menu_categoria', 'opcion', 'respuesta',
         'documento', 'contacto',
-        'intencion', 'pregunta', 'pregunta_variante'
+        'pregunta', 'pregunta_variante'
     ] LOOP
         EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_touch ON %1$I', t);
         EXECUTE format(
@@ -446,7 +426,7 @@ SELECT
     CASE WHEN d.drive_file_id IS NOT NULL
          THEN 'https://drive.google.com/file/d/' || d.drive_file_id || '/view'
     END                  AS documento_url
-FROM menu_opcion o
+FROM opcion o
 JOIN menu_categoria   c  ON c.id = o.categoria_id
 LEFT JOIN menu_categoria cd ON cd.id = o.categoria_destino_id
 LEFT JOIN respuesta  r  ON r.id = o.respuesta_id
@@ -462,19 +442,18 @@ ORDER BY c.orden, o.orden, rd.orden;
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW v_cobertura_intenciones AS
 SELECT
-    i.clave            AS intencion_clave,
-    i.nombre           AS intencion_nombre,
-    i.dominio,
-    i.opcion_clave     AS opcion_clave,
-    p.prioridad         AS prioridad,
+    o.clave            AS opcion_clave,
+    o.nombre           AS opcion_nombre,
+    o.dominio,
+    p.prioridad,
     p.umbral_minimo,
     p.pregunta,
     count(v.id)        AS variantes
-FROM intencion i
-JOIN pregunta p          ON p.intencion_id = i.id
+FROM opcion o
+JOIN pregunta p               ON p.opcion_id = o.id
 LEFT JOIN pregunta_variante v ON v.pregunta_id = p.id AND v.activo
-WHERE i.activo AND p.activo
-GROUP BY i.clave, i.nombre, i.dominio, i.opcion_clave, p.id, p.prioridad, p.umbral_minimo, p.pregunta
-ORDER BY i.dominio, i.clave, p.prioridad DESC;
+WHERE o.activo AND p.activo
+GROUP BY o.clave, o.nombre, o.dominio, p.id, p.prioridad, p.umbral_minimo, p.pregunta
+ORDER BY o.dominio, o.clave, p.prioridad DESC;
 
-COMMENT ON VIEW v_cobertura_intenciones IS 'Cobertura de la base de conocimiento por intencion y pregunta.';
+COMMENT ON VIEW v_cobertura_intenciones IS 'Cobertura de la base de conocimiento por opcion del menu y pregunta.';

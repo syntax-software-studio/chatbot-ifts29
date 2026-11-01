@@ -11,7 +11,7 @@ import { query } from '../db/pool.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 
 /** Tablas que la carga identifica por `clave`. */
-export type Tabla = 'menu_categoria' | 'respuesta' | 'menu_opcion' | 'documento' | 'contacto' | 'intencion';
+export type Tabla = 'menu_categoria' | 'respuesta' | 'opcion' | 'documento' | 'contacto';
 
 export interface FichaDb {
   clave: string;
@@ -31,7 +31,6 @@ export async function vaciarDependientes(client: PoolClient): Promise<void> {
   await client.query('DELETE FROM termino_reconocimiento_fragmento');
   await client.query('DELETE FROM pregunta_variante');
   await client.query('DELETE FROM pregunta');
-  await client.query('DELETE FROM intencion');
   await client.query('DELETE FROM respuesta_documento');
 }
 
@@ -80,16 +79,19 @@ export async function upsertOpcion(
     respuestaId: number | undefined;
     esVolver: boolean;
     orden: number;
+    nombre: string | null;
+    dominio: string | null;
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO menu_opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+    `INSERT INTO opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, nombre, dominio, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        categoria_id = EXCLUDED.categoria_id, etiqueta = EXCLUDED.etiqueta, tipo = EXCLUDED.tipo,
        categoria_destino_id = EXCLUDED.categoria_destino_id, respuesta_id = EXCLUDED.respuesta_id,
-       es_volver = EXCLUDED.es_volver, orden = EXCLUDED.orden, activo = TRUE`,
-    [o.clave, o.categoriaId, o.etiqueta, o.tipo, o.destinoId, o.respuestaId, o.esVolver, o.orden],
+       es_volver = EXCLUDED.es_volver, orden = EXCLUDED.orden, nombre = EXCLUDED.nombre,
+       dominio = EXCLUDED.dominio, activo = TRUE`,
+    [o.clave, o.categoriaId, o.etiqueta, o.tipo, o.destinoId, o.respuestaId, o.esVolver, o.orden, o.nombre, o.dominio],
   );
 }
 
@@ -150,25 +152,15 @@ export async function insertarIgnorado(client: PoolClient, termino: string): Pro
   await client.query('INSERT INTO termino_ignorado (termino) VALUES ($1)', [termino]);
 }
 
-export async function insertarIntencion(
-  client: PoolClient,
-  i: { clave: string; nombre: string; dominio: string; opcion: string },
-): Promise<void> {
-  await client.query(
-    'INSERT INTO intencion (clave, nombre, dominio, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
-    [i.clave, i.nombre, i.dominio, i.opcion],
-  );
-}
-
 /** Devuelve el id de la pregunta insertada. */
 export async function insertarPregunta(
   client: PoolClient,
-  p: { intencionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
+  p: { opcionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
 ): Promise<number> {
   const r = await client.query<{ id: number }>(
-    `INSERT INTO pregunta (intencion_id, pregunta, prioridad, umbral_minimo, activo)
+    `INSERT INTO pregunta (opcion_id, pregunta, prioridad, umbral_minimo, activo)
      VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
-    [p.intencionId, p.pregunta, p.prioridad, p.umbral],
+    [p.opcionId, p.pregunta, p.prioridad, p.umbral],
   );
   return r.rows[0]!.id;
 }

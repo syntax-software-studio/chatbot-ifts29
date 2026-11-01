@@ -22,7 +22,7 @@ SELECT id, clave, nombre, mensaje, orden, es_raiz
 \echo ''
 \echo '=== 2. Opciones del menu raiz ==='
 SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver, o.orden
-  FROM menu_opcion o
+  FROM opcion o
  WHERE o.categoria_id = (SELECT id FROM menu_categoria WHERE clave = 'RAIZ') AND o.activo
  ORDER BY o.orden, o.id;
 
@@ -30,28 +30,28 @@ SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver, o.orden
 \echo '=== 3. Opcion por clave (ABD_OP_PROG) ==='
 SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
        o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
-  FROM menu_opcion o
+  FROM opcion o
   JOIN menu_categoria c ON c.id = o.categoria_id
  WHERE o.clave = 'ABD_OP_PROG' AND o.activo AND c.activo;
 
 \echo ''
 \echo '=== 4. Destino de navegacion (ACA_OP_ABD -> M_ADMIN_BASE_DATOS) ==='
 SELECT o.clave AS opcion, cd.clave AS destino
-  FROM menu_opcion o
+  FROM opcion o
   JOIN menu_categoria cd ON cd.id = o.categoria_destino_id
  WHERE o.clave = 'ACA_OP_ABD';
 
 \echo ''
 \echo '=== 5. Respuesta de una opcion (ABD_OP_PROG) ==='
 SELECT r.id, r.clave, LEFT(r.texto, 60) AS texto
-  FROM menu_opcion o
+  FROM opcion o
   JOIN respuesta r ON r.id = o.respuesta_id
  WHERE o.clave = 'ABD_OP_PROG' AND r.activo;
 
 \echo ''
 \echo '=== 6. Documentos adjuntos de ABD_OP_CRONO (A y B: pregunta de comision) ==='
 SELECT d.clave, d.materia, d.tipo, d.comision, d.drive_file_id, d.sincronizado_en
-  FROM menu_opcion o
+  FROM opcion o
   JOIN respuesta_documento rd ON rd.respuesta_id = o.respuesta_id
   JOIN documento d            ON d.id = rd.documento_id
  WHERE o.clave = 'ABD_OP_CRONO'
@@ -60,7 +60,7 @@ SELECT d.clave, d.materia, d.tipo, d.comision, d.drive_file_id, d.sincronizado_e
 \echo ''
 \echo '=== 7. Contactos de derivacion (DERIVACION_OP_TRAMITES) ==='
 SELECT c.clave, c.nombre, c.area, c.email, c.url_perfil, c.motivo
-  FROM menu_opcion o
+  FROM opcion o
   JOIN contacto c ON c.opcion_id = o.id
  WHERE o.clave = 'DERIVACION_OP_TRAMITES' AND c.activo
  ORDER BY c.orden, c.id;
@@ -96,7 +96,7 @@ ROLLBACK;
 SELECT c.clave AS categoria,
        COUNT(d.id) AS documentos_adjuntos
   FROM menu_categoria c
-  JOIN menu_opcion o         ON o.categoria_id = c.id AND o.tipo = 'responder'
+  JOIN opcion o         ON o.categoria_id = c.id AND o.tipo = 'responder'
   JOIN respuesta_documento rd ON rd.respuesta_id = o.respuesta_id
   JOIN documento d            ON d.id = rd.documento_id
  WHERE c.clave LIKE 'M\_%'
@@ -121,7 +121,7 @@ SELECT clave, creado_en, actualizado_en FROM menu_categoria WHERE clave = 'RAIZ'
 
 \echo ''
 \echo '=== 13. Volumen de la base de conocimiento ==='
-SELECT (SELECT COUNT(*) FROM intencion)         AS intenciones,
+SELECT (SELECT COUNT(*) FROM opcion WHERE nombre IS NOT NULL) AS opciones_buscables,
        (SELECT COUNT(*) FROM pregunta)          AS preguntas,
        (SELECT COUNT(*) FROM pregunta_variante) AS variantes,
        (SELECT COUNT(*) FROM termino_equivalente)             AS alias,
@@ -129,44 +129,37 @@ SELECT (SELECT COUNT(*) FROM intencion)         AS intenciones,
 
 \echo ''
 \echo '=== 14. Integridad referencial de la KB (todas deben dar 0) ==='
--- Una intencion sin opcion o sin respuesta, o una variante huerfana, hacen que
--- la consulta escrita no pueda devolver una respuesta autorizada.
-SELECT 'intencion sin opcion activa en el menu' AS problema, COUNT(*) AS cantidad
-  FROM intencion i
-  LEFT JOIN menu_opcion o ON o.clave = i.opcion_clave AND o.activo
- WHERE i.activo AND o.clave IS NULL
-UNION ALL
-SELECT 'intencion sin respuesta en su opcion', COUNT(*)
-  FROM intencion i
-  JOIN menu_opcion o    ON o.clave = i.opcion_clave
-  LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE i.activo AND o.tipo = 'responder' AND r.id IS NULL
-UNION ALL
-SELECT 'pregunta sin intencion activa', COUNT(*)
+-- Una pregunta sin opcion activa, una opcion buscable sin respuesta o una
+-- variante huerfana hacen que la consulta escrita no pueda devolver una
+-- respuesta autorizada.
+SELECT 'pregunta sin opcion activa en el menu' AS problema, COUNT(*) AS cantidad
   FROM pregunta p
-  LEFT JOIN intencion i ON i.id = p.intencion_id AND i.activo
- WHERE p.activo AND i.id IS NULL
+  LEFT JOIN opcion o ON o.id = p.opcion_id AND o.activo
+ WHERE p.activo AND o.id IS NULL
+UNION ALL
+SELECT 'opcion buscable sin respuesta', COUNT(*)
+  FROM opcion o
+  LEFT JOIN respuesta r ON r.id = o.respuesta_id
+ WHERE o.activo AND o.tipo = 'responder' AND o.nombre IS NOT NULL AND r.id IS NULL
 UNION ALL
 SELECT 'variante sin pregunta', COUNT(*)
   FROM pregunta_variante v
   LEFT JOIN pregunta p ON p.id = v.pregunta_id
  WHERE p.id IS NULL;
 
-\echo ''
-\echo '=== 15. Cada intencion reutiliza una opcion y una respuesta del menu ==='
+echo '=== 15. Cada opcion buscable reutiliza una respuesta del menu ==='
 -- No hay texto nuevo: la consulta escrita devuelve lo que ya muestra el menu.
-SELECT i.clave            AS intencion,
-       o.clave            AS opcion,
-       o.tipo             AS tipo_opcion,
-       c.clave            AS categoria,
-       (r.id IS NOT NULL) AS tiene_respuesta,
-       LEFT(r.texto, 40)  AS respuesta
-  FROM intencion i
-  JOIN menu_opcion o ON o.clave = i.opcion_clave
-  JOIN menu_categoria c   ON c.id = o.categoria_id
+SELECT o.nombre            AS intencion,
+       o.clave             AS opcion,
+       o.tipo              AS tipo_opcion,
+       c.clave             AS categoria,
+       (r.id IS NOT NULL)  AS tiene_respuesta,
+       LEFT(r.texto, 40)   AS respuesta
+  FROM opcion o
+  JOIN menu_categoria c ON c.id = o.categoria_id
   LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE i.activo
- ORDER BY i.clave;
+ WHERE o.activo AND o.nombre IS NOT NULL
+ ORDER BY o.nombre;
 
 \echo ''
 \echo '=== 16. Coincidencia EXACTA: cuando hay que pedir ACLARACION ==='
@@ -181,15 +174,15 @@ WITH consultas(texto) AS (
          ('dias cursada')
 )
 SELECT q.texto,
-       COUNT(DISTINCT p.intencion_id) AS intenciones,
-       CASE WHEN COUNT(DISTINCT p.intencion_id) = 0 THEN 'sin coincidencia exacta'
-            WHEN COUNT(DISTINCT p.intencion_id) = 1 THEN 'respuesta directa'
+       COUNT(DISTINCT p.opcion_id) AS intenciones,
+       CASE WHEN COUNT(DISTINCT p.opcion_id) = 0 THEN 'sin coincidencia exacta'
+            WHEN COUNT(DISTINCT p.opcion_id) = 1 THEN 'respuesta directa'
             ELSE 'ACLARACION' END      AS desenlace,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
   FROM consultas q
   LEFT JOIN pregunta_variante v ON v.texto_normalizado = q.texto AND v.activo
   LEFT JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-  LEFT JOIN intencion i ON i.id = p.intencion_id AND i.activo
+  LEFT JOIN opcion i ON i.id = p.opcion_id AND i.activo
  GROUP BY q.texto
  ORDER BY q.texto;
 
@@ -219,7 +212,7 @@ candidatos AS (
     FROM terminos tm
     JOIN pregunta_variante v ON v.activo
     JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN opcion i ON i.id = p.opcion_id AND i.activo
    GROUP BY tm.texto, tm.termino, i.clave
 )
 SELECT texto, termino, intencion, ROUND(similitud::numeric, 3) AS similitud
@@ -240,11 +233,11 @@ SELECT indexname FROM pg_indexes
  ORDER BY indexname;
 
 \echo ''
-\echo '=== 19. Cobertura por intencion (vista v_cobertura_intenciones) ==='
-SELECT intencion_clave, opcion_clave, prioridad, umbral_minimo,
+\echo '=== 19. Cobertura por opcion (vista v_cobertura_intenciones) ==='
+SELECT opcion_clave, opcion_nombre, dominio, prioridad, umbral_minimo,
        variantes, LEFT(pregunta, 46) AS pregunta
   FROM v_cobertura_intenciones
- ORDER BY dominio, intencion_clave, prioridad DESC;
+ ORDER BY dominio, opcion_clave, prioridad DESC;
 
 \echo ''
 \echo '=== 20. Textos compartidos entre intenciones (disparan ACLARACION) ==='
@@ -252,12 +245,12 @@ SELECT intencion_clave, opcion_clave, prioridad, umbral_minimo,
 -- a proposito, para que el motor pregunte en lugar de adivinar.
 SELECT v.texto_normalizado,
        COUNT(DISTINCT p.id)           AS preguntas,
-       COUNT(DISTINCT p.intencion_id) AS intenciones,
+       COUNT(DISTINCT p.opcion_id) AS intenciones,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
   FROM pregunta_variante v
   JOIN pregunta p   ON p.id = v.pregunta_id AND p.activo
-  JOIN intencion i  ON i.id = p.intencion_id AND i.activo
+  JOIN opcion i ON i.id = p.opcion_id AND i.activo
  WHERE v.activo
  GROUP BY v.texto_normalizado
-HAVING COUNT(DISTINCT p.intencion_id) > 1
+HAVING COUNT(DISTINCT p.opcion_id) > 1
  ORDER BY intenciones DESC, v.texto_normalizado;

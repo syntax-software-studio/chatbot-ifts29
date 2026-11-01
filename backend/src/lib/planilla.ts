@@ -17,12 +17,11 @@
 /** Encabezados esperados por pestaña, en el orden de la planilla. */
 export const ESQUEMA_CONTENIDO = {
   categorias: ['clave', 'nombre', 'mensaje', 'orden', 'es_raiz'],
-  opciones: ['clave', 'categoria', 'etiqueta', 'tipo', 'destino', 'respuesta', 'orden', 'es_volver'],
+  opciones: ['clave', 'categoria', 'etiqueta', 'tipo', 'destino', 'respuesta', 'orden', 'es_volver', 'nombre', 'dominio'],
   respuestas: ['clave', 'texto', 'orden'],
   respuesta_documentos: ['respuesta', 'documento', 'orden'],
-  intenciones: ['clave', 'nombre', 'dominio', 'opcion'],
-  preguntas: ['intencion', 'pregunta', 'prioridad', 'umbral_minimo'],
-  variantes: ['intencion', 'pregunta', 'texto_original', 'peso'],
+  preguntas: ['opcion', 'pregunta', 'prioridad', 'umbral_minimo'],
+  variantes: ['opcion', 'pregunta', 'texto_original', 'peso'],
   contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'url_perfil', 'motivo', 'orden', 'opcion'],
   alias: ['alias', 'expansion'],
   ignorados: ['termino'],

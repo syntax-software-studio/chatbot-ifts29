@@ -27,12 +27,12 @@ const intenciones = (c: Array<{ intentKey: string }>): string[] =>
 
 test('una variante exacta devuelve solo su intención', async () => {
   const c = await buscarExacto(normalizarConsulta('programa de ABD'));
-  assert.deepEqual(intenciones(c), ['programa_ABD']);
+  assert.deepEqual(intenciones(c), ['ABD_OP_PROG']);
 });
 
 test('una variante compartida por dos intenciones devuelve las dos (aclaración)', async () => {
   const c = await buscarExacto(normalizarConsulta('abd'));
-  assert.deepEqual(intenciones(c), ['condiciones_ABD', 'programa_ABD']);
+  assert.deepEqual(intenciones(c), ['ABD_OP_COND', 'ABD_OP_PROG']);
 });
 
 test('una consulta sin coincidencia exacta no devuelve nada en la búsqueda exacta', async () => {
@@ -42,7 +42,7 @@ test('una consulta sin coincidencia exacta no devuelve nada en la búsqueda exac
 
 test('la búsqueda por similitud encuentra una variante con errores de tipeo', async () => {
   const c = await buscarSimilares(normalizarConsulta('condiciones de aprobacon de abd'), 0.7);
-  assert.ok(intenciones(c).includes('condiciones_ABD'));
+  assert.ok(intenciones(c).includes('ABD_OP_COND'));
 });
 
 test('la similitud respeta el mínimo: por debajo no devuelve candidatos', async () => {

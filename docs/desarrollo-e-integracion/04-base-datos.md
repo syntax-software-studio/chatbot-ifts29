@@ -17,13 +17,13 @@
 | Tabla | Descripción | Claves relevantes |
 |---|---|---|
 | `menu_categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
-| `menu_opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
+| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id`, `nombre` y `dominio` (si se busca por texto) |
 | `respuesta` | Texto institucional validado | `clave` (única) |
 | `documento` | Ficha de un archivo de Drive. `materia`, `tipo`, `comision`, `anio` y `cuatrimestre` se leen del nombre del archivo. Disponible = está en la carpeta de Drive | `clave` (única), `drive_file_id` (única; NULL = no está en la carpeta) |
 | `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
 | `contacto` | Persona o área de derivación | `clave` (única), `comision`, `motivo` |
 
-El campo `menu_opcion.tipo` define qué hace la opción:
+El campo `opcion.tipo` define qué hace la opción:
 
 - `navegar`: abre otra categoría (subpregunta). Requiere `categoria_destino_id`.
 - `responder`: muestra una respuesta y sus documentos. Requiere `respuesta_id`.
@@ -35,8 +35,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `intencion` | Qué tipo de consulta responde una opción del menú (`opcion_clave`) |
-| `pregunta` | Formulación canónica de una intención, con prioridad y umbral |
+| `pregunta` | Formulación canónica de una opción del menú (`opcion_id`), con prioridad y umbral |
 | `pregunta_variante` | Redacciones posibles, ya normalizadas (`texto_normalizado`), con peso |
 | `termino_equivalente` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
 | `termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
@@ -63,7 +62,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 ### Vistas
 
 - `v_menu_arbol`: el árbol completo con sus respuestas y documentos, para revisión.
-- `v_cobertura_intenciones`: cobertura de la base de conocimiento por intención y pregunta.
+- `v_cobertura_intenciones`: cobertura de la base de conocimiento por opción del menú y pregunta.
 
 ## 4.3 Diagrama
 
@@ -76,9 +75,8 @@ erDiagram
     DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : "es adjunto de"
     OPCION_MENU ||--o{ OPCION_CONTACTO : deriva
     CONTACTO ||--o{ OPCION_CONTACTO : "es derivado por"
-    OPCION_MENU ||--o{ KB_INTENCION : "emite"
-    KB_INTENCION ||--o{ KB_PREGUNTA : tiene
-    KB_PREGUNTA ||--o{ KB_PREGUNTA_VARIANTE : tiene
+    OPCION_MENU ||--o{ PREGUNTA : "se busca por"
+    PREGUNTA ||--o{ PREGUNTA_VARIANTE : tiene
     OPCION_MENU ||--o{ METRICA_OPCION : "se registra en"
 ```
 

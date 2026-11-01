@@ -13,7 +13,7 @@ La base PostgreSQL es la única fuente de lo que el bot muestra (menú, respuest
 
 | Qué | Dónde | Quién lo edita |
 |---|---|---|
-| Menú, respuestas, intenciones, preguntas, variantes, derivación | Planilla "Bot IFTS29 - Contenido" (Google Sheets) | Equipo, sin código |
+| Menú, respuestas, preguntas, variantes, derivación | Planilla "Bot IFTS29 - Contenido" (Google Sheets) | Equipo, sin código |
 | Documentos (PDF) | Carpeta de Drive | Equipo, subiendo o renombrando archivos |
 | Estructura de tablas | `db/001_schema.sql` | Desarrollo |
 
@@ -24,12 +24,11 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | Pestaña | Columnas |
 |---|---|
 | `categorias` | clave, nombre, mensaje, orden, es_raiz |
-| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver |
+| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver, nombre, dominio (nombre y dominio solo si la opción se busca por texto) |
 | `respuestas` | clave, texto, orden |
 | `respuesta_documentos` | respuesta, documento (nombre del archivo en Drive, sin `.pdf`), orden |
-| `intenciones` | clave, nombre, dominio, opcion |
-| `preguntas` | intencion, pregunta, prioridad, umbral_minimo |
-| `variantes` | intencion, pregunta, texto_original, peso |
+| `preguntas` | opcion, pregunta, prioridad, umbral_minimo |
+| `variantes` | opcion, pregunta, texto_original, peso |
 | `contactos` | clave, nombre, area, comision, email, url_perfil, motivo, orden, opcion |
 | `alias` | alias, expansion |
 | `ignorados` | termino (palabras de la consulta que se descartan al buscar: "como", "para", "una"...) |
