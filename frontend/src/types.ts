@@ -35,10 +35,8 @@ export interface Contacto {
 export interface OpcionMenu {
   clave: string;
   etiqueta: string;
-  descripcion: string | null;
   tipo: TipoOpcion;
   esVolver: boolean;
-  icono: string | null;
 }
 
 export interface NodoMenu {

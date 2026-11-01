@@ -20,7 +20,6 @@ const DIAGNOSTICO_LOCAL = env.nodeEnv === 'local';
 export interface CandidatoKb {
   intentKey: string;
   intentName: string;
-  domain: 'administrativo' | 'academico';
   /** Opcion del menu que produce la misma respuesta autorizada. */
   opcionClave: string;
   preguntaId: number;
@@ -44,7 +43,6 @@ export interface CandidatoKb {
 interface RawCandidato {
   intent_key: string;
   intent_name: string;
-  dominio: 'administrativo' | 'academico';
   opcion_clave: string | null;
   pregunta_id: number;
   question: string;
@@ -87,8 +85,7 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
  */
 const SQL_FTS = `
   SELECT o.clave    AS intent_key,
-         o.nombre   AS intent_name,
-         o.dominio,
+         o.etiqueta AS intent_name,
          o.clave AS opcion_clave,
          p.id       AS pregunta_id,
          p.pregunta AS question,
@@ -125,8 +122,7 @@ const SQL_FTS = `
 
 const SQL_EXACTO = `
   SELECT o.clave    AS intent_key,
-         o.nombre  AS intent_name,
-         o.dominio,
+         o.etiqueta AS intent_name,
          o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
@@ -151,8 +147,7 @@ const SQL_EXACTO = `
  */
 const SQL_SIMILARES_TERMINO = `
   SELECT o.clave    AS intent_key,
-         o.nombre  AS intent_name,
-         o.dominio,
+         o.etiqueta AS intent_name,
          o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
@@ -180,7 +175,6 @@ const LARGO_MIN_TERMINO = 4;
 const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentKey: r.intent_key,
   intentName: r.intent_name,
-  domain: r.dominio,
   opcionClave: r.opcion_clave ?? '',
   preguntaId: r.pregunta_id,
   question: r.question,
@@ -194,8 +188,7 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
 
 const SQL_TODAS_VARIANTES = `
   SELECT o.clave    AS intent_key,
-         o.nombre  AS intent_name,
-         o.dominio,
+         o.etiqueta AS intent_name,
          o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,

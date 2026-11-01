@@ -46,9 +46,6 @@ export interface Opcion {
   respuesta: string | null;
   orden: number;
   esVolver: boolean;
-  /** Nombre con el que se busca la opción por texto libre. Null si no se busca por texto. */
-  nombre: string | null;
-  dominio: 'administrativo' | 'academico' | null;
 }
 
 export interface Documento {
@@ -136,7 +133,6 @@ export interface ResumenCarga {
 type Hojas = Partial<Record<Pestana, Fila[]>>;
 
 const TIPOS_OPCION = ['navegar', 'responder', 'derivar'] as const;
-const DOMINIOS = ['administrativo', 'academico'] as const;
 
 /** Texto vacío -> null; cualquier otro texto, sin espacios sobrantes. */
 const opcional = (texto: string): string | null => (texto === '' ? null : texto);
@@ -215,18 +211,9 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       respuesta,
       orden: entero(f.orden!, `${donde} orden`),
       esVolver: booleano(f.es_volver!, `${donde} es_volver`),
-      nombre: opcional(f.nombre ?? ''),
-      dominio: f.dominio ? (f.dominio as Opcion['dominio']) : null,
     };
   });
   const opcionClaves = claves(opciones);
-  const opcionDe = new Map(opciones.map((o) => [o.clave, o] as const));
-  for (const o of opciones) {
-    if (o.dominio && !(DOMINIOS as readonly string[]).includes(o.dominio)) {
-      errores.push(`opciones "${o.clave}": dominio "${o.dominio}" no válido.`);
-    }
-    if (!!o.nombre !== !!o.dominio) errores.push(`opciones "${o.clave}": nombre y dominio van juntos.`);
-  }
 
   // --- Documentos adjuntos a respuestas ---
   const respuestaDocumentos: RespuestaDocumento[] = filas('respuesta_documentos').map((f) => {
@@ -290,8 +277,6 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
   const preguntas: Pregunta[] = filas('preguntas').map((f) => {
     const donde = `preguntas "${f.opcion}" / "${f.pregunta}"`;
     if (!opcionClaves.has(f.opcion!)) errores.push(`${donde}: opcion no existe.`);
-    const o = opcionDe.get(f.opcion!);
-    if (o && (!o.nombre || !o.dominio)) errores.push(`${donde}: la opción necesita nombre y dominio para buscarse por texto.`);
     return {
       opcion: f.opcion!,
       pregunta: f.pregunta!,

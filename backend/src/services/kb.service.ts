@@ -144,10 +144,8 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
   return candidatos.slice(0, env.lenguajeNatural.maxOpcionesAclaracion).map((c) => ({
     clave: c.opcionClave,
     etiqueta: c.intentName,
-    descripcion: null,
     tipo: 'responder' as const,
     esVolver: false,
-    icono: null,
   }));
 }
 

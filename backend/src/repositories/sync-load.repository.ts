@@ -80,19 +80,16 @@ export async function upsertOpcion(
     respuestaId: number | undefined;
     esVolver: boolean;
     orden: number;
-    nombre: string | null;
-    dominio: string | null;
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, nombre, dominio, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
+    `INSERT INTO opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        categoria_id = EXCLUDED.categoria_id, etiqueta = EXCLUDED.etiqueta, tipo = EXCLUDED.tipo,
        categoria_destino_id = EXCLUDED.categoria_destino_id, respuesta_id = EXCLUDED.respuesta_id,
-       es_volver = EXCLUDED.es_volver, orden = EXCLUDED.orden, nombre = EXCLUDED.nombre,
-       dominio = EXCLUDED.dominio, activo = TRUE`,
-    [o.clave, o.categoriaId, o.etiqueta, o.tipo, o.destinoId, o.respuestaId, o.esVolver, o.orden, o.nombre, o.dominio],
+       es_volver = EXCLUDED.es_volver, orden = EXCLUDED.orden, activo = TRUE`,
+    [o.clave, o.categoriaId, o.etiqueta, o.tipo, o.destinoId, o.respuestaId, o.esVolver, o.orden],
   );
 }
 

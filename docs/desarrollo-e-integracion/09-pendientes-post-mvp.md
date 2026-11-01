@@ -24,6 +24,7 @@ Todo lo que sigue queda para después de la entrega del MVP.
 - Submenú por comisión para los documentos de materia.
 - Lógica Computacional: migrarla a la regla de comisiones (opcional).
 - Lista cerrada para el tipo de documento.
+- Flujo para agregar documentos nuevos: documentar cómo se suma un archivo a la carpeta y a la planilla.
 
 ## Pruebas
 

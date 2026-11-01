@@ -256,8 +256,6 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       respuestaId: o.respuesta ? respuestaId.get(o.respuesta) : undefined,
       esVolver: o.esVolver,
       orden: o.orden,
-      nombre: o.nombre,
-      dominio: o.dominio,
     });
   }
   await borrarFueraDe(client, 'menu_categoria', claves(datos.categorias));

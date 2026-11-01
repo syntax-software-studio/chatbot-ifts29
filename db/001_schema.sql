@@ -83,15 +83,11 @@ CREATE TABLE IF NOT EXISTS opcion (
     clave               TEXT        NOT NULL UNIQUE,
     categoria_id        INTEGER     NOT NULL REFERENCES menu_categoria (id) ON DELETE CASCADE,
     etiqueta            TEXT        NOT NULL,
-    descripcion         TEXT,
     tipo                TEXT        NOT NULL DEFAULT 'navegar'
                             CHECK (tipo IN ('navegar', 'responder', 'derivar')),
     categoria_destino_id INTEGER    REFERENCES menu_categoria (id) ON DELETE RESTRICT,
     respuesta_id        INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     es_volver           BOOLEAN     NOT NULL DEFAULT FALSE,
-    icono               TEXT,
-    nombre              TEXT,
-    dominio             TEXT        CHECK (dominio IN ('administrativo', 'academico')),
     orden               INTEGER     NOT NULL DEFAULT 0,
     activo              BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -111,8 +107,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS opcion_navegar_uniq
     WHERE tipo = 'navegar' AND categoria_destino_id IS NOT NULL;
 
 COMMENT ON TABLE  opcion               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
-COMMENT ON COLUMN opcion.nombre   IS 'Nombre con el que se busca esta opcion por texto libre. NULL si no se busca por texto.';
-COMMENT ON COLUMN opcion.dominio  IS 'administrativo (trámites) | academico (materias). NULL si no se busca por texto.';
 COMMENT ON COLUMN opcion.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
 COMMENT ON COLUMN opcion.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
 COMMENT ON COLUMN opcion.categoria_destino_id IS 'Categoria a la que navega la opcion.';
@@ -451,8 +445,7 @@ ORDER BY c.orden, o.orden, rd.orden;
 CREATE OR REPLACE VIEW v_cobertura_intenciones AS
 SELECT
     o.clave            AS opcion_clave,
-    o.nombre           AS opcion_nombre,
-    o.dominio,
+    o.etiqueta         AS opcion_etiqueta,
     p.prioridad,
     p.umbral_minimo,
     p.pregunta,
@@ -461,7 +454,7 @@ FROM opcion o
 JOIN pregunta p               ON p.opcion_id = o.id
 LEFT JOIN pregunta_variante v ON v.pregunta_id = p.id AND v.activo
 WHERE o.activo AND p.activo
-GROUP BY o.clave, o.nombre, o.dominio, p.id, p.prioridad, p.umbral_minimo, p.pregunta
-ORDER BY o.dominio, o.clave, p.prioridad DESC;
+GROUP BY o.clave, o.etiqueta, p.id, p.prioridad, p.umbral_minimo, p.pregunta
+ORDER BY o.clave, p.prioridad DESC;
 
 COMMENT ON VIEW v_cobertura_intenciones IS 'Cobertura de la base de conocimiento por opcion del menu y pregunta.';

@@ -28,7 +28,7 @@ SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver, o.orden
 
 \echo ''
 \echo '=== 3. Opcion por clave (ABD_OP_PROG) ==='
-SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
+SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver,
        o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
   FROM opcion o
   JOIN menu_categoria c ON c.id = o.categoria_id
@@ -121,7 +121,7 @@ SELECT clave, creado_en, actualizado_en FROM menu_categoria WHERE clave = 'RAIZ'
 
 \echo ''
 \echo '=== 13. Volumen de la base de conocimiento ==='
-SELECT (SELECT COUNT(*) FROM opcion WHERE nombre IS NOT NULL) AS opciones_buscables,
+SELECT (SELECT COUNT(*) FROM opcion o WHERE EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id)) AS opciones_buscables,
        (SELECT COUNT(*) FROM pregunta)          AS preguntas,
        (SELECT COUNT(*) FROM pregunta_variante) AS variantes,
        (SELECT COUNT(*) FROM termino_equivalente)             AS alias,
@@ -140,7 +140,7 @@ UNION ALL
 SELECT 'opcion buscable sin respuesta', COUNT(*)
   FROM opcion o
   LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE o.activo AND o.tipo = 'responder' AND o.nombre IS NOT NULL AND r.id IS NULL
+ WHERE o.activo AND o.tipo = 'responder' AND EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id) AND r.id IS NULL
 UNION ALL
 SELECT 'variante sin pregunta', COUNT(*)
   FROM pregunta_variante v
@@ -149,7 +149,7 @@ SELECT 'variante sin pregunta', COUNT(*)
 
 echo '=== 15. Cada opcion buscable reutiliza una respuesta del menu ==='
 -- No hay texto nuevo: la consulta escrita devuelve lo que ya muestra el menu.
-SELECT o.nombre            AS intencion,
+SELECT o.etiqueta          AS intencion,
        o.clave             AS opcion,
        o.tipo              AS tipo_opcion,
        c.clave             AS categoria,
@@ -158,8 +158,8 @@ SELECT o.nombre            AS intencion,
   FROM opcion o
   JOIN menu_categoria c ON c.id = o.categoria_id
   LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE o.activo AND o.nombre IS NOT NULL
- ORDER BY o.nombre;
+ WHERE o.activo AND EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id)
+ ORDER BY o.etiqueta;
 
 \echo ''
 \echo '=== 16. Coincidencia EXACTA: cuando hay que pedir ACLARACION ==='
@@ -234,10 +234,10 @@ SELECT indexname FROM pg_indexes
 
 \echo ''
 \echo '=== 19. Cobertura por opcion (vista v_cobertura_intenciones) ==='
-SELECT opcion_clave, opcion_nombre, dominio, prioridad, umbral_minimo,
+SELECT opcion_clave, opcion_etiqueta, prioridad, umbral_minimo,
        variantes, LEFT(pregunta, 46) AS pregunta
   FROM v_cobertura_intenciones
- ORDER BY dominio, opcion_clave, prioridad DESC;
+ ORDER BY opcion_clave, prioridad DESC;
 
 \echo ''
 \echo '=== 20. Textos compartidos entre intenciones (disparan ACLARACION) ==='

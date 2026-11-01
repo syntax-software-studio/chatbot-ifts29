@@ -21,7 +21,7 @@ const contenidoValido = (): Hojas => ({
   respuestas: [{ clave: 'ABD_programa', texto: 'Programa de ABD.', orden: '1' }],
   opciones: [
     { clave: 'RAIZ_OP_ACAD', categoria: 'RAIZ', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE' },
-    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'ABD', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE', nombre: 'programa_ABD', dominio: 'academico' },
+    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'ABD', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE' },
     { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
@@ -134,7 +134,7 @@ test('todos los errores se reportan juntos', () => {
   const h = contenidoValido();
   h.opciones![0]!.destino = '';
   h.categorias![0]!.es_raiz = 'SI';
-  h.opciones![1]!.dominio = 'otro';
+  h.opciones![1]!.tipo = 'otro';
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.length >= 3, `se esperaban al menos 3 errores, hay ${r.errores.length}`);

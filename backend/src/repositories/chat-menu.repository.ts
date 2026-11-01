@@ -29,10 +29,8 @@ interface RawOpcion {
   id: number;
   clave: string;
   etiqueta: string;
-  descripcion: string | null;
   tipo: TipoOpcion;
   es_volver: boolean;
-  icono: string | null;
 }
 
 interface RawRespuesta {
@@ -75,10 +73,8 @@ const toCategoria = (r: RawCategoria): Categoria => ({
 const toOpcion = (r: RawOpcion): OpcionMenu => ({
   clave: r.clave,
   etiqueta: r.etiqueta,
-  descripcion: r.descripcion,
   tipo: r.tipo,
   esVolver: r.es_volver,
-  icono: r.icono,
 });
 
 const toDocumento = (r: RawDocumento): Documento => ({
@@ -117,13 +113,13 @@ const SQL_CATEGORIA_POR_CLAVE = `
    LIMIT 1`;
 
 const SQL_OPCIONES = `
-  SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono
+  SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver
     FROM opcion o
    WHERE o.categoria_id = $1 AND o.activo
    ORDER BY o.orden, o.id`;
 
 const SQL_OPCION_POR_CLAVE = `
-  SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
+  SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver,
          o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
     FROM opcion o
     JOIN menu_categoria c ON c.id = o.categoria_id

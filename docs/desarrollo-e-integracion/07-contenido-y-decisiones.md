@@ -24,7 +24,7 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | Pestaña | Columnas |
 |---|---|
 | `categorias` | clave, nombre, mensaje, orden, es_raiz |
-| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver, nombre, dominio (nombre y dominio solo si la opción se busca por texto) |
+| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver |
 | `respuestas` | clave, texto, orden |
 | `respuesta_documentos` | respuesta, documento (nombre del archivo en Drive, sin `.pdf`), orden |
 | `preguntas` | opcion, pregunta, prioridad, umbral_minimo |

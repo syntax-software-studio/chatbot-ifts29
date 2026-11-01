@@ -17,7 +17,7 @@ Describe el esquema y el flujo de carga actuales.
 | Tabla | Descripción | Claves relevantes |
 |---|---|---|
 | `menu_categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
-| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id`, `nombre` y `dominio` (si se busca por texto) |
+| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
 | `respuesta` | Texto institucional validado | `clave` (única) |
 | `documento` | Ficha de un archivo de Drive. `materia`, `tipo`, `comision`, `anio` y `cuatrimestre` se leen del nombre del archivo. Disponible = está en la carpeta de Drive | `clave` (única), `drive_file_id` (única; NULL = no está en la carpeta) |
 | `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
