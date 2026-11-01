@@ -282,7 +282,6 @@ CREATE TABLE IF NOT EXISTS pregunta (
     id                SERIAL PRIMARY KEY,
     opcion_id         INTEGER     NOT NULL REFERENCES opcion (id) ON DELETE CASCADE,
     pregunta          TEXT        NOT NULL,
-    respuesta_id      INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     prioridad          INTEGER     NOT NULL DEFAULT 0,
     umbral_minimo NUMERIC(4,3) NOT NULL DEFAULT 0.700
                               CHECK (umbral_minimo >= 0 AND umbral_minimo <= 1),
@@ -296,7 +295,6 @@ CREATE TABLE IF NOT EXISTS pregunta (
 CREATE INDEX IF NOT EXISTS pregunta_opcion_idx ON pregunta (opcion_id);
 
 COMMENT ON TABLE  pregunta                IS 'Formulaciones canonicas de una opcion del menu (la que se busca por texto).';
-COMMENT ON COLUMN pregunta.respuesta_id   IS 'Respuesta autorizada a emitir; NULL deriva en la opcion del menu.';
 COMMENT ON COLUMN pregunta.prioridad       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
 COMMENT ON COLUMN pregunta.umbral_minimo IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
 

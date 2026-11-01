@@ -119,11 +119,10 @@ function mejorPorIntencion(candidatos: CandidatoKb[]): CandidatoKb[] {
 
 /**
  * Control de falsos positivos (§18): un candidato solo sirve si hay una fuente
- * autorizada de respuesta. `respuesta_id` es la respuesta de la pregunta;
- * `opcion_clave` es la opcion del menu equivalente (sirve para derivaciones).
+ * opcion del menu que responda: su `opcion_clave` es la fuente autorizada.
  */
 function esResoluble(c: CandidatoKb): boolean {
-  return c.respuestaId !== null || c.opcionClave.length > 0;
+  return c.opcionClave.length > 0;
 }
 
 /**

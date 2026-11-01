@@ -23,8 +23,6 @@ export interface CandidatoKb {
   domain: 'administrativo' | 'academico';
   /** Opcion del menu que produce la misma respuesta autorizada. */
   opcionClave: string;
-  /** Respuesta autorizada asociada a la pregunta (puede ser null). */
-  respuestaId: number | null;
   preguntaId: number;
   question: string;
   priority: number;
@@ -48,7 +46,6 @@ interface RawCandidato {
   intent_name: string;
   dominio: 'administrativo' | 'academico';
   opcion_clave: string | null;
-  respuesta_id: number | null;
   pregunta_id: number;
   question: string;
   prioridad: number;
@@ -97,7 +94,6 @@ const SQL_FTS = `
          p.pregunta AS question,
          p.prioridad,
          p.umbral_minimo,
-         p.respuesta_id,
          v.texto_original,
          v.texto_normalizado,
          v.peso,
@@ -136,7 +132,6 @@ const SQL_EXACTO = `
          p.pregunta AS question,
          p.prioridad,
          p.umbral_minimo,
-         p.respuesta_id,
          v.texto_original,
          v.texto_normalizado,
          v.peso,
@@ -163,7 +158,6 @@ const SQL_SIMILARES_TERMINO = `
          p.pregunta AS question,
          p.prioridad,
          p.umbral_minimo,
-         p.respuesta_id,
          v.texto_original,
          v.texto_normalizado,
          v.peso,
@@ -188,7 +182,6 @@ const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentName: r.intent_name,
   domain: r.dominio,
   opcionClave: r.opcion_clave ?? '',
-  respuestaId: r.respuesta_id,
   preguntaId: r.pregunta_id,
   question: r.question,
   priority: num(r.prioridad),
@@ -208,7 +201,6 @@ const SQL_TODAS_VARIANTES = `
          p.pregunta AS question,
          p.prioridad,
          p.umbral_minimo,
-         p.respuesta_id,
          v.texto_original,
          v.texto_normalizado,
          v.peso,
