@@ -9,7 +9,7 @@
  *
  * Reglas de escritura. La planilla es la única fuente: lo que no está en ella
  * no se conserva en la base.
- *  - Base de conocimiento (`intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente`, `termino_ignorado`), `respuesta_documento` y `opcion_contacto`:
+ *  - Base de conocimiento (`intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente`, `termino_ignorado`), `respuesta_documento`:
  *    se vacían y se vuelven a cargar. No tienen historial propio.
  *  - Menú (`menu_categoria`, `menu_opcion`, `respuesta`), contactos y documentos:
  *    upsert por clave, y se borra lo que ya no está en la planilla.
@@ -136,7 +136,6 @@ export interface ResumenCarga {
   preguntas: number;
   variantes: number;
   contactos: number;
-  opcionContacto: number;
 }
 
 type Hojas = Partial<Record<Pestana, Fila[]>>;

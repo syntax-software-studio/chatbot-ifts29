@@ -27,7 +27,6 @@ import {
   insertarTerminoFragmento,
   terminosFragmento,
   insertarIntencion,
-  insertarOpcionContacto,
   insertarPregunta,
   insertarVariante,
   reemplazarFragmentos,
@@ -277,21 +276,12 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     });
   }
 
-  // Contactos: upsert; la asociación con derivación se reemplaza completa.
-  for (const c of datos.contactos) await upsertContacto(client, c);
-  await borrarFueraDe(client, 'contacto', claves(datos.contactos));
-
-  // Derivación: cada contacto pertenece a una sola opción de tipo 'derivar'.
-  const contactoId = await idsPorClave(client, 'contacto');
+  // Contactos: cada uno pertenece a una sola opción de derivación ('derivar').
   const opcionMenuId = await idsPorClave(client, 'menu_opcion');
   for (const c of datos.contactos) {
-    await insertarOpcionContacto(client, {
-      opcionId: opcionMenuId.get(c.opcion),
-      contactoId: contactoId.get(c.clave),
-      orden: c.orden,
-    });
+    await upsertContacto(client, { ...c, opcionId: opcionMenuId.get(c.opcion) });
   }
-  const opcionContacto = datos.contactos.length;
+  await borrarFueraDe(client, 'contacto', claves(datos.contactos));
 
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const a of datos.alias) await insertarAlias(client, a);
@@ -330,6 +320,5 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     preguntas: datos.preguntas.length,
     variantes: datos.variantes.length,
     contactos: datos.contactos.length,
-    opcionContacto,
   };
 }

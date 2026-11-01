@@ -15,7 +15,7 @@ El sistema se divide en cinco dominios. Cada tabla pertenece a uno solo, salvo l
 | Dominio | Responsabilidad | Código principal | Tablas que escribe | Tablas que lee |
 |---|---|---|---|---|
 | **Sincronización** (ETL) | Leer la planilla y Drive, validar, transformar y escribir el contenido | `sync-extract`, `sync-transform`, `sync-load`, `planilla.ts`, `secciones.ts`, `comisiones.ts` | Todas las de contenido y conocimiento | Planilla, Drive |
-| **Contenido** | Lo que el bot muestra: menú, respuestas, documentos y contactos | `chat-menu.repository` (lectura) | `menu_categoria`, `menu_opcion`, `respuesta`, `respuesta_documento`, `documento`, `documento_fragmento`, `contacto`, `opcion_contacto` | Chat, conocimiento |
+| **Contenido** | Lo que el bot muestra: menú, respuestas, documentos y contactos | `chat-menu.repository` (lectura) | `menu_categoria`, `menu_opcion`, `respuesta`, `respuesta_documento`, `documento`, `documento_fragmento`, `contacto` | Chat, conocimiento |
 | **Chat** | Decide cada turno: menú, respuesta, derivación, aclaración o "no disponible" | `chat.service`, `fragmentos.service`, `chat.routes`, `menu.routes` | Ninguna (solo métricas) | Contenido, conocimiento |
 | **Conocimiento** | Interpreta el texto libre y lo ubica en una opción del menú | `kb.service`, `kb-conocimiento.repository`, `normalizar.ts` | `intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente`, `termino_ignorado` (desde el ETL) | Contenido (`respuesta`, `menu_opcion`) |
 | **Métricas** | Registrar cada turno y publicar el reporte mensual | `analytics.service`, `analytics.repository`, `metricas.ts`, `sheets-metricas.client`, `metricas.routes` | `metrica_opcion`, `metrica_exportacion` | Ninguna del contenido |
@@ -86,7 +86,6 @@ Al sincronizar, el sistema lee estos campos del nombre y los guarda en `document
 
 ## 11.5 Hallazgos pendientes sobre el modelo
 
-5. **Contacto y opción.** La planilla asigna un contacto a una sola opción (columna `opcion`). La base lo modela como N:M con `opcion_contacto`, que tiene su propio `orden` además de `contacto.orden`.
 6. **Texto del bot fuera de `respuesta`.** `menu_categoria.mensaje` contiene texto institucional. `pregunta.respuesta_id` apunta a `respuesta`, pero está vacío en todas las filas actuales.
 7. **Documentos sin registro propio.** No hay pestaña de documentos. Las fichas se crean a partir de `respuesta_documentos`, y la existencia real depende de Drive.
 8. **Claves mixtas.** Algunas relaciones usan `id` numérico (`menu_categoria_id`, `categoria_id`) y otras la clave de texto (`intencion.opcion_clave`, `metrica_opcion.opcion_clave`). Las métricas usan texto a propósito, para sobrevivir a los resets.
@@ -99,7 +98,7 @@ Al sincronizar, el sistema lee estos campos del nombre y los guarda en `document
 
 ## 11.7 Decisiones abiertas
 
-1. **Contacto y opción.** Hoy la relación es 1:1 y se propone una columna `opcion_id` en `contacto`. Si en el futuro un contacto puede estar en varias opciones, se vuelve a la tabla N:M.
+1. **Contacto y opción (decidido e implementado).** Cada contacto pertenece a una sola opción de derivación: `contacto.opcion_id`. Se eliminó `opcion_contacto`.
 2. **Títulos de sección.** ¿Pasan a la planilla o quedan en código?
 3. **Idioma.** Se mantiene el castellano en las tablas y columnas. Los términos técnicos estándar (`search_vector`, `gin_trgm_ops`) quedan en inglés.
 4. **Permisos al cliente (decidido).** El cliente recibe el archivo de la planilla como editor, con las pestañas de configuración protegidas (solo el dueño las edita) y los encabezados de cada pestaña protegidos. La carpeta de Drive se comparte como editor. Todo lo ajustable vive en Drive, y la gestión no requiere acceso a la base. Se mantiene en código `ESQUEMA_CONTENIDO`, porque es el contrato que valida la carga. Hay que verificar en una prueba que el cliente no pueda quitar la protección.

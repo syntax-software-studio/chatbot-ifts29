@@ -161,7 +161,7 @@ se vuelve a sincronizar.
 `db/001_schema.sql` define el esquema completo, las dos mitades del sistema:
 
 - `menu_categoria`, `menu_opcion`, `respuesta`, `documento`, `contacto`
-- Tablas de relación: `opcion_contacto`, `respuesta_documento`
+- Tablas de relación: `respuesta_documento`
 - `metrica_opcion` (métricas agregadas, sin datos personales)
 - La base de conocimiento de las consultas escritas: `intencion` (qué
   intención corresponde a qué opción del menú), `pregunta` (la formulación

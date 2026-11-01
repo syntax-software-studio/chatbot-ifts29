@@ -61,10 +61,9 @@ SELECT d.clave, d.materia, d.tipo, d.comision, d.drive_file_id, d.sincronizado_e
 \echo '=== 7. Contactos de derivacion (DERIVACION_OP_TRAMITES) ==='
 SELECT c.clave, c.nombre, c.area, c.email, c.url_perfil, c.motivo
   FROM menu_opcion o
-  JOIN opcion_contacto oc ON oc.opcion_id = o.id
-  JOIN contacto c         ON c.id = oc.contacto_id
+  JOIN contacto c ON c.opcion_id = o.id
  WHERE o.clave = 'DERIVACION_OP_TRAMITES' AND c.activo
- ORDER BY oc.orden, c.id;
+ ORDER BY c.orden, c.id;
 
 \echo ''
 \echo '=== 8. Metrica anonima: UPSERT (se revierte) ==='

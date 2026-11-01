@@ -33,7 +33,6 @@ export async function vaciarDependientes(client: PoolClient): Promise<void> {
   await client.query('DELETE FROM pregunta');
   await client.query('DELETE FROM intencion');
   await client.query('DELETE FROM respuesta_documento');
-  await client.query('DELETE FROM opcion_contacto');
 }
 
 /** Mapa clave → id de una tabla. */
@@ -129,28 +128,18 @@ export async function upsertContacto(
     perfil: string | null;
     motivo: string | null;
     orden: number;
+    opcionId: number | undefined;
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+    `INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, opcion_id, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        nombre = EXCLUDED.nombre, area = EXCLUDED.area, comision = EXCLUDED.comision,
        email = EXCLUDED.email, url_perfil = EXCLUDED.url_perfil, motivo = EXCLUDED.motivo,
-       orden = EXCLUDED.orden, activo = TRUE`,
-    [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden],
+       orden = EXCLUDED.orden, opcion_id = EXCLUDED.opcion_id, activo = TRUE`,
+    [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden, c.opcionId],
   );
-}
-
-export async function insertarOpcionContacto(
-  client: PoolClient,
-  oc: { opcionId: number | undefined; contactoId: number | undefined; orden: number },
-): Promise<void> {
-  await client.query('INSERT INTO opcion_contacto (opcion_id, contacto_id, orden) VALUES ($1, $2, $3)', [
-    oc.opcionId,
-    oc.contactoId,
-    oc.orden,
-  ]);
 }
 
 export async function insertarAlias(client: PoolClient, a: { alias: string; expansion: string }): Promise<void> {

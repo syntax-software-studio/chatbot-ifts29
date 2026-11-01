@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS contacto (
     id          SERIAL PRIMARY KEY,
     clave       TEXT        NOT NULL UNIQUE,
     nombre      TEXT        NOT NULL,
+    opcion_id   INTEGER     NOT NULL REFERENCES menu_opcion (id) ON DELETE CASCADE,
     area        TEXT,
     email       TEXT,
     url_perfil  TEXT,
@@ -211,14 +212,8 @@ CREATE TABLE IF NOT EXISTS contacto (
 COMMENT ON TABLE  contacto            IS 'Persona o area a la que se deriva la consulta (RF04).';
 COMMENT ON COLUMN contacto.motivo     IS 'Motivo de la derivacion, mostrado junto al contacto.';
 
-CREATE TABLE IF NOT EXISTS opcion_contacto (
-    opcion_id    INTEGER NOT NULL REFERENCES menu_opcion (id) ON DELETE CASCADE,
-    contacto_id  INTEGER NOT NULL REFERENCES contacto (id)  ON DELETE CASCADE,
-    orden        INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (opcion_id, contacto_id)
-);
-
-CREATE INDEX IF NOT EXISTS opcion_contacto_contacto_idx ON opcion_contacto (contacto_id);
+CREATE INDEX IF NOT EXISTS contacto_opcion_idx ON contacto (opcion_id, orden);
+COMMENT ON COLUMN contacto.opcion_id IS 'Opcion de derivacion a la que pertenece el contacto (una sola).';
 
 -- ---------------------------------------------------------------------------
 -- 7. METRICA_OPCION  ->  contadores agregados, sin datos personales (RNF05)
