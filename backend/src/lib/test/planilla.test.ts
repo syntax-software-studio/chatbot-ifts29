@@ -21,12 +21,13 @@ const contenidoValido = (): Record<string, Valores> => ({
   opciones: pestana('opciones', ['RAIZ_OP_ACAD', 'RAIZ', 'Materias', 'navegar', 'M_ACAD', '', '1', 'FALSE']),
   respuestas: pestana('respuestas', ['ABD_programa', 'Texto del programa, con coma y "comillas".', '1']),
   respuesta_documentos: pestana('respuesta_documentos', ['ABD_programa', 'ABD_programa_2026_1C.pdf', '1']),
-  intenciones: pestana('intenciones', ['programa_ABD', 'Programa de ABD', 'administrativo', 'ABD_OP_PROG']),
   preguntas: pestana('preguntas', ['programa_ABD', '¿Cuál es el programa?', '30', '0.7']),
   variantes: pestana('variantes', ['programa_ABD', '¿Cuál es el programa?', 'programa de abd', '1']),
   contactos: pestana('contactos', ['bedelia', 'Bedelía', 'Bedelía', 'General', 'bedelia@bue.edu.ar', '', 'Trámites', '3', 'DERIVACION_OP_TRAMITES']),
-  alias: pestana('alias'),
+  equivalentes: pestana('equivalentes'),
   ignorados: pestana('ignorados', ['como']),
+  palabras_vacias: pestana('palabras_vacias', ['de']),
+  reconocimiento_fragmentos: pestana('reconocimiento_fragmentos', ['bibliografia']),
 });
 
 test('un contenido válido se interpreta completo y sin errores', () => {
@@ -39,7 +40,7 @@ test('un contenido válido se interpreta completo y sin errores', () => {
     area: 'Bedelía',
     comision: 'General',
     email: 'bedelia@bue.edu.ar',
-    perfil: '',
+    url_perfil: '',
     motivo: 'Trámites',
     orden: '3',
     opcion: 'DERIVACION_OP_TRAMITES',
@@ -74,12 +75,12 @@ test('una pestaña faltante se reporta por nombre', () => {
 
 test('encabezados distintos al esquema se reportan con lo esperado y lo encontrado', () => {
   const c = contenidoValido();
-  c.preguntas = [['intencion', 'texto_pregunta', 'prioridad', 'umbral']];
+  c.preguntas = [['opcion', 'texto_pregunta', 'prioridad', 'umbral_minimo']];
   const r = interpretarContenido(c);
   assert.equal(r.ok, false);
   const error = r.errores.find((e) => e.includes('"preguntas"'));
   assert.ok(error, 'debe reportar la pestaña preguntas');
-  assert.ok(error.includes('intencion, pregunta, prioridad, umbral'));
+  assert.ok(error.includes('opcion, pregunta, prioridad, umbral_minimo'));
   assert.ok(error.includes('texto_pregunta'));
 });
 

@@ -7,7 +7,7 @@
 import { clienteSheets } from '../clients/sheets.client.js';
 import { lineasDePdf } from '../clients/pdf.client.js';
 import { env, hasGoogleDrive } from '../config/env.js';
-import { fragmentar, type Fragmento } from '../lib/secciones.js';
+import { fragmentar, type Fragmento } from '../lib/fragmentos.js';
 import { interpretarContenido, type ResultadoContenido, type Valores } from '../lib/planilla.js';
 
 export async function leerContenido(): Promise<ResultadoContenido> {
@@ -46,9 +46,9 @@ export async function leerContenido(): Promise<ResultadoContenido> {
  * Fragmentos de un PDF. Si no hay texto extraíble (por ejemplo, un PDF de
  * imágenes), devuelve una lista vacía: el documento se muestra completo, como hoy.
  */
-export async function extraerFragmentos(datos: Uint8Array): Promise<Fragmento[]> {
+export async function extraerFragmentos(datos: Uint8Array, titulos: readonly string[]): Promise<Fragmento[]> {
   const lineas = await lineasDePdf(datos);
   const conTexto = lineas.filter((l) => l.text.length > 0);
   if (conTexto.length === 0) return [];
-  return fragmentar(conTexto).filter((f) => f.texto.length > 0 || f.titulo !== '');
+  return fragmentar(conTexto, titulos).filter((f) => f.texto.length > 0 || f.titulo !== '');
 }

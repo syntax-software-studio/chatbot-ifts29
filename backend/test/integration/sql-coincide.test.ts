@@ -105,22 +105,22 @@ test('el DDL y las migraciones no tienen BOM', async () => {
   }
 });
 
-test('las verificaciones de v_kb_resolucion usan columnas reales', async () => {
-  // `v_kb_resolucion` se usa en 003_verificacion.sql: si el nombre de una
+test('las verificaciones de v_cobertura_intenciones usan columnas reales', async () => {
+  // `v_cobertura_intenciones` se usa en 003_verificacion.sql: si el nombre de una
   // columna cambia en el DDL, la verificacion falla en la maquina del equipo.
   const tablas = await esquema();
   const ddl = await leer('db/001_schema.sql');
-  const definicion = /CREATE OR REPLACE VIEW v_kb_resolucion AS([\s\S]*?);\s*$/m.exec(ddl);
-  assert.ok(definicion, 'no se encontro la definicion de v_kb_resolucion');
+  const definicion = /CREATE OR REPLACE VIEW v_cobertura_intenciones AS([\s\S]*?);\s*$/m.exec(ddl);
+  assert.ok(definicion, 'no se encontro la definicion de v_cobertura_intenciones');
 
   const kb = new Map<string, Set<string>>();
-  for (const tabla of ['kb_intencion', 'kb_pregunta', 'kb_pregunta_variante']) {
+  for (const tabla of ['intencion', 'pregunta', 'pregunta_variante']) {
     kb.set(tabla, tablas.get(tabla)!);
   }
 
   const verificacion = await leer('db/003_verificacion.sql');
-  const uso = [...verificacion.matchAll(/FROM\s+(v_kb_resolucion)\b([\s\S]*?);/g)];
-  assert.ok(uso.length > 0, 'la verificacion deberia consultar v_kb_resolucion');
+  const uso = [...verificacion.matchAll(/FROM\s+(v_cobertura_intenciones)\b([\s\S]*?);/g)];
+  assert.ok(uso.length > 0, 'la verificacion deberia consultar v_cobertura_intenciones');
 
   const aliases = aliasDe(definicion[1]!);
   for (const m of definicion[1]!.matchAll(/\b(\w+)\.(\w+)\b/g)) {
@@ -130,7 +130,7 @@ test('las verificaciones de v_kb_resolucion usan columnas reales', async () => {
     if (!columnas) continue;
     assert.ok(
       columnas.has(m[2]!.toLowerCase()),
-      `v_kb_resolucion usa ${m[1]}.${m[2]}, que no existe en ${[...destino][0]}`,
+      `v_cobertura_intenciones usa ${m[1]}.${m[2]}, que no existe en ${[...destino][0]}`,
     );
   }
 });

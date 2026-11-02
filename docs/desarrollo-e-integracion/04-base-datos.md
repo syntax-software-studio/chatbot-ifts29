@@ -1,6 +1,6 @@
 # 4. Base de Datos
 
-**Estado:** vigente. Describe el esquema y el flujo de carga actuales.
+Describe el esquema y el flujo de carga actuales.
 
 ## 4.1 Resumen
 
@@ -16,15 +16,14 @@
 
 | Tabla | Descripción | Claves relevantes |
 |---|---|---|
-| `categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
-| `opcion_menu` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
+| `menu_categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
+| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
 | `respuesta` | Texto institucional validado | `clave` (única) |
-| `documento` | Ficha de un archivo de Drive | `clave` (única), `drive_file_id` (única), `drive_nombre_archivo` |
+| `documento` | Ficha de un archivo de Drive. `materia`, `tipo`, `comision`, `anio` y `cuatrimestre` se leen del nombre del archivo. Disponible = está en la carpeta de Drive | `clave` (única), `drive_file_id` (única; NULL = no está en la carpeta) |
 | `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
 | `contacto` | Persona o área de derivación | `clave` (única), `comision`, `motivo` |
-| `opcion_contacto` | Contacto de una opción de derivación | (`opcion_id`, `contacto_id`) |
 
-El campo `opcion_menu.tipo` define qué hace la opción:
+El campo `opcion.tipo` define qué hace la opción:
 
 - `navegar`: abre otra categoría (subpregunta). Requiere `categoria_destino_id`.
 - `responder`: muestra una respuesta y sus documentos. Requiere `respuesta_id`.
@@ -36,13 +35,14 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `kb_intencion` | Qué tipo de consulta responde una opción del menú (`opcion_clave`) |
-| `kb_pregunta` | Formulación canónica de una intención, con prioridad y umbral |
-| `kb_pregunta_variante` | Redacciones posibles, ya normalizadas (`normalized_text`), con peso |
-| `kb_alias` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `alias` |
-| `kb_termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
+| `pregunta` | Formulación canónica de una opción del menú (`opcion_id`), con prioridad y umbral |
+| `pregunta_variante` | Redacciones posibles, ya normalizadas (`texto_normalizado`), con peso |
+| `termino_equivalente` | Siglas y nombres cortos con su expansión (por ejemplo "abd" → "administracion de bases de datos"). Se cargan desde la pestaña `equivalentes` |
+| `termino_ignorado` | Palabras de la consulta que no identifican nada ("como", "para", "una"...). Se cargan desde la pestaña `ignorados`. Sólo se usan al buscar; no cambian cómo se guardan las variantes |
+| `palabra_vacia` | Palabras que se quitan al normalizar consultas y variantes ("de", "la", "y"...). Se cargan desde la pestaña `palabras_vacias` |
+| `termino_reconocimiento_fragmento` | Títulos de sección que reconocen los PDF para partirlos en fragmentos. Se cargan desde la pestaña `reconocimiento_fragmentos` |
 
-`kb_pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', normalized_text)`) que usa la búsqueda de palabras.
+`pregunta_variante` tiene además `search_vector`, un `tsvector` generado (`to_tsvector('spanish', texto_normalizado)`) que usa la búsqueda de palabras.
 
 ### Fragmentos de documentos
 
@@ -52,35 +52,33 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 `documento.fragmentos_md5` guarda el `md5` del archivo con el que se extrajeron los fragmentos. La sincronización extrae solo cuando difiere del `md5` de Drive. Un documento sin texto extraíble no tiene filas en `documento_fragmento`.
 
-Índices: B-tree sobre `normalized_text` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
+Índices: B-tree sobre `texto_normalizado` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
 
 ### Métricas
 
 | Tabla | Descripción |
 |---|---|
-| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-proximas-iteraciones.md), sección 5). |
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-post-mvp.md), sección 5). |
 | `metrica_exportacion` | Un registro por mes publicado en la planilla de métricas: `mes` (`AAAA-MM`), ID de la planilla, registros, total y fecha de la última publicación. Lo actualiza la exportación mensual; republicar un mes reemplaza su fila. |
 
 ### Vistas
 
-- `v_arbol_menu`: el árbol completo con sus respuestas y documentos, para revisión.
-- `v_kb_resolucion`: cobertura de la base de conocimiento por intención y pregunta.
+- `v_menu_arbol`: el árbol completo con sus respuestas y documentos, para revisión.
+- `v_cobertura_intenciones`: cobertura de la base de conocimiento por opción del menú y pregunta.
 
 ## 4.3 Diagrama
 
 ```mermaid
 erDiagram
-    CATEGORIA ||--o{ OPCION_MENU : contiene
-    CATEGORIA ||--o{ OPCION_MENU : "destino de navegar"
-    RESPUESTA ||--o{ OPCION_MENU : muestra
+    MENU_CATEGORIA ||--o{ OPCION : contiene
+    MENU_CATEGORIA ||--o{ OPCION : "destino de navegar"
+    RESPUESTA ||--o{ OPCION : muestra
     RESPUESTA ||--o{ RESPUESTA_DOCUMENTO : adjunta
     DOCUMENTO ||--o{ RESPUESTA_DOCUMENTO : "es adjunto de"
-    OPCION_MENU ||--o{ OPCION_CONTACTO : deriva
-    CONTACTO ||--o{ OPCION_CONTACTO : "es derivado por"
-    OPCION_MENU ||--o{ KB_INTENCION : "emite"
-    KB_INTENCION ||--o{ KB_PREGUNTA : tiene
-    KB_PREGUNTA ||--o{ KB_PREGUNTA_VARIANTE : tiene
-    OPCION_MENU ||--o{ METRICA_OPCION : "se registra en"
+    OPCION ||--o{ CONTACTO : deriva
+    OPCION ||--o{ PREGUNTA : "se busca por"
+    PREGUNTA ||--o{ PREGUNTA_VARIANTE : tiene
+    OPCION ||--o{ METRICA_OPCION : "se registra en"
 ```
 
 ## 4.4 Carga y sincronización

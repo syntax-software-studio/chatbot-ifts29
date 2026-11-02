@@ -160,20 +160,19 @@ se vuelve a sincronizar.
 
 `db/001_schema.sql` define el esquema completo, las dos mitades del sistema:
 
-- `categoria`, `opcion_menu`, `respuesta`, `documento`, `contacto`
-- Tablas de relación: `opcion_contacto`, `respuesta_documento`
+- `menu_categoria`, `opcion`, `respuesta`, `documento`, `contacto`
+- Tablas de relación: `respuesta_documento`
 - `metrica_opcion` (métricas agregadas, sin datos personales)
-- La base de conocimiento de las consultas escritas: `kb_intencion` (qué
-  intención corresponde a qué opción del menú), `kb_pregunta` (la formulación
-  canónica) y `kb_pregunta_variante` (las redacciones alternativas ya
-  normalizadas)
+- La base de conocimiento de las consultas escritas: `pregunta` (la formulación
+  canónica de una opción del menú) y `pregunta_variante` (las redacciones
+  alternativas ya normalizadas)
 - Índices: B-tree para la coincidencia exacta, GIN sobre `search_vector` para la
   búsqueda de palabras y GIN `gin_trgm_ops` para la similitud; extensiones
   `pgcrypto` y `pg_trgm`
-- Trigger `touch_actualizado_en` y vistas `v_arbol_menu` y `v_kb_resolucion`
+- Trigger `touch_actualizado_en` y vistas `v_menu_arbol` y `v_cobertura_intenciones`
   para control
 
-Cada intención apunta a una opción de `opcion_menu` y a una `respuesta` ya
+Cada intención apunta a una opción de `opcion` y a una `respuesta` ya
 validada (`ON DELETE RESTRICT`): el contenido no se duplica ni se genera, se
 reutiliza.
 
@@ -181,7 +180,7 @@ reutiliza.
 
 El contenido vive en la planilla de Google "Bot IFTS29 - Contenido", no en el código. Para sumar una redacción nueva:
 
-1. Agregar la fila en la pestaña `variantes` (y, si hace falta, en `preguntas` o `intenciones`).
+1. Agregar la fila en la pestaña `variantes` (y, si hace falta, en `preguntas`).
 2. Ejecutar `npm run sync --workspace backend`. Valida la planilla antes de escribir: si hay un error, lo muestra y no cambia nada.
 
 ```bash
@@ -259,7 +258,7 @@ Códigos: `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`,
    letras repetidas recortadas (`normalizar`, el mismo código que carga las
    variantes).
 2. **Regla de saludos**: `hola`, `buen día`… devuelven el menú raíz.
-3. **Coincidencia exacta** sobre `normalized_text` (índice B-tree). Si el texto
+3. **Coincidencia exacta** sobre `texto_normalizado` (índice B-tree). Si el texto
    coincide con variantes de varias intenciones, se devuelven **todas**: es el
    caso que dispara la aclaración.
 4. **Cobertura de términos (FTS)**: cada término de la consulta (sin las palabras
@@ -430,7 +429,7 @@ Las pruebas unitarias están junto al módulo que prueban (`src/**/*.test.ts`). 
 | `src/lib/test/normalizar.test.ts` | Unitaria | Normalización del texto, expansión de siglas y comparación por palabras con errores de tipeo |
 | `src/lib/test/comisiones.test.ts` | Unitaria | Comisión desde el nombre del documento, pregunta de comisión y filtrado del documento elegido |
 | `src/lib/test/planilla.test.ts` | Unitaria | Validación de la planilla: encabezados, pestañas y filas |
-| `src/lib/test/secciones.test.ts` | Unitaria | Partición de un PDF en secciones por título, con tolerancia a errores de tipeo |
+| `src/lib/test/fragmentos.test.ts` | Unitaria | Partición de un PDF en secciones por título, con tolerancia a errores de tipeo |
 | `src/services/test/sync-transform.service.test.ts` | Unitaria | Conversión de la planilla a tipos de base y validación de referencias |
 | `src/repositories/test/kb-conocimiento.repository.test.ts` | Integración | Matching exacto y por similitud, y que la ambigüedad se preserve |
 | `src/services/test/kb.service.test.ts` | Integración | Desenlaces del intérprete: respuesta, aclaración, `no_disponible`, saludo, cobertura de términos y errores de tipeo |

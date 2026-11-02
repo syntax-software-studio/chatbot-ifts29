@@ -6,6 +6,7 @@
  */
 
 import { query } from '../db/pool.js';
+import { urlDeLectura } from '../clients/drive.js';
 import { notFound } from '../utils/errors.js';
 import type { Categoria, Contacto, Documento, NodoMenu, OpcionMenu, Respuesta, Derivacion, TipoOpcion } from '../db/types.js';
 
@@ -28,10 +29,8 @@ interface RawOpcion {
   id: number;
   clave: string;
   etiqueta: string;
-  descripcion: string | null;
   tipo: TipoOpcion;
   es_volver: boolean;
-  icono: string | null;
 }
 
 interface RawRespuesta {
@@ -42,13 +41,12 @@ interface RawRespuesta {
 interface RawDocumento {
   id: number;
   clave: string;
-  nombre: string;
-  descripcion: string | null;
-  tipo: string;
-  mime_type: string;
-  drive_view_url: string | null;
-  vigente: boolean;
-  estado: Documento['estado'];
+  tipo: string | null;
+  materia: string | null;
+  comision: string | null;
+  anio: number | null;
+  cuatrimestre: string | null;
+  drive_file_id: string | null;
   actualizado_en: string | null;
   sincronizado_en: string | null;
 }
@@ -75,22 +73,21 @@ const toCategoria = (r: RawCategoria): Categoria => ({
 const toOpcion = (r: RawOpcion): OpcionMenu => ({
   clave: r.clave,
   etiqueta: r.etiqueta,
-  descripcion: r.descripcion,
   tipo: r.tipo,
   esVolver: r.es_volver,
-  icono: r.icono,
 });
 
 const toDocumento = (r: RawDocumento): Documento => ({
   id: r.id,
   clave: r.clave,
-  nombre: r.nombre,
-  descripcion: r.descripcion,
-  tipo: r.tipo,
-  mimeType: r.mime_type,
-  url: r.drive_view_url,
-  vigente: r.vigente,
-  estado: r.estado,
+  nombre: `${r.clave}.pdf`,
+  tipo: r.tipo ?? 'documento',
+  materia: r.materia,
+  comision: r.comision,
+  anio: r.anio,
+  cuatrimestre: r.cuatrimestre,
+  mimeType: 'application/pdf',
+  url: r.drive_file_id ? urlDeLectura(r.drive_file_id) : null,
   fechaActualizacion: r.actualizado_en,
   sincronizado: r.sincronizado_en !== null,
 });
@@ -111,21 +108,21 @@ const toContacto = (r: RawContacto): Contacto => ({
 
 const SQL_CATEGORIA_POR_CLAVE = `
   SELECT id, clave, nombre, mensaje, orden, es_raiz
-    FROM categoria
+    FROM menu_categoria
    WHERE clave = $1 AND activo
    LIMIT 1`;
 
 const SQL_OPCIONES = `
-  SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono
-    FROM opcion_menu o
+  SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver
+    FROM opcion o
    WHERE o.categoria_id = $1 AND o.activo
    ORDER BY o.orden, o.id`;
 
 const SQL_OPCION_POR_CLAVE = `
-  SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
+  SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver,
          o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
-    FROM opcion_menu o
-    JOIN categoria c ON c.id = o.categoria_id
+    FROM opcion o
+    JOIN menu_categoria c ON c.id = o.categoria_id
    WHERE o.clave = $1 AND o.activo AND c.activo
    LIMIT 1`;
 
@@ -136,20 +133,19 @@ const SQL_RESPUESTA = `
    LIMIT 1`;
 
 const SQL_DOCUMENTOS_DE_RESPUESTA = `
-  SELECT d.id, d.clave, d.nombre, d.descripcion, d.tipo, d.mime_type,
-         d.drive_view_url, d.vigente, d.estado, d.actualizado_en, d.sincronizado_en
+  SELECT d.id, d.clave, d.tipo, d.materia, d.comision, d.anio, d.cuatrimestre,
+         d.drive_file_id, d.actualizado_en, d.sincronizado_en
     FROM respuesta_documento rd
     JOIN documento d ON d.id = rd.documento_id
-   WHERE rd.respuesta_id = $1 AND d.estado <> 'archivado'
+   WHERE rd.respuesta_id = $1
    ORDER BY rd.orden, d.id`;
 
 const SQL_CONTACTOS_DE_OPCION = `
   SELECT c.id, c.clave, c.nombre, c.area, c.email,
          c.url_perfil, c.motivo
-    FROM opcion_contacto oc
-    JOIN contacto c ON c.id = oc.contacto_id
-   WHERE oc.opcion_id = $1 AND c.activo
-   ORDER BY oc.orden, c.id`;
+    FROM contacto c
+   WHERE c.opcion_id = $1 AND c.activo
+   ORDER BY c.orden, c.id`;
 /* ==========================================================================
  * API pública
  * ======================================================================== */
@@ -188,7 +184,7 @@ export async function obtenerOpcion(opcionClave: string): Promise<OpcionResuelta
 
   let destino: string | null = null;
   if (row.categoria_destino_id) {
-    const d = await query<{ clave: string }>('SELECT clave FROM categoria WHERE id = $1', [row.categoria_destino_id]);
+    const d = await query<{ clave: string }>('SELECT clave FROM menu_categoria WHERE id = $1', [row.categoria_destino_id]);
     destino = d.rows[0]?.clave ?? null;
   }
 
@@ -221,7 +217,7 @@ export async function obtenerContactos(opcionId: number): Promise<Contacto[]> {
 /** Categorías del árbol, útil para el mapa de navegación y las pruebas. */
 export async function listarCategorias(): Promise<Categoria[]> {
   const r = await query<RawCategoria>(
-    'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM categoria WHERE activo ORDER BY orden, id',
+    'SELECT id, clave, nombre, mensaje, orden, es_raiz FROM menu_categoria WHERE activo ORDER BY orden, id',
   );
   return r.rows.map(toCategoria);
 }

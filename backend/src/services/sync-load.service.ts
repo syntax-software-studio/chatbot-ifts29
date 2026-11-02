@@ -9,21 +9,24 @@
 import type { PoolClient } from 'pg';
 import { getPool } from '../db/pool.js';
 import { hasGoogleDrive } from '../config/env.js';
+import { parsearDocumento } from '../lib/comisiones.js';
 import { normalizar } from '../lib/normalizar.js';
 import * as driveReal from '../clients/drive.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 import {
   actualizarFicha,
   borrarFueraDe,
-  contarHuerfanos,
+  desvincularDocumentos,
+  documentosAusentes,
   expansionDeAlias,
   fichasDocumentos,
   idsPorClave,
   insertarAdjunto,
   insertarAlias,
   insertarIgnorado,
-  insertarIntencion,
-  insertarOpcionContacto,
+  insertarPalabraVacia,
+  insertarTerminoFragmento,
+  terminosFragmento,
   insertarPregunta,
   insertarVariante,
   reemplazarFragmentos,
@@ -35,6 +38,7 @@ import {
   vaciarDependientes,
 } from '../repositories/sync-load.repository.js';
 import { extraerFragmentos } from './sync-extract.service.js';
+import { firmaExtraccion } from '../lib/fragmentos.js';
 import type { DatosContenido, ResumenCarga } from './sync-transform.service.js';
 
 /** Lo que la sincronización necesita de Drive. Por defecto, el cliente real; en pruebas, un fake. */
@@ -44,6 +48,8 @@ export interface OpcionesDocumentos {
   carpetaId?: string;
   dryRun?: boolean;
   drive?: PuertoDrive;
+  /** Recibe cada avance de la sincronización, para mostrarlo mientras corre. */
+  progreso?: (linea: string) => void;
 }
 
 export interface ResultadoSync {
@@ -76,14 +82,24 @@ function claveDeArchivo(nombre: string): string {
  * otra versión. Si la descarga o la extracción fallan, no se tocan los fragmentos
  * anteriores: la sincronización sigue con los demás documentos.
  */
+function conTiempoLimite<T>(promesa: Promise<T>, ms: number, que: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rechazar) => {
+    timer = setTimeout(() => rechazar(new Error(`${que}: más de ${ms / 1000} s`)), ms);
+  });
+  return Promise.race([promesa, limite]).finally(() => clearTimeout(timer));
+}
+
 async function actualizarFragmentos(
   clave: string,
   archivo: { id: string; md5: string | null },
-  mensajes: string[],
+  registrar: (mensaje: string) => void,
   drive: PuertoDrive,
+  titulos: string[],
 ): Promise<void> {
   try {
-    const fragmentos = await extraerFragmentos(await drive.descargarArchivo(archivo.id));
+    const bytes = await conTiempoLimite(drive.descargarArchivo(archivo.id), 60_000, `descarga de ${clave}`);
+    const fragmentos = await extraerFragmentos(bytes, titulos);
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
     // entra en el texto de búsqueda: casi ninguna sección lo repite.
     const codigo = clave.split('_')[0]!.toLowerCase();
@@ -96,15 +112,15 @@ async function actualizarFragmentos(
         texto: f.texto,
         textoBusqueda: normalizar(`${materia} ${f.titulo} ${f.texto}`),
       })),
-      archivo.md5,
+      firmaExtraccion(archivo.md5 ?? '', titulos),
     );
-    mensajes.push(
+    registrar(
       fragmentos.length > 0
         ? `fragmentos: ${clave} -> ${fragmentos.length}`
         : `fragmentos: ${clave} sin texto extraíble (se muestra el documento completo)`,
     );
   } catch (err) {
-    mensajes.push(`fragmentos: ${clave} falló: ${err instanceof Error ? err.message : String(err)}`);
+    registrar(`fragmentos: ${clave} falló: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -121,13 +137,18 @@ async function actualizarFragmentos(
  * peor que un enlace ausente (RF07), por eso los que no coinciden se reportan
  * en `sinMatch` para que el equipo renombre el archivo en Drive.
  *
- * No borra documentos: los que dejan de aparecer en Drive se marcan como
- * `vigente = false` en vez de desaparecer, para que el estudiante nunca reciba un
- * enlace roto (RF07).
+ * No borra documentos: los que dejan de aparecer en Drive pierden su archivo
+ * (`drive_file_id`). Sin archivo el bot no ofrece enlace, así que el estudiante
+ * nunca recibe uno roto (RF07).
  */
 export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): Promise<ResultadoSync> {
   const drive = opciones.drive ?? driveReal;
   const mensajes: string[] = [];
+  const avisar = opciones.progreso ?? (() => {});
+  const registrar = (mensaje: string) => {
+    mensajes.push(mensaje);
+    avisar(mensaje);
+  };
   const resultado: ResultadoSync = {
     ejecutada: false,
     dryRun: opciones.dryRun ?? false,
@@ -138,7 +159,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   };
 
   if (!opciones.drive && !hasGoogleDrive()) {
-    mensajes.push('Google Drive no configurado: se omite la sincronización.');
+    registrar('Google Drive no configurado: se omite la sincronización.');
     return resultado;
   }
 
@@ -152,9 +173,14 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   }
 
   const fichas = await fichasDocumentos();
+  const titulos = await terminosFragmento();
 
-  for (const ficha of fichas) {
-    const esperado = ficha.drive_nombre_archivo;
+  for (const [i, ficha] of fichas.entries()) {
+    avisar(`[${i + 1}/${fichas.length}] ${ficha.clave}`);
+    if (!parsearDocumento(ficha.clave)) {
+      registrar(`nombre fuera de la convención: ${ficha.clave} (sus campos de materia, tipo y año quedan vacíos)`);
+    }
+    const esperado = `${ficha.clave}.pdf`;
     let archivo: ArchivoDrive | undefined;
 
     if (ficha.drive_file_id) {
@@ -173,36 +199,31 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     if (!cambio && !resultado.dryRun) {
       // Ya estaba sincronizado. Solo se extrae si los fragmentos no son de esta
       // versión del archivo (por ejemplo, documentos anteriores a la extracción).
-      if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== archivo.md5) {
-        await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
+      if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== firmaExtraccion(archivo.md5 ?? '', titulos)) {
+        await actualizarFragmentos(ficha.clave, archivo, registrar, drive, titulos);
       }
       continue;
     }
 
     if (!resultado.dryRun) {
-      const enlace = await drive.enlaceDeLectura(archivo.id);
-      await actualizarFicha(ficha.clave, archivo, {
-        descarga: drive.enlaceDeDescarga(archivo.id),
-        lectura: enlace,
-      });
+      // Hace público el archivo si la configuración lo pide. El enlace se calcula al consultar.
+      await drive.enlaceDeLectura(archivo.id);
+      await actualizarFicha(ficha.clave, archivo);
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
-      await actualizarFragmentos(ficha.clave, archivo, mensajes, drive);
+      await actualizarFragmentos(ficha.clave, archivo, registrar, drive, titulos);
     }
 
     resultado.actualizados += 1;
-    mensajes.push(`${cambio ? 'actualizado' : 'verificado'}: ${ficha.clave} -> ${archivo.nombre}`);
+    registrar(`${cambio ? 'actualizado' : 'verificado'}: ${ficha.clave} -> ${archivo.nombre}`);
   }
 
-  // Fichas ya sincronizadas cuyo archivo desapareció de Drive.
-  if (!resultado.dryRun) {
-    const huerfanos = await contarHuerfanos(archivos.map((a) => a.id));
-    if (huerfanos > 0) {
-      mensajes.push(
-        `${huerfanos} documento(s) marcados como vigente pero ausentes de Drive: revisar antes de publicar.`,
-      );
-    }
+  // Documentos vinculados cuyo archivo ya no está en la carpeta.
+  const ausentes = await documentosAusentes(archivos.map((a) => a.id));
+  if (!resultado.dryRun) await desvincularDocumentos(ausentes);
+  for (const clave of ausentes) {
+    registrar(`sin archivo en Drive: ${clave} (el bot no ofrece enlace hasta que se vuelva a subir)`);
   }
 
   return resultado;
@@ -239,8 +260,8 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
   for (const r of datos.respuestas) await upsertRespuesta(client, r);
 
   // Opciones: necesitan los ids de categoría y respuesta.
-  await borrarFueraDe(client, 'opcion_menu', claves(datos.opciones));
-  const categoriaId = await idsPorClave(client, 'categoria');
+  await borrarFueraDe(client, 'opcion', claves(datos.opciones));
+  const categoriaId = await idsPorClave(client, 'menu_categoria');
   const respuestaId = await idsPorClave(client, 'respuesta');
   for (const o of datos.opciones) {
     await upsertOpcion(client, {
@@ -254,7 +275,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       orden: o.orden,
     });
   }
-  await borrarFueraDe(client, 'categoria', claves(datos.categorias));
+  await borrarFueraDe(client, 'menu_categoria', claves(datos.categorias));
   await borrarFueraDe(client, 'respuesta', claves(datos.respuestas));
 
   // Documentos: fichas por nombre de archivo. Las que la planilla ya no referencia
@@ -272,42 +293,33 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     });
   }
 
-  // Contactos: upsert; la asociación con derivación se reemplaza completa.
-  for (const c of datos.contactos) await upsertContacto(client, c);
-  await borrarFueraDe(client, 'contacto', claves(datos.contactos));
-
-  // Derivación: cada contacto pertenece a una sola opción de tipo 'derivar'.
-  const contactoId = await idsPorClave(client, 'contacto');
-  const opcionMenuId = await idsPorClave(client, 'opcion_menu');
+  // Contactos: cada uno pertenece a una sola opción de derivación ('derivar').
+  const opcionMenuId = await idsPorClave(client, 'opcion');
   for (const c of datos.contactos) {
-    await insertarOpcionContacto(client, {
-      opcionId: opcionMenuId.get(c.opcion),
-      contactoId: contactoId.get(c.clave),
-      orden: c.orden,
-    });
+    await upsertContacto(client, { ...c, opcionId: opcionMenuId.get(c.opcion) });
   }
-  const opcionContacto = datos.contactos.length;
+  await borrarFueraDe(client, 'contacto', claves(datos.contactos));
 
   // Base de conocimiento: ya se borró al inicio; se inserta de nuevo.
   for (const a of datos.alias) await insertarAlias(client, a);
   for (const t of datos.ignorados) await insertarIgnorado(client, t.termino);
-  for (const i of datos.intenciones) await insertarIntencion(client, i);
-  const intencionId = await idsPorClave(client, 'kb_intencion');
+  for (const p of datos.palabrasVacias) await insertarPalabraVacia(client, p);
+  for (const t of datos.terminosFragmento) await insertarTerminoFragmento(client, t);
 
   const preguntaIdPorClave = new Map<string, number>();
   for (const p of datos.preguntas) {
     const id = await insertarPregunta(client, {
-      intencionId: intencionId.get(p.intencion),
+      opcionId: opcionMenuId.get(p.opcion),
       pregunta: p.pregunta,
       prioridad: p.prioridad,
       umbral: p.umbral,
     });
-    preguntaIdPorClave.set(`${p.intencion}\u0000${p.pregunta}`, id);
+    preguntaIdPorClave.set(`${p.opcion}\u0000${p.pregunta}`, id);
   }
 
   for (const v of datos.variantes) {
     await insertarVariante(client, {
-      preguntaId: preguntaIdPorClave.get(`${v.intencion}\u0000${v.pregunta}`),
+      preguntaId: preguntaIdPorClave.get(`${v.opcion}\u0000${v.pregunta}`),
       texto: v.texto,
       normalizado: v.normalizado,
       peso: v.peso,
@@ -320,10 +332,8 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
     opciones: datos.opciones.length,
     documentos: datos.documentos.length,
     respuestaDocumentos: datos.respuestaDocumentos.length,
-    intenciones: datos.intenciones.length,
     preguntas: datos.preguntas.length,
     variantes: datos.variantes.length,
     contactos: datos.contactos.length,
-    opcionContacto,
   };
 }

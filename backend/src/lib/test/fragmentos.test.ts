@@ -12,24 +12,37 @@ import {
   fragmentar,
   tituloConocido,
   type LineaPdf,
-} from '../secciones.js';
+} from '../fragmentos.js';
 
 const lineas = (...textos: string[]): LineaPdf[] => textos.map((text) => ({ text, page: 1 }));
 
+/** Lista de reconocimiento, ya normalizada como llega desde la planilla. */
+const TITULOS = [
+  'fundamentacion', 'presentacion', 'objetivo de la materia', 'objetivos de la materia',
+  'objetivos de aprendizaje', 'objetivos especificos', 'recorridos', 'unidades tematicas',
+  'contenidos minimos', 'bibliografia', 'formas y criterios de evaluacion',
+  'metodologia de ensenanza y aprendizaje', 'regimen de cursada y evaluacion',
+  'condiciones de regularizacion de la cursada', 'condiciones de aprobacion de la materia',
+  'promocion', 'final', 'cronograma',
+];
+
+const reconoce = (texto: string) => tituloConocido(texto, TITULOS);
+const partir = (l: LineaPdf[]) => fragmentar(l, TITULOS);
+
 test('reconoce un título conocido aunque tenga tilde o error de tipeo', () => {
-  assert.equal(tituloConocido('BIGLIOGRAFÍA'), 'bibliografia');
-  assert.equal(tituloConocido('FUNDAMENTACIÓN'), 'fundamentacion');
-  assert.equal(tituloConocido('Condiciones de regularización de la cursada'), 'condiciones de regularizacion de la cursada');
+  assert.equal(reconoce('BIGLIOGRAFÍA'), 'bibliografia');
+  assert.equal(reconoce('FUNDAMENTACIÓN'), 'fundamentacion');
+  assert.equal(reconoce('Condiciones de regularización de la cursada'), 'condiciones de regularizacion de la cursada');
 });
 
 test('una oración que contiene un título no es un título', () => {
   // "representación." no es "presentación": termina en punto.
-  assert.equal(tituloConocido('representación.'), null);
-  assert.equal(tituloConocido('Este es el programa de la presentación de la materia y sus contenidos.'), null);
+  assert.equal(reconoce('representación.'), null);
+  assert.equal(reconoce('Este es el programa de la presentación de la materia y sus contenidos.'), null);
 });
 
 test('no toma viñetas como título', () => {
-  assert.equal(tituloConocido('● Promoción'), null);
+  assert.equal(reconoce('● Promoción'), null);
 });
 
 test('un encabezado en mayúsculas necesita letras suficientes y no tiene datos de tabla', () => {
@@ -41,7 +54,7 @@ test('un encabezado en mayúsculas necesita letras suficientes y no tiene datos 
 });
 
 test('parte el texto en secciones por título y deja el texto antes del primer título sin título', () => {
-  const frags = fragmentar(lineas(
+  const frags = partir(lineas(
     'Materia Año 2026',
     'FUNDAMENTACIÓN',
     'Las bases de datos son fundamentales.',
@@ -56,7 +69,7 @@ test('parte el texto en secciones por título y deja el texto antes del primer t
 });
 
 test('un título al inicio de línea seguido de : abre sección con el resto de la línea', () => {
-  const frags = fragmentar(lineas(
+  const frags = partir(lineas(
     'PROMOCIÓN :',
     'Calificación de 7 en cada parcial.',
     'FINAL: aquellos que posean una calificación menor a 7.',

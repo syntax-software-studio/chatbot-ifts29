@@ -4,7 +4,7 @@
 
 ## Idea
 
-Hoy, una consulta que coincide con una intención muestra la respuesta curada de la planilla y adjunta el documento. La propuesta es que la respuesta incluya un **extracto literal** del documento que responde la pregunta concreta, por ejemplo las condiciones para promocionar o para regularizar.
+Hoy, una consulta que coincide con una opción muestra la respuesta curada de la planilla y adjunta el documento. La propuesta es que la respuesta incluya un **extracto literal** del documento que responde la pregunta concreta, por ejemplo las condiciones para promocionar o para regularizar.
 
 Ejemplo de respuesta esperada:
 
@@ -20,8 +20,8 @@ El texto del extracto sale del documento vigente. Nada se parafrasea ni se gener
 
 | Búsqueda | Qué compara | Qué devuelve | Estado |
 |---|---|---|---|
-| **Intención** | La pregunta contra variantes escritas por el equipo (textos cortos) | Una intención y su opción de menú | Implementada |
-| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa intención | El fragmento que responde, con su título | Implementada |
+| **Opción** | La pregunta contra variantes escritas por el equipo (textos cortos) | Una opción de menú | Implementada |
+| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa opción | El fragmento que responde, con su título | Implementada |
 
 ## Flujo funcional
 
@@ -29,11 +29,11 @@ Los pasos que ve el estudiante. Cada paso indica entre corchetes la técnica que
 
 ```mermaid
 flowchart TD
-    A["Consulta del estudiante"] --> B["Normalización<br/>[alias, palabras vacías, tabla ignorados]"]
-    B --> C{"Búsqueda de intención<br/>[FTS + trigrama por término<br/>sobre variantes]"}
+    A["Consulta del estudiante"] --> B["Normalización<br/>[equivalentes, palabras vacías, ignorados]"]
+    B --> C{"Búsqueda de opción<br/>[FTS + trigrama por término<br/>sobre variantes]"}
     C -- "sin coincidencia" --> N1["No disponible<br/>(como hoy)"]
-    C -- "una intención" --> D["Documentos de la intención"]
-    C -- "varias intenciones" --> Q["Aclaración con opciones"]
+    C -- "una opción" --> D["Documentos de la opción"]
+    C -- "varias opciones" --> Q["Aclaración con opciones"]
     D --> E{"Búsqueda de pasaje<br/>[FTS sobre fragmentos del documento<br/>+ trigrama por término como complemento]"}
     E -- "supera el umbral alto" --> F["Extracto literal<br/>con título de sección"]
     E -- "no supera el umbral" --> G["Documento completo<br/>(como hoy)"]
@@ -51,15 +51,15 @@ flowchart LR
     subgraph ING["Ingesta (al sincronizar)"]
         direction TB
         P1["PDF en Drive<br/>(md5 cambia)"] --> P2["Extracción de texto<br/>[librería local, sin API]"]
-        P2 --> P3["Partir por títulos<br/>[detección de encabezados]"]
+        P2 --> P3["Partir por títulos<br/>[lista de la planilla + encabezados]"]
         P3 --> P4[("documento_fragmento<br/>documento_id, orden, título,<br/>texto, search_vector")]
         P4 --> P5["Índice GIN sobre search_vector<br/>[FTS spanish]"]
     end
 
     subgraph QRY["Consulta (en la API)"]
         direction TB
-        Q1["Consulta normalizada"] --> Q2["Intención<br/>[FTS + word_similarity<br/>sobre kb_pregunta_variante]"]
-        Q2 --> Q3["Documentos de la intención<br/>[respuesta_documento]"]
+        Q1["Consulta normalizada"] --> Q2["Opción<br/>[FTS + word_similarity<br/>sobre pregunta_variante]"]
+        Q2 --> Q3["Documentos de la opción<br/>[respuesta_documento]"]
         Q3 --> Q4["Pasaje<br/>[ts_rank / cobertura de términos<br/>sobre documento_fragmento]"]
         Q4 --> Q5{"Confianza ≥ umbral alto?"}
         Q5 -- "sí" --> Q6["Extracto + PDF"]
@@ -73,7 +73,7 @@ flowchart LR
 
 | Componente | Concepto | Dónde se aplica | Tabla o índice |
 |---|---|---|---|
-| Intención | FTS en español, cobertura de términos, trigramas por término | Variantes de preguntas, textos cortos | `kb_pregunta_variante` (`search_vector`, índice trigram) |
+| Opción | FTS en español, cobertura de términos, trigramas por término | Variantes de preguntas, textos cortos | `pregunta_variante` (`search_vector`, índice trigram) |
 | Pasaje | FTS en español, cobertura de términos | Texto de cada sección de un documento | `documento_fragmento` (`search_vector`, GIN) |
 | Pasaje, complemento | Trigramas por término (`word_similarity`) | Errores de tipeo en los fragmentos | Índice trigram sobre `texto` o sobre `titulo` |
 | Umbral | Confianza mínima sobre el promedio de cobertura | Pasaje: umbral alto, inicialmente 0,9 | Configurable por entorno |
@@ -84,7 +84,7 @@ flowchart LR
 ## Decisiones
 
 1. **Entran todos los documentos posibles.** Si un formato no se extrae bien, se ajusta el documento, caso por caso.
-2. **Tabla de fragmentos basada en FTS.** Cada fragmento guarda su título y su texto. Se busca con el mismo criterio de cobertura de términos que las intenciones, y los trigramas quedan como complemento. La relación es de un documento a muchos fragmentos; la confirmación del 1:1 está pendiente (ver preguntas abiertas).
+2. **Tabla de fragmentos basada en FTS.** Cada fragmento guarda su título y su texto. Se busca con el mismo criterio de cobertura de términos que las opciones, y los trigramas quedan como complemento. La relación es de un documento a muchos fragmentos; la confirmación del 1:1 está pendiente (ver preguntas abiertas).
 3. **PDFs de Genially: fuera por ahora.** Se muestran solo desde el menú, no por texto libre. Se revisan cuando sean prioritarios.
 4. **Un extracto por consulta, con los dos mejores fragmentos si aplica.** El caso de respuestas repartidas en varias secciones se revisa si aparece en la práctica.
 5. **Umbral alto para empezar (0,9).** Se ajusta con el conjunto dorado y los logs de consultas reales. Variable: `KB_UMBRAL_PASAJE`.

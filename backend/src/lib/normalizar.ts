@@ -40,12 +40,10 @@ export function normalizar(entrada: string): string {
  * ======================================================================== */
 
 /** Conectores que no aportan significado al comparar frases. */
-const PALABRAS_VACIAS = new Set(['de', 'la', 'el', 'en', 'los', 'las', 'del', 'y', 'a', 'al']);
-
-function quitarPalabrasVacias(texto: string): string {
+function quitarPalabrasVacias(texto: string, vacias: ReadonlySet<string>): string {
   return texto
     .split(' ')
-    .filter((p) => p !== '' && !PALABRAS_VACIAS.has(p))
+    .filter((p) => p !== '' && !vacias.has(p))
     .join(' ');
 }
 
@@ -55,10 +53,14 @@ function quitarPalabrasVacias(texto: string): string {
  *
  * `alias` mapea una sigla ya normalizada (por ejemplo "abd") a su expansión.
  */
-export function normalizarConsulta(entrada: string, alias: ReadonlyMap<string, string> = new Map()): string {
+export function normalizarConsulta(
+  entrada: string,
+  alias: ReadonlyMap<string, string> = new Map(),
+  vacias: ReadonlySet<string> = new Set(),
+): string {
   const tokens = normalizar(entrada).split(' ').filter((t) => t !== '');
   const expandido = tokens.map((t) => alias.get(t) ?? t).join(' ');
-  return normalizar(quitarPalabrasVacias(normalizar(expandido)));
+  return normalizar(quitarPalabrasVacias(normalizar(expandido), vacias));
 }
 
 /* ==========================================================================

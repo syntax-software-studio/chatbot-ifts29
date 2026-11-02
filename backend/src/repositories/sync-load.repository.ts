@@ -6,15 +6,15 @@
  */
 
 import type { PoolClient } from 'pg';
+import { parsearDocumento } from '../lib/comisiones.js';
 import { query } from '../db/pool.js';
 import type { ArchivoDrive } from '../clients/drive.js';
 
 /** Tablas que la carga identifica por `clave`. */
-export type Tabla = 'categoria' | 'respuesta' | 'opcion_menu' | 'documento' | 'contacto' | 'kb_intencion';
+export type Tabla = 'menu_categoria' | 'respuesta' | 'opcion' | 'documento' | 'contacto';
 
 export interface FichaDb {
   clave: string;
-  drive_nombre_archivo: string | null;
   drive_file_id: string | null;
   drive_md5: string | null;
   fragmentos_md5: string | null;
@@ -26,13 +26,13 @@ export interface FichaDb {
 
 /** Vacía las tablas que dependen de otras, para que no bloqueen los borrados que siguen. */
 export async function vaciarDependientes(client: PoolClient): Promise<void> {
-  await client.query('DELETE FROM kb_alias');
-  await client.query('DELETE FROM kb_termino_ignorado');
-  await client.query('DELETE FROM kb_pregunta_variante');
-  await client.query('DELETE FROM kb_pregunta');
-  await client.query('DELETE FROM kb_intencion');
+  await client.query('DELETE FROM termino_equivalente');
+  await client.query('DELETE FROM termino_ignorado');
+  await client.query('DELETE FROM palabra_vacia');
+  await client.query('DELETE FROM termino_reconocimiento_fragmento');
+  await client.query('DELETE FROM pregunta_variante');
+  await client.query('DELETE FROM pregunta');
   await client.query('DELETE FROM respuesta_documento');
-  await client.query('DELETE FROM opcion_contacto');
 }
 
 /** Mapa clave → id de una tabla. */
@@ -51,7 +51,7 @@ export async function upsertCategoria(
   c: { clave: string; nombre: string; mensaje: string | null; orden: number; esRaiz: boolean },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO categoria (clave, nombre, mensaje, orden, es_raiz, activo)
+    `INSERT INTO menu_categoria (clave, nombre, mensaje, orden, es_raiz, activo)
      VALUES ($1, $2, $3, $4, $5, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        nombre = EXCLUDED.nombre, mensaje = EXCLUDED.mensaje,
@@ -83,7 +83,7 @@ export async function upsertOpcion(
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO opcion_menu (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
+    `INSERT INTO opcion (clave, categoria_id, etiqueta, tipo, categoria_destino_id, respuesta_id, es_volver, orden, activo)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        categoria_id = EXCLUDED.categoria_id, etiqueta = EXCLUDED.etiqueta, tipo = EXCLUDED.tipo,
@@ -93,13 +93,16 @@ export async function upsertOpcion(
   );
 }
 
-/** Ficha del documento, por nombre de archivo. Drive completa el resto después. */
-export async function upsertDocumento(client: PoolClient, d: { clave: string; nombreArchivo: string }): Promise<void> {
+/** Ficha del documento, por nombre de archivo. Los campos del nombre se guardan; Drive completa el resto después. */
+export async function upsertDocumento(client: PoolClient, d: { clave: string }): Promise<void> {
+  const p = parsearDocumento(d.clave);
   await client.query(
-    `INSERT INTO documento (clave, nombre, tipo, drive_nombre_archivo, vigente, estado)
-     VALUES ($1, $2, 'documento', $2, TRUE, 'vigente')
-     ON CONFLICT (clave) DO UPDATE SET drive_nombre_archivo = EXCLUDED.drive_nombre_archivo, vigente = TRUE, estado = 'vigente'`,
-    [d.clave, d.nombreArchivo],
+    `INSERT INTO documento (clave, materia, tipo, comision, anio, cuatrimestre)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (clave) DO UPDATE
+        SET materia = EXCLUDED.materia, tipo = EXCLUDED.tipo, comision = EXCLUDED.comision,
+            anio = EXCLUDED.anio, cuatrimestre = EXCLUDED.cuatrimestre`,
+    [d.clave, p?.materia ?? null, p?.tipo ?? null, p?.comision ?? null, p?.anio ?? null, p?.cuatrimestre ?? null],
   );
 }
 
@@ -125,57 +128,37 @@ export async function upsertContacto(
     perfil: string | null;
     motivo: string | null;
     orden: number;
+    opcionId: number | undefined;
   },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+    `INSERT INTO contacto (clave, nombre, area, comision, email, url_perfil, motivo, orden, opcion_id, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
      ON CONFLICT (clave) DO UPDATE SET
        nombre = EXCLUDED.nombre, area = EXCLUDED.area, comision = EXCLUDED.comision,
        email = EXCLUDED.email, url_perfil = EXCLUDED.url_perfil, motivo = EXCLUDED.motivo,
-       orden = EXCLUDED.orden, activo = TRUE`,
-    [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden],
+       orden = EXCLUDED.orden, opcion_id = EXCLUDED.opcion_id, activo = TRUE`,
+    [c.clave, c.nombre, c.area, c.comision, c.email, c.perfil, c.motivo, c.orden, c.opcionId],
   );
-}
-
-export async function insertarOpcionContacto(
-  client: PoolClient,
-  oc: { opcionId: number | undefined; contactoId: number | undefined; orden: number },
-): Promise<void> {
-  await client.query('INSERT INTO opcion_contacto (opcion_id, contacto_id, orden) VALUES ($1, $2, $3)', [
-    oc.opcionId,
-    oc.contactoId,
-    oc.orden,
-  ]);
 }
 
 export async function insertarAlias(client: PoolClient, a: { alias: string; expansion: string }): Promise<void> {
-  await client.query('INSERT INTO kb_alias (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
+  await client.query('INSERT INTO termino_equivalente (alias, expansion) VALUES ($1, $2)', [a.alias, a.expansion]);
 }
 
 export async function insertarIgnorado(client: PoolClient, termino: string): Promise<void> {
-  await client.query('INSERT INTO kb_termino_ignorado (termino) VALUES ($1)', [termino]);
-}
-
-export async function insertarIntencion(
-  client: PoolClient,
-  i: { clave: string; nombre: string; dominio: string; opcion: string },
-): Promise<void> {
-  await client.query(
-    'INSERT INTO kb_intencion (clave, nombre, domain, opcion_clave, activo) VALUES ($1, $2, $3, $4, TRUE)',
-    [i.clave, i.nombre, i.dominio, i.opcion],
-  );
+  await client.query('INSERT INTO termino_ignorado (termino) VALUES ($1)', [termino]);
 }
 
 /** Devuelve el id de la pregunta insertada. */
 export async function insertarPregunta(
   client: PoolClient,
-  p: { intencionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
+  p: { opcionId: number | undefined; pregunta: string; prioridad: number; umbral: number },
 ): Promise<number> {
   const r = await client.query<{ id: number }>(
-    `INSERT INTO kb_pregunta (intencion_id, pregunta, priority, minimum_threshold, activo)
+    `INSERT INTO pregunta (opcion_id, pregunta, prioridad, umbral_minimo, activo)
      VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
-    [p.intencionId, p.pregunta, p.prioridad, p.umbral],
+    [p.opcionId, p.pregunta, p.prioridad, p.umbral],
   );
   return r.rows[0]!.id;
 }
@@ -185,7 +168,7 @@ export async function insertarVariante(
   v: { preguntaId: number | undefined; texto: string; normalizado: string; peso: number },
 ): Promise<void> {
   await client.query(
-    `INSERT INTO kb_pregunta_variante (pregunta_id, original_text, normalized_text, weight, activo)
+    `INSERT INTO pregunta_variante (pregunta_id, texto_original, texto_normalizado, peso, activo)
      VALUES ($1, $2, $3, $4, TRUE)`,
     [v.preguntaId, v.texto, v.normalizado, v.peso],
   );
@@ -197,42 +180,29 @@ export async function insertarVariante(
 
 /** Expansión del alias de una materia, por ejemplo "abd" → "administracion bases datos". */
 export async function expansionDeAlias(alias: string): Promise<string | undefined> {
-  const r = await query<{ expansion: string }>('SELECT expansion FROM kb_alias WHERE alias = $1', [alias]);
+  const r = await query<{ expansion: string }>('SELECT expansion FROM termino_equivalente WHERE alias = $1', [alias]);
   return r.rows[0]?.expansion;
 }
 
 export async function fichasDocumentos(): Promise<FichaDb[]> {
   const r = await query<FichaDb>(
-    `SELECT clave, drive_nombre_archivo, drive_file_id, drive_md5, fragmentos_md5
+    `SELECT clave, drive_file_id, drive_md5, fragmentos_md5
        FROM documento
-      WHERE estado <> 'archivado'
       ORDER BY clave`,
   );
   return r.rows;
 }
 
-/** Datos de Drive que guarda la ficha al sincronizarla. */
-export async function actualizarFicha(
-  clave: string,
-  archivo: Pick<ArchivoDrive, 'id' | 'nombre' | 'mimeType' | 'md5' | 'modifiedTime'>,
-  enlaces: { descarga: string; lectura: string },
-): Promise<void> {
+/** Vincula la ficha con el archivo de Drive que le corresponde. */
+export async function actualizarFicha(clave: string, archivo: Pick<ArchivoDrive, 'id' | 'md5'>): Promise<void> {
   await query(
     `UPDATE documento
-        SET drive_file_id        = $1,
-            drive_nombre_archivo = $2,
-            mime_type            = $3,
-            drive_md5            = $4,
-            drive_modified_time  = $5,
-            drive_url            = $6,
-            drive_view_url       = $7,
-            nombre               = COALESCE(NULLIF(nombre, ''), $2),
-            sincronizado_en      = now(),
-            actualizado_en       = now(),
-            vigente              = TRUE,
-            estado               = 'vigente'
-      WHERE clave = $8`,
-    [archivo.id, archivo.nombre, archivo.mimeType, archivo.md5, archivo.modifiedTime, enlaces.descarga, enlaces.lectura, clave],
+        SET drive_file_id   = $1,
+            drive_md5       = $2,
+            sincronizado_en = now(),
+            actualizado_en  = now()
+      WHERE clave = $3`,
+    [archivo.id, archivo.md5, clave],
   );
 }
 
@@ -257,15 +227,48 @@ export async function reemplazarFragmentos(
   await query('UPDATE documento SET fragmentos_md5 = $2 WHERE clave = $1', [clave, md5]);
 }
 
-/** Documentos vigentes cuyo archivo ya no aparece en Drive. */
-export async function contarHuerfanos(idsVistos: string[]): Promise<number> {
-  const r = await query<{ n: number }>(
-    `SELECT count(*)::int AS n
+/** Documentos vinculados cuyo archivo ya no está en la carpeta de Drive. */
+export async function documentosAusentes(idsVistos: string[]): Promise<string[]> {
+  const r = await query<{ clave: string }>(
+    `SELECT clave
        FROM documento
       WHERE drive_file_id IS NOT NULL
-        AND estado = 'vigente'
-        AND drive_file_id <> ALL($1::text[])`,
+        AND drive_file_id <> ALL($1::text[])
+      ORDER BY clave`,
     [idsVistos],
   );
-  return r.rows[0]?.n ?? 0;
+  return r.rows.map((x) => x.clave);
+}
+
+/**
+ * Quita el archivo a los documentos que salieron de la carpeta. Sin archivo no hay
+ * enlace ni texto que mostrar, así que también se borran sus fragmentos.
+ */
+export async function desvincularDocumentos(claves: string[]): Promise<void> {
+  if (claves.length === 0) return;
+  await query(
+    `DELETE FROM documento_fragmento
+      WHERE documento_id IN (SELECT id FROM documento WHERE clave = ANY($1::text[]))`,
+    [claves],
+  );
+  await query(
+    `UPDATE documento
+        SET drive_file_id = NULL, drive_md5 = NULL, fragmentos_md5 = NULL, actualizado_en = now()
+      WHERE clave = ANY($1::text[])`,
+    [claves],
+  );
+}
+
+export async function insertarTerminoFragmento(client: PoolClient, termino: string): Promise<void> {
+  await client.query('INSERT INTO termino_reconocimiento_fragmento (termino) VALUES ($1)', [termino]);
+}
+
+/** Títulos que reconocen una sección dentro de los PDF. Llegan ya normalizados. */
+export async function terminosFragmento(): Promise<string[]> {
+  const r = await query<{ termino: string }>('SELECT termino FROM termino_reconocimiento_fragmento ORDER BY termino');
+  return r.rows.map((x) => x.termino);
+}
+
+export async function insertarPalabraVacia(client: PoolClient, termino: string): Promise<void> {
+  await client.query('INSERT INTO palabra_vacia (termino) VALUES ($1)', [termino]);
 }

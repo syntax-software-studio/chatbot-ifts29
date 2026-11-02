@@ -9,9 +9,9 @@
  *
  * Reglas de escritura. La planilla es la única fuente: lo que no está en ella
  * no se conserva en la base.
- *  - Base de conocimiento (`kb_*`, incluidos los alias), `respuesta_documento` y `opcion_contacto`:
+ *  - Base de conocimiento (`pregunta`, `pregunta_variante`, `termino_equivalente`, `termino_ignorado`), `respuesta_documento`:
  *    se vacían y se vuelven a cargar. No tienen historial propio.
- *  - Menú (`categoria`, `opcion_menu`, `respuesta`), contactos y documentos:
+ *  - Menú (`menu_categoria`, `opcion`, `respuesta`), contactos y documentos:
  *    upsert por clave, y se borra lo que ya no está en la planilla.
  *  - Documentos: la ficha se crea por nombre de archivo; la sincronización con
  *    Drive completa el resto (enlaces, IDs, MD5).
@@ -49,10 +49,8 @@ export interface Opcion {
 }
 
 export interface Documento {
-  /** Nombre del archivo sin extensión: identifica la ficha. */
+  /** Nombre del archivo sin extensión: identifica la ficha y el archivo en Drive. */
   clave: string;
-  /** Nombre completo del archivo en Drive. */
-  nombreArchivo: string;
 }
 
 export interface RespuestaDocumento {
@@ -61,22 +59,15 @@ export interface RespuestaDocumento {
   orden: number;
 }
 
-export interface Intencion {
-  clave: string;
-  nombre: string;
-  dominio: 'administrativo' | 'academico';
-  opcion: string;
-}
-
 export interface Pregunta {
-  intencion: string;
+  opcion: string;
   pregunta: string;
   prioridad: number;
   umbral: number;
 }
 
 export interface Variante {
-  intencion: string;
+  opcion: string;
   pregunta: string;
   texto: string;
   normalizado: string;
@@ -113,12 +104,13 @@ export interface DatosContenido {
   opciones: Opcion[];
   documentos: Documento[];
   respuestaDocumentos: RespuestaDocumento[];
-  intenciones: Intencion[];
   preguntas: Pregunta[];
   variantes: Variante[];
   contactos: Contacto[];
   alias: Alias[];
   ignorados: TerminoIgnorado[];
+  palabrasVacias: string[];
+  terminosFragmento: string[];
 }
 
 interface ResultadoConversion {
@@ -133,17 +125,14 @@ export interface ResumenCarga {
   opciones: number;
   documentos: number;
   respuestaDocumentos: number;
-  intenciones: number;
   preguntas: number;
   variantes: number;
   contactos: number;
-  opcionContacto: number;
 }
 
 type Hojas = Partial<Record<Pestana, Fila[]>>;
 
 const TIPOS_OPCION = ['navegar', 'responder', 'derivar'] as const;
-const DOMINIOS = ['administrativo', 'academico'] as const;
 
 /** Texto vacío -> null; cualquier otro texto, sin espacios sobrantes. */
 const opcional = (texto: string): string | null => (texto === '' ? null : texto);
@@ -238,11 +227,11 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     };
   });
   const documentos: Documento[] = [...new Map(
-    respuestaDocumentos.map((rd) => [rd.documento, { clave: rd.documento, nombreArchivo: `${rd.documento}.pdf` }]),
+    respuestaDocumentos.map((rd) => [rd.documento, { clave: rd.documento }]),
   ).values()];
 
   // --- Alias (siglas) ---
-  const alias: Alias[] = filas('alias').map((f) => ({
+  const alias: Alias[] = filas('equivalentes').map((f) => ({
     alias: normalizar(f.alias!),
     expansion: normalizar(f.expansion!),
   }));
@@ -253,6 +242,16 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     aliasVistos.add(a.alias);
   }
   const mapaAlias = new Map(alias.map((a) => [a.alias, a.expansion] as const));
+
+  // --- Palabras vacías: se quitan de la consulta y de las variantes ---
+  const palabrasVacias: string[] = filas('palabras_vacias').map((f) => normalizar(f.termino!));
+  const vaciasSet = new Set(palabrasVacias);
+  const vaciasVistas = new Set<string>();
+  for (const p of palabrasVacias) {
+    if (!p) errores.push('palabras_vacias: hay una fila vacía.');
+    if (vaciasVistas.has(p)) errores.push(`palabras_vacias "${p}" está repetida.`);
+    vaciasVistas.add(p);
+  }
 
   // --- Términos ignorados (ruido de la consulta) ---
   const ignorados: TerminoIgnorado[] = filas('ignorados').map((f) => ({
@@ -265,54 +264,48 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
     ignoradosVistos.add(t.termino);
   }
 
-  // --- Base de conocimiento ---
-  const intenciones: Intencion[] = filas('intenciones').map((f) => {
-    const donde = `intenciones "${f.clave}"`;
-    if (!(DOMINIOS as readonly string[]).includes(f.dominio!)) {
-      errores.push(`${donde}: dominio "${f.dominio}" no válido.`);
-    }
-    if (!opcionClaves.has(f.opcion!)) errores.push(`${donde}: opcion "${f.opcion}" no existe.`);
-    return {
-      clave: f.clave!,
-      nombre: f.nombre!,
-      dominio: f.dominio as Intencion['dominio'],
-      opcion: f.opcion!,
-    };
-  });
-  const intencionClaves = claves(intenciones);
+  // --- Términos que reconocen una sección dentro de los PDF ---
+  const terminosFragmento: string[] = filas('reconocimiento_fragmentos').map((f) => normalizar(f.termino!));
+  const fragmentoVistos = new Set<string>();
+  for (const t of terminosFragmento) {
+    if (!t) errores.push('reconocimiento_fragmentos: hay una fila vacía.');
+    if (fragmentoVistos.has(t)) errores.push(`reconocimiento_fragmentos "${t}" está repetido.`);
+    fragmentoVistos.add(t);
+  }
 
+  // --- Base de conocimiento ---
   const preguntas: Pregunta[] = filas('preguntas').map((f) => {
-    const donde = `preguntas "${f.intencion}" / "${f.pregunta}"`;
-    if (!intencionClaves.has(f.intencion!)) errores.push(`${donde}: intencion no existe.`);
+    const donde = `preguntas "${f.opcion}" / "${f.pregunta}"`;
+    if (!opcionClaves.has(f.opcion!)) errores.push(`${donde}: opcion no existe.`);
     return {
-      intencion: f.intencion!,
+      opcion: f.opcion!,
       pregunta: f.pregunta!,
       prioridad: entero(f.prioridad!, `${donde} prioridad`),
-      umbral: decimal(f.umbral!, `${donde} umbral`),
+      umbral: decimal(f.umbral_minimo!, `${donde} umbral`),
     };
   });
-  const preguntaClave = (intencion: string, pregunta: string) => `${intencion}\u0000${pregunta}`;
-  const preguntasSet = new Set(preguntas.map((p) => preguntaClave(p.intencion, p.pregunta)));
+  const preguntaClave = (opcion: string, pregunta: string) => `${opcion}\u0000${pregunta}`;
+  const preguntasSet = new Set(preguntas.map((p) => preguntaClave(p.opcion, p.pregunta)));
   if (preguntasSet.size !== preguntas.length) errores.push('preguntas: hay preguntas repetidas dentro de una intención.');
 
   const variantes: Variante[] = filas('variantes').map((f) => {
-    const donde = `variantes "${f.intencion}" / "${f.pregunta}" → "${f.texto}"`;
-    if (!preguntasSet.has(preguntaClave(f.intencion!, f.pregunta!))) {
+    const donde = `variantes "${f.opcion}" / "${f.pregunta}" → "${f.texto_original}"`;
+    if (!preguntasSet.has(preguntaClave(f.opcion!, f.pregunta!))) {
       errores.push(`${donde}: la pregunta no existe en preguntas.`);
     }
     return {
-      intencion: f.intencion!,
+      opcion: f.opcion!,
       pregunta: f.pregunta!,
-      texto: f.texto!,
-      normalizado: normalizarConsulta(f.texto!, mapaAlias),
+      texto: f.texto_original!,
+      normalizado: normalizarConsulta(f.texto_original!, mapaAlias, vaciasSet),
       peso: decimal(f.peso!, `${donde} peso`),
     };
   });
   const variantesVistas = new Set<string>();
   for (const v of variantes) {
-    const clave = `${preguntaClave(v.intencion, v.pregunta)}\u0000${v.normalizado}`;
+    const clave = `${preguntaClave(v.opcion, v.pregunta)}\u0000${v.normalizado}`;
     if (variantesVistas.has(clave)) {
-      errores.push(`variantes "${v.intencion}" / "${v.pregunta}": "${v.texto}" está repetida.`);
+      errores.push(`variantes "${v.opcion}" / "${v.pregunta}": "${v.texto}" está repetida.`);
     }
     variantesVistas.add(clave);
   }
@@ -330,7 +323,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       area: opcional(f.area!),
       comision: opcional(f.comision!),
       email: opcional(f.email!),
-      perfil: opcional(f.perfil!),
+      perfil: opcional(f.url_perfil!),
       motivo: opcional(f.motivo!),
       orden: entero(f.orden!, `${donde} orden`),
       opcion: f.opcion!,
@@ -347,12 +340,13 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       opciones,
       documentos,
       respuestaDocumentos,
-      intenciones,
       preguntas,
       variantes,
       contactos,
       alias,
       ignorados,
+      terminosFragmento,
+      palabrasVacias,
     },
   };
 }

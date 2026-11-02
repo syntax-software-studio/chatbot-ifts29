@@ -16,55 +16,54 @@
 
 \echo '=== 1. Categoria raiz (RAIZ) ==='
 SELECT id, clave, nombre, mensaje, orden, es_raiz
-  FROM categoria
+  FROM menu_categoria
  WHERE clave = 'RAIZ' AND activo;
 
 \echo ''
 \echo '=== 2. Opciones del menu raiz ==='
 SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver, o.orden
-  FROM opcion_menu o
- WHERE o.categoria_id = (SELECT id FROM categoria WHERE clave = 'RAIZ') AND o.activo
+  FROM opcion o
+ WHERE o.categoria_id = (SELECT id FROM menu_categoria WHERE clave = 'RAIZ') AND o.activo
  ORDER BY o.orden, o.id;
 
 \echo ''
 \echo '=== 3. Opcion por clave (ABD_OP_PROG) ==='
-SELECT o.id, o.clave, o.etiqueta, o.descripcion, o.tipo, o.es_volver, o.icono,
+SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver,
        o.respuesta_id, o.categoria_destino_id, c.clave AS categoria_clave
-  FROM opcion_menu o
-  JOIN categoria c ON c.id = o.categoria_id
+  FROM opcion o
+  JOIN menu_categoria c ON c.id = o.categoria_id
  WHERE o.clave = 'ABD_OP_PROG' AND o.activo AND c.activo;
 
 \echo ''
 \echo '=== 4. Destino de navegacion (ACA_OP_ABD -> M_ADMIN_BASE_DATOS) ==='
 SELECT o.clave AS opcion, cd.clave AS destino
-  FROM opcion_menu o
-  JOIN categoria cd ON cd.id = o.categoria_destino_id
+  FROM opcion o
+  JOIN menu_categoria cd ON cd.id = o.categoria_destino_id
  WHERE o.clave = 'ACA_OP_ABD';
 
 \echo ''
 \echo '=== 5. Respuesta de una opcion (ABD_OP_PROG) ==='
 SELECT r.id, r.clave, LEFT(r.texto, 60) AS texto
-  FROM opcion_menu o
+  FROM opcion o
   JOIN respuesta r ON r.id = o.respuesta_id
  WHERE o.clave = 'ABD_OP_PROG' AND r.activo;
 
 \echo ''
 \echo '=== 6. Documentos adjuntos de ABD_OP_CRONO (A y B: pregunta de comision) ==='
-SELECT d.clave, d.mime_type, d.vigente, d.estado, d.sincronizado_en
-  FROM opcion_menu o
+SELECT d.clave, d.materia, d.tipo, d.comision, d.drive_file_id, d.sincronizado_en
+  FROM opcion o
   JOIN respuesta_documento rd ON rd.respuesta_id = o.respuesta_id
   JOIN documento d            ON d.id = rd.documento_id
- WHERE o.clave = 'ABD_OP_CRONO' AND d.estado <> 'archivado'
+ WHERE o.clave = 'ABD_OP_CRONO'
  ORDER BY rd.orden, d.id;
 
 \echo ''
 \echo '=== 7. Contactos de derivacion (DERIVACION_OP_TRAMITES) ==='
 SELECT c.clave, c.nombre, c.area, c.email, c.url_perfil, c.motivo
-  FROM opcion_menu o
-  JOIN opcion_contacto oc ON oc.opcion_id = o.id
-  JOIN contacto c         ON c.id = oc.contacto_id
+  FROM opcion o
+  JOIN contacto c ON c.opcion_id = o.id
  WHERE o.clave = 'DERIVACION_OP_TRAMITES' AND c.activo
- ORDER BY oc.orden, c.id;
+ ORDER BY c.orden, c.id;
 
 \echo ''
 \echo '=== 8. Metrica anonima: UPSERT (se revierte) ==='
@@ -83,17 +82,12 @@ ROLLBACK;
 BEGIN;
 UPDATE documento
    SET drive_file_id        = '1TESTdriveFileId0000000000000000',
-       drive_view_url       = 'https://drive.google.com/file/d/1TESTdriveFileId0000000000000000/view',
-       drive_url            = 'https://drive.google.com/uc?export=download&id=1TESTdriveFileId0000000000000000',
        drive_md5            = 'deadbeef',
-       drive_modified_time  = now(),
        sincronizado_en      = now(),
-       actualizado_en       = now(),
-       vigente              = TRUE,
-       estado               = 'vigente'
+       actualizado_en       = now()
  WHERE clave = 'TP_programa_2026_1C';
 
-SELECT clave, nombre, drive_view_url, vigente, estado, sincronizado_en
+SELECT clave, drive_file_id, drive_md5, sincronizado_en
   FROM documento WHERE clave = 'TP_programa_2026_1C';
 ROLLBACK;
 
@@ -101,8 +95,8 @@ ROLLBACK;
 \echo '=== 10. Cobertura: documentos adjuntos por materia ==='
 SELECT c.clave AS categoria,
        COUNT(d.id) AS documentos_adjuntos
-  FROM categoria c
-  JOIN opcion_menu o         ON o.categoria_id = c.id AND o.tipo = 'responder'
+  FROM menu_categoria c
+  JOIN opcion o         ON o.categoria_id = c.id AND o.tipo = 'responder'
   JOIN respuesta_documento rd ON rd.respuesta_id = o.respuesta_id
   JOIN documento d            ON d.id = rd.documento_id
  WHERE c.clave LIKE 'M\_%'
@@ -110,16 +104,16 @@ SELECT c.clave AS categoria,
  ORDER BY c.clave;
 
 \echo ''
-\echo '=== 11. Vista de mantenimiento v_arbol_menu (menu raiz y una materia) ==='
+\echo '=== 11. Vista de mantenimiento v_menu_arbol (menu raiz y una materia) ==='
 SELECT categoria_clave, opcion_clave, opcion_tipo, es_volver,
-       respuesta_clave, documento_clave, documento_estado
-  FROM v_arbol_menu
+       respuesta_clave, documento_clave, documento_url
+  FROM v_menu_arbol
  WHERE categoria_clave IN ('RAIZ', 'M_TECNICAS_PROGRAMACION')
  ORDER BY orden;
 
 \echo ''
 \echo '=== 12. Trigger de actualizado_en ==='
-SELECT clave, creado_en, actualizado_en FROM categoria WHERE clave = 'RAIZ';
+SELECT clave, creado_en, actualizado_en FROM menu_categoria WHERE clave = 'RAIZ';
 
 -- ---------------------------------------------------------------------------
 -- Base de conocimiento conversacional
@@ -127,56 +121,49 @@ SELECT clave, creado_en, actualizado_en FROM categoria WHERE clave = 'RAIZ';
 
 \echo ''
 \echo '=== 13. Volumen de la base de conocimiento ==='
-SELECT (SELECT COUNT(*) FROM kb_intencion)         AS intenciones,
-       (SELECT COUNT(*) FROM kb_pregunta)          AS preguntas,
-       (SELECT COUNT(*) FROM kb_pregunta_variante) AS variantes,
-       (SELECT COUNT(*) FROM kb_alias)             AS alias,
-       (SELECT COUNT(*) FROM kb_termino_ignorado)  AS ignorados;
+SELECT (SELECT COUNT(*) FROM opcion o WHERE EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id)) AS opciones_buscables,
+       (SELECT COUNT(*) FROM pregunta)          AS preguntas,
+       (SELECT COUNT(*) FROM pregunta_variante) AS variantes,
+       (SELECT COUNT(*) FROM termino_equivalente)             AS alias,
+       (SELECT COUNT(*) FROM termino_ignorado)  AS ignorados;
 
 \echo ''
 \echo '=== 14. Integridad referencial de la KB (todas deben dar 0) ==='
--- Una intencion sin opcion o sin respuesta, o una variante huerfana, hacen que
--- la consulta escrita no pueda devolver una respuesta autorizada.
-SELECT 'intencion sin opcion activa en el menu' AS problema, COUNT(*) AS cantidad
-  FROM kb_intencion i
-  LEFT JOIN opcion_menu o ON o.clave = i.opcion_clave AND o.activo
- WHERE i.activo AND o.clave IS NULL
+-- Una pregunta sin opcion activa, una opcion buscable sin respuesta o una
+-- variante huerfana hacen que la consulta escrita no pueda devolver una
+-- respuesta autorizada.
+SELECT 'pregunta sin opcion activa en el menu' AS problema, COUNT(*) AS cantidad
+  FROM pregunta p
+  LEFT JOIN opcion o ON o.id = p.opcion_id AND o.activo
+ WHERE p.activo AND o.id IS NULL
 UNION ALL
-SELECT 'intencion sin respuesta en su opcion', COUNT(*)
-  FROM kb_intencion i
-  JOIN opcion_menu o    ON o.clave = i.opcion_clave
+SELECT 'opcion buscable sin respuesta', COUNT(*)
+  FROM opcion o
   LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE i.activo AND o.tipo = 'responder' AND r.id IS NULL
-UNION ALL
-SELECT 'pregunta sin intencion activa', COUNT(*)
-  FROM kb_pregunta p
-  LEFT JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
- WHERE p.activo AND i.id IS NULL
+ WHERE o.activo AND o.tipo = 'responder' AND EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id) AND r.id IS NULL
 UNION ALL
 SELECT 'variante sin pregunta', COUNT(*)
-  FROM kb_pregunta_variante v
-  LEFT JOIN kb_pregunta p ON p.id = v.pregunta_id
+  FROM pregunta_variante v
+  LEFT JOIN pregunta p ON p.id = v.pregunta_id
  WHERE p.id IS NULL;
 
-\echo ''
-\echo '=== 15. Cada intencion reutiliza una opcion y una respuesta del menu ==='
+echo '=== 15. Cada opcion buscable reutiliza una respuesta del menu ==='
 -- No hay texto nuevo: la consulta escrita devuelve lo que ya muestra el menu.
-SELECT i.clave            AS intencion,
-       o.clave            AS opcion,
-       o.tipo             AS tipo_opcion,
-       c.clave            AS categoria,
-       (r.id IS NOT NULL) AS tiene_respuesta,
-       LEFT(r.texto, 40)  AS respuesta
-  FROM kb_intencion i
-  JOIN opcion_menu o ON o.clave = i.opcion_clave
-  JOIN categoria c   ON c.id = o.categoria_id
+SELECT o.etiqueta          AS intencion,
+       o.clave             AS opcion,
+       o.tipo              AS tipo_opcion,
+       c.clave             AS categoria,
+       (r.id IS NOT NULL)  AS tiene_respuesta,
+       LEFT(r.texto, 40)   AS respuesta
+  FROM opcion o
+  JOIN menu_categoria c ON c.id = o.categoria_id
   LEFT JOIN respuesta r ON r.id = o.respuesta_id
- WHERE i.activo
- ORDER BY i.clave;
+ WHERE o.activo AND EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id)
+ ORDER BY o.etiqueta;
 
 \echo ''
 \echo '=== 16. Coincidencia EXACTA: cuando hay que pedir ACLARACION ==='
--- La consulta se resuelve primero por igualdad de `normalized_text` (B-tree).
+-- La consulta se resuelve primero por igualdad de `texto_normalizado` (B-tree).
 -- Si el texto coincide con variantes de MAS de una intencion, el motor pide
 -- aclaracion con esas opciones del menu.
 -- Textos ya normalizados (alias expandidos, sin palabras vacias), como los ve el motor.
@@ -187,15 +174,15 @@ WITH consultas(texto) AS (
          ('dias cursada')
 )
 SELECT q.texto,
-       COUNT(DISTINCT p.intencion_id) AS intenciones,
-       CASE WHEN COUNT(DISTINCT p.intencion_id) = 0 THEN 'sin coincidencia exacta'
-            WHEN COUNT(DISTINCT p.intencion_id) = 1 THEN 'respuesta directa'
+       COUNT(DISTINCT p.opcion_id) AS intenciones,
+       CASE WHEN COUNT(DISTINCT p.opcion_id) = 0 THEN 'sin coincidencia exacta'
+            WHEN COUNT(DISTINCT p.opcion_id) = 1 THEN 'respuesta directa'
             ELSE 'ACLARACION' END      AS desenlace,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
   FROM consultas q
-  LEFT JOIN kb_pregunta_variante v ON v.normalized_text = q.texto AND v.activo
-  LEFT JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-  LEFT JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+  LEFT JOIN pregunta_variante v ON v.texto_normalizado = q.texto AND v.activo
+  LEFT JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+  LEFT JOIN opcion i ON i.id = p.opcion_id AND i.activo
  GROUP BY q.texto
  ORDER BY q.texto;
 
@@ -217,15 +204,15 @@ terminos AS (
     FROM consultas q
     CROSS JOIN LATERAL unnest(string_to_array(q.texto, ' ')) AS t(termino)
    WHERE length(t.termino) >= 4
-     AND t.termino NOT IN (SELECT termino FROM kb_termino_ignorado)
+     AND t.termino NOT IN (SELECT termino FROM termino_ignorado)
 ),
 candidatos AS (
   SELECT tm.texto, tm.termino, i.clave AS intencion,
-         MAX(word_similarity(tm.termino, v.normalized_text)) AS similitud
+         MAX(word_similarity(tm.termino, v.texto_normalizado)) AS similitud
     FROM terminos tm
-    JOIN kb_pregunta_variante v ON v.activo
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    JOIN pregunta_variante v ON v.activo
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN opcion i ON i.id = p.opcion_id AND i.activo
    GROUP BY tm.texto, tm.termino, i.clave
 )
 SELECT texto, termino, intencion, ROUND(similitud::numeric, 3) AS similitud
@@ -237,33 +224,33 @@ SELECT texto, termino, intencion, ROUND(similitud::numeric, 3) AS similitud
 \echo '=== 18. Columnas de busqueda (search_vector e indice GIN) ==='
 SELECT attname, attgenerated
   FROM pg_attribute
- WHERE attrelid = 'kb_pregunta_variante'::regclass
+ WHERE attrelid = 'pregunta_variante'::regclass
    AND attname = 'search_vector' AND NOT attisdropped;
 
 SELECT indexname FROM pg_indexes
- WHERE tablename = 'kb_pregunta_variante'
+ WHERE tablename = 'pregunta_variante'
    AND indexname IN ('kb_variante_fts_idx', 'kb_variante_trgm_idx', 'kb_variante_normalized_idx')
  ORDER BY indexname;
 
 \echo ''
-\echo '=== 19. Cobertura por intencion (vista v_kb_resolucion) ==='
-SELECT intencion_clave, opcion_clave, priority, minimum_threshold,
+\echo '=== 19. Cobertura por opcion (vista v_cobertura_intenciones) ==='
+SELECT opcion_clave, opcion_etiqueta, prioridad, umbral_minimo,
        variantes, LEFT(pregunta, 46) AS pregunta
-  FROM v_kb_resolucion
- ORDER BY domain, intencion_clave, priority DESC;
+  FROM v_cobertura_intenciones
+ ORDER BY opcion_clave, prioridad DESC;
 
 \echo ''
 \echo '=== 20. Textos compartidos entre intenciones (disparan ACLARACION) ==='
 -- No es un error: son las redacciones genericas que existen en varias materias
 -- a proposito, para que el motor pregunte en lugar de adivinar.
-SELECT v.normalized_text,
+SELECT v.texto_normalizado,
        COUNT(DISTINCT p.id)           AS preguntas,
-       COUNT(DISTINCT p.intencion_id) AS intenciones,
+       COUNT(DISTINCT p.opcion_id) AS intenciones,
        string_agg(DISTINCT i.clave, ', ' ORDER BY i.clave) AS intenciones_clave
-  FROM kb_pregunta_variante v
-  JOIN kb_pregunta p   ON p.id = v.pregunta_id AND p.activo
-  JOIN kb_intencion i  ON i.id = p.intencion_id AND i.activo
+  FROM pregunta_variante v
+  JOIN pregunta p   ON p.id = v.pregunta_id AND p.activo
+  JOIN opcion i ON i.id = p.opcion_id AND i.activo
  WHERE v.activo
- GROUP BY v.normalized_text
-HAVING COUNT(DISTINCT p.intencion_id) > 1
- ORDER BY intenciones DESC, v.normalized_text;
+ GROUP BY v.texto_normalizado
+HAVING COUNT(DISTINCT p.opcion_id) > 1
+ ORDER BY intenciones DESC, v.texto_normalizado;

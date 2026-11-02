@@ -43,17 +43,15 @@ const archivo = (id: string, nombre: string, mimeType: string, md5: string): Arc
   webViewLink: null,
 });
 
-/** Documentos con nombre en Drive, en orden de clave. */
-async function fichasConNombre(): Promise<Array<{ clave: string; drive_nombre_archivo: string }>> {
-  const r = await query<{ clave: string; drive_nombre_archivo: string }>(
-    'SELECT clave, drive_nombre_archivo FROM documento WHERE drive_nombre_archivo IS NOT NULL ORDER BY clave',
-  );
-  return r.rows;
+/** Documentos de la base, en orden de clave. El nombre del archivo es la clave con .pdf. */
+async function fichasConNombre(): Promise<Array<{ clave: string; nombre: string }>> {
+  const r = await query<{ clave: string }>('SELECT clave FROM documento ORDER BY clave');
+  return r.rows.map((f) => ({ clave: f.clave, nombre: `${f.clave}.pdf` }));
 }
 
 test('aplicar la misma planilla dos veces deja los mismos conteos', async () => {
   const contar = async () =>
-    (await query<{ n: number }>('SELECT count(*)::int AS n FROM kb_pregunta_variante')).rows[0]!.n;
+    (await query<{ n: number }>('SELECT count(*)::int AS n FROM pregunta_variante')).rows[0]!.n;
   const antes = await contar();
   await aplicarContenido(datosPrueba());
   assert.equal(await contar(), antes);
@@ -63,12 +61,11 @@ test('lo que la planilla ya no trae se borra de la base', async () => {
   const datos = datosPrueba();
   const sinCondiciones = {
     ...datos,
-    intenciones: datos.intenciones.filter((i) => i.clave !== 'condiciones_ABD'),
-    preguntas: datos.preguntas.filter((p) => p.intencion !== 'condiciones_ABD'),
-    variantes: datos.variantes.filter((v) => v.intencion !== 'condiciones_ABD'),
+    preguntas: datos.preguntas.filter((p) => p.opcion !== 'ABD_OP_COND'),
+    variantes: datos.variantes.filter((v) => v.opcion !== 'ABD_OP_COND'),
   };
   await aplicarContenido(sinCondiciones);
-  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM kb_intencion WHERE clave = 'condiciones_ABD'");
+  const r = await query<{ n: number }>("SELECT count(*)::int AS n FROM pregunta p JOIN opcion o ON o.id = p.opcion_id WHERE o.clave = 'ABD_OP_COND'");
   assert.equal(r.rows[0]!.n, 0);
 
   // Se restaura para no afectar las demás pruebas del archivo.
@@ -79,7 +76,7 @@ test('un documento que aparece en Drive queda enlazado a su archivo', async () =
   const fichas = await fichasConNombre();
   const primera = fichas[0]!;
   const r = await sincronizarDocumentos({
-    drive: fakeDrive([archivo('F1', primera.drive_nombre_archivo, 'text/plain', 'm1')]),
+    drive: fakeDrive([archivo('F1', primera.nombre, 'text/plain', 'm1')]),
   });
 
   const f = await query<{ drive_file_id: string; drive_md5: string }>(
@@ -95,7 +92,7 @@ test('un documento que aparece en Drive queda enlazado a su archivo', async () =
 
 test('sincronizar sin cambios en Drive no vuelve a actualizar nada', async () => {
   const fichas = await fichasConNombre();
-  const drive = fakeDrive([archivo('F1', fichas[0]!.drive_nombre_archivo, 'text/plain', 'm1')]);
+  const drive = fakeDrive([archivo('F1', fichas[0]!.nombre, 'text/plain', 'm1')]);
   await sincronizarDocumentos({ drive });
   const segunda = await sincronizarDocumentos({ drive });
   assert.equal(segunda.actualizados, 0);
@@ -112,7 +109,7 @@ test('si falla la extracción de un PDF, se conservan sus fragmentos anteriores'
 
   // Bytes que no son un PDF: la extracción falla.
   const r = await sincronizarDocumentos({
-    drive: fakeDrive([archivo('P1', doc.drive_nombre_archivo, 'application/pdf', 'pdf1')], new Uint8Array([1, 2, 3])),
+    drive: fakeDrive([archivo('P1', doc.nombre, 'application/pdf', 'pdf1')], new Uint8Array([1, 2, 3])),
   });
 
   assert.ok(r.mensajes.some((m) => m.includes(`fragmentos: ${doc.clave} falló`)));
@@ -121,4 +118,34 @@ test('si falla la extracción de un PDF, se conservan sus fragmentos anteriores'
     [doc.clave],
   );
   assert.deepEqual(frags.rows.map((x) => x.titulo), ['Previo']);
+});
+
+test('los campos del nombre del archivo se guardan al cargar el contenido', async () => {
+  await aplicarContenido(datosPrueba());
+  const r = await query<{ materia: string; tipo: string; comision: string | null; anio: number; cuatrimestre: string }>(
+    'SELECT materia, tipo, comision, anio, cuatrimestre FROM documento WHERE clave = $1',
+    ['ABD_condiciones_B_2026_1C'],
+  );
+  assert.deepEqual(r.rows[0], { materia: 'ABD', tipo: 'condiciones', comision: 'B', anio: 2026, cuatrimestre: '1C' });
+});
+
+test('un documento que sale de la carpeta pierde su archivo y sus fragmentos', async () => {
+  const doc = (await fichasConNombre()).find((d) => d.clave === 'ABD_programa_2026_1C')!;
+  await sincronizarDocumentos({ drive: fakeDrive([archivo('PROG', doc.nombre, 'text/plain', 'p1')]) });
+  await query(
+    `INSERT INTO documento_fragmento (documento_id, orden, titulo, texto, texto_busqueda)
+     SELECT id, 1, 'Previo', 'texto previo', 'texto previo' FROM documento WHERE clave = $1`,
+    [doc.clave],
+  );
+
+  const r = await sincronizarDocumentos({ drive: fakeDrive([]) });
+
+  const f = await query<{ drive_file_id: string | null }>('SELECT drive_file_id FROM documento WHERE clave = $1', [doc.clave]);
+  assert.equal(f.rows[0]!.drive_file_id, null);
+  const frags = await query<{ n: number }>(
+    'SELECT count(*)::int AS n FROM documento_fragmento f JOIN documento d ON d.id = f.documento_id WHERE d.clave = $1',
+    [doc.clave],
+  );
+  assert.equal(frags.rows[0]!.n, 0);
+  assert.ok(r.mensajes.some((m) => m.includes(`sin archivo en Drive: ${doc.clave}`)));
 });

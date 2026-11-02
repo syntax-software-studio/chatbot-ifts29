@@ -54,7 +54,7 @@ export async function checkDatabase(): Promise<{ ok: boolean; detalle?: string }
       `SELECT count(*)::int AS n
          FROM information_schema.tables
         WHERE table_schema = 'public'
-          AND table_name IN ('categoria','opcion_menu','respuesta','documento','contacto','kb_intencion')`,
+          AND table_name IN ('menu_categoria','opcion','respuesta','documento','contacto','intencion')`,
     );
     const total = r.rows[0]?.n ?? 0;
     if (total < 6) {

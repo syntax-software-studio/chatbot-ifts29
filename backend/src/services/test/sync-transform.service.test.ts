@@ -25,13 +25,13 @@ const contenidoValido = (): Hojas => ({
     { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
-  intenciones: [{ clave: 'programa_ABD', nombre: 'Programa de ABD', dominio: 'academico', opcion: 'ACAD_OP_ABD' }],
-  preguntas: [{ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', prioridad: '30', umbral: '0,7' }],
+  palabras_vacias: [{ termino: 'de' }],
+  preguntas: [{ opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', prioridad: '30', umbral_minimo: '0,7' }],
   variantes: [
-    { intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto: 'Programa de ABD', peso: '1' },
+    { opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'Programa de ABD', peso: '1' },
   ],
   contactos: [
-    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
+    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', url_perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
   ],
 });
 
@@ -47,10 +47,10 @@ test('el umbral con coma decimal se convierte a número', () => {
   assert.equal(r.datos?.preguntas[0]?.umbral, 0.7);
 });
 
-test('el documento se identifica por el nombre sin .pdf, y conserva el nombre de archivo', () => {
+test('el documento se identifica por el nombre sin .pdf', () => {
   const r = convertirContenido(contenidoValido());
   assert.deepEqual(r.datos?.documentos, [
-    { clave: 'ABD_programa_2026_1C', nombreArchivo: 'ABD_programa_2026_1C.pdf' },
+    { clave: 'ABD_programa_2026_1C' },
   ]);
   assert.equal(r.datos?.respuestaDocumentos[0]?.documento, 'ABD_programa_2026_1C');
 });
@@ -82,9 +82,9 @@ test('una opción de respuesta sin respuesta es un error', () => {
   assert.ok(r.errores.some((e) => e.includes('ACAD_OP_ABD') && e.includes('responder')));
 });
 
-test('una intención que apunta a una opción inexistente es un error', () => {
+test('una pregunta que apunta a una opción inexistente es un error', () => {
   const h = contenidoValido();
-  h.intenciones![0]!.opcion = 'NO_EXISTE';
+  h.preguntas![0]!.opcion = 'NO_EXISTE';
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.some((e) => e.includes('NO_EXISTE')));
@@ -108,7 +108,7 @@ test('un número inválido es un error', () => {
 
 test('dos variantes iguales después de normalizar son un error', () => {
   const h = contenidoValido();
-  h.variantes!.push({ intencion: 'programa_ABD', pregunta: '¿Cuál es el programa?', texto: 'PROGRAMA DE ABD', peso: '1' });
+  h.variantes!.push({ opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'PROGRAMA DE ABD', peso: '1' });
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.some((e) => e.includes('repetida')));
@@ -134,7 +134,7 @@ test('todos los errores se reportan juntos', () => {
   const h = contenidoValido();
   h.opciones![0]!.destino = '';
   h.categorias![0]!.es_raiz = 'SI';
-  h.intenciones![0]!.dominio = 'otro';
+  h.opciones![1]!.tipo = 'otro';
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
   assert.ok(r.errores.length >= 3, `se esperaban al menos 3 errores, hay ${r.errores.length}`);

@@ -59,7 +59,7 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Flujo y requisitos técnicos
 - Preguntas abiertas
 
-### 9. [Pendientes para próximas iteraciones](09-pendientes-proximas-iteraciones.md)
+### 9. [Pendientes post-MVP](09-pendientes-post-mvp.md)
 - Despliegue, extractos, contenido, pruebas, base de datos y operación
 
 ### 10. [Tareas operativas](10-operacion.md)
@@ -82,7 +82,7 @@ desarrollo-e-integracion/
 ├── 06-pruebas-integracion.md
 ├── 07-contenido-y-decisiones.md
 ├── 08-extractos-de-documentos.md
-├── 09-pendientes-proximas-iteraciones.md
+├── 09-pendientes-post-mvp.md
 ├── 10-operacion.md
 └── screenshots/
     ├── manual-usuario/

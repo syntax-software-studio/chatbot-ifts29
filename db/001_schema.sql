@@ -20,12 +20,12 @@
 --   * El menú es un árbol genérico (categoria -> opcion -> respuesta o
 --     subcategoria). Una pregunta es una categoria; una subpregunta es una
 --     opcion que abre otra categoria (RNF10).
---   * `normalized_text` (KB) es el texto ya normalizado por el MISMO
+--   * `texto_normalizado` (KB) es el texto ya normalizado por el MISMO
 --     normalizador que usa la API, para que el indice y los umbrales de
 --     similitud sean comparables.
 --
 --  Indices de la base de conocimiento:
---   * B-tree sobre `normalized_text` para la coincidencia EXACTA (Nivel A).
+--   * B-tree sobre `texto_normalizado` para la coincidencia EXACTA (Nivel A).
 --   * GIN tsvector para full-text search (Nivel B_FTS, config `spanish`).
 --   * GIN con `gin_trgm_ops` para la similitud trigram (Nivel B_TRG, `pg_trgm`).
 -- ============================================================================
@@ -37,7 +37,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- 1. CATEGORIA  ->  nodos del árbol conversacional
 --    Una categoría agrupa opciones y define el mensaje del bot al entrar.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS categoria (
+CREATE TABLE IF NOT EXISTS menu_categoria (
     id              SERIAL PRIMARY KEY,
     clave           TEXT        NOT NULL UNIQUE,
     nombre          TEXT        NOT NULL,
@@ -49,9 +49,9 @@ CREATE TABLE IF NOT EXISTS categoria (
     actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE  categoria              IS 'Nodos del arbol del menu (RF05).';
-COMMENT ON COLUMN categoria.mensaje       IS 'Mensaje del bot que se muestra al entrar a la categoria.';
-COMMENT ON COLUMN categoria.es_raiz       IS 'TRUE solo para la categoria inicial que muestra el saludo.';
+COMMENT ON TABLE  menu_categoria              IS 'Nodos del arbol del menu (RF05).';
+COMMENT ON COLUMN menu_categoria.mensaje       IS 'Mensaje del bot que se muestra al entrar a la categoria.';
+COMMENT ON COLUMN menu_categoria.es_raiz       IS 'TRUE solo para la categoria inicial que muestra el saludo.';
 
 -- ---------------------------------------------------------------------------
 -- 2. RESPUESTA  ->  texto institucional validado que muestra el bot
@@ -78,24 +78,22 @@ COMMENT ON TABLE respuesta IS 'Respuestas predefinidas validadas por la instituc
 --    Una opcion 'responder' es tambien el destino de las consultas escritas:
 --    la base de conocimiento la ubica y devuelve exactamente su respuesta.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS opcion_menu (
+CREATE TABLE IF NOT EXISTS opcion (
     id                  SERIAL PRIMARY KEY,
     clave               TEXT        NOT NULL UNIQUE,
-    categoria_id        INTEGER     NOT NULL REFERENCES categoria (id) ON DELETE CASCADE,
+    categoria_id        INTEGER     NOT NULL REFERENCES menu_categoria (id) ON DELETE CASCADE,
     etiqueta            TEXT        NOT NULL,
-    descripcion         TEXT,
     tipo                TEXT        NOT NULL DEFAULT 'navegar'
                             CHECK (tipo IN ('navegar', 'responder', 'derivar')),
-    categoria_destino_id INTEGER    REFERENCES categoria (id) ON DELETE RESTRICT,
+    categoria_destino_id INTEGER    REFERENCES menu_categoria (id) ON DELETE RESTRICT,
     respuesta_id        INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     es_volver           BOOLEAN     NOT NULL DEFAULT FALSE,
-    icono               TEXT,
     orden               INTEGER     NOT NULL DEFAULT 0,
     activo              BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT opcion_menu_destino_ck
+    CONSTRAINT opcion_destino_ck
         CHECK (
             (tipo = 'navegar'   AND categoria_destino_id IS NOT NULL AND respuesta_id IS NULL)
          OR (tipo = 'responder' AND respuesta_id         IS NOT NULL AND categoria_destino_id IS NULL)
@@ -103,55 +101,46 @@ CREATE TABLE IF NOT EXISTS opcion_menu (
         )
 );
 
-CREATE INDEX IF NOT EXISTS opcion_menu_categoria_idx ON opcion_menu (categoria_id, orden);
-CREATE UNIQUE INDEX IF NOT EXISTS opcion_menu_navegar_uniq
-    ON opcion_menu (categoria_id, categoria_destino_id)
+CREATE INDEX IF NOT EXISTS opcion_categoria_idx ON opcion (categoria_id, orden);
+CREATE UNIQUE INDEX IF NOT EXISTS opcion_navegar_uniq
+    ON opcion (categoria_id, categoria_destino_id)
     WHERE tipo = 'navegar' AND categoria_destino_id IS NOT NULL;
 
-COMMENT ON TABLE  opcion_menu               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
-COMMENT ON COLUMN opcion_menu.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
-COMMENT ON COLUMN opcion_menu.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
-COMMENT ON COLUMN opcion_menu.categoria_destino_id IS 'Categoria a la que navega la opcion.';
-COMMENT ON COLUMN opcion_menu.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
+COMMENT ON TABLE  opcion               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
+COMMENT ON COLUMN opcion.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
+COMMENT ON COLUMN opcion.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
+COMMENT ON COLUMN opcion.categoria_destino_id IS 'Categoria a la que navega la opcion.';
+COMMENT ON COLUMN opcion.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
 
 -- ---------------------------------------------------------------------------
--- 4. DOCUMENTO  ->  ficha del archivo institucional alojado en Google Drive
---    Nunca se guarda el binario: solo el fileId y la metadata de vigencia.
---    (RF07: diferenciar vigente de histórico / reemplazado / de ejemplo)
+-- 4. DOCUMENTO  ->  ficha de un archivo de Drive
+--    Nunca se guarda el binario ni los enlaces: se calculan desde drive_file_id.
+--    Disponible = el archivo está en la carpeta de Drive. No hay estados: si el
+--    archivo sale de la carpeta, la sincronización quita drive_file_id.
+--    materia, tipo, comision, anio y cuatrimestre se leen del nombre del archivo
+--    (ver docs/desarrollo-e-integracion/07). Quedan NULL si el nombre no cumple
+--    la convención.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS documento (
     id                  SERIAL PRIMARY KEY,
     clave               TEXT        NOT NULL UNIQUE,
-    nombre              TEXT        NOT NULL,
-    descripcion         TEXT,
-    tipo                TEXT        NOT NULL DEFAULT 'documento'
-                            CHECK (tipo IN ('programa', 'cronograma', 'condiciones_aprobacion',
-                                            'instructivo', 'presentacion', 'planilla', 'documento')),
+    materia             TEXT,
+    tipo                TEXT,
+    comision            TEXT        CHECK (comision ~ '^[A-Z]$'),
+    anio                INTEGER,
+    cuatrimestre        TEXT        CHECK (cuatrimestre IN ('1C', '2C')),
     drive_file_id       TEXT        UNIQUE,
-    drive_nombre_archivo TEXT,
-    mime_type           TEXT        NOT NULL DEFAULT 'application/pdf',
-    drive_url           TEXT,
-    drive_view_url      TEXT,
     drive_md5           TEXT,
     -- md5 del archivo con el que se extrajeron sus fragmentos. Si difiere de
     -- drive_md5, la sincronización vuelve a extraer. Un PDF sin texto queda
     -- marcado igual, sin volver a descargarlo en cada sync.
     fragmentos_md5      TEXT,
-    drive_modified_time TIMESTAMPTZ,
-    drive_carpeta       TEXT,
-    vigente             BOOLEAN     NOT NULL DEFAULT TRUE,
-    estado              TEXT        NOT NULL DEFAULT 'vigente'
-                            CHECK (estado IN ('borrador', 'revision', 'vigente', 'reemplazado', 'archivado')),
-    vigencia_desde      DATE,
-    vigencia_hasta      DATE,
-    observaciones       TEXT,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
     sincronizado_en     TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS documento_vigente_idx  ON documento (vigente, estado);
-CREATE INDEX IF NOT EXISTS documento_tipo_idx      ON documento (tipo);
+CREATE INDEX IF NOT EXISTS documento_materia_idx ON documento (materia, tipo);
 
 -- ---------------------------------------------------------------------------
 -- 4b. DOCUMENTO_FRAGMENTO  ->  secciones de un documento para la búsqueda de pasajes
@@ -179,9 +168,8 @@ CREATE INDEX IF NOT EXISTS documento_fragmento_fts_idx ON documento_fragmento US
 COMMENT ON TABLE documento_fragmento IS 'Secciones de un documento (por título), para la búsqueda de pasajes. Se regeneran al sincronizar.';
 
 COMMENT ON TABLE  documento                   IS 'Documentos institucionales referenciados desde Drive (solo lectura).';
-COMMENT ON COLUMN documento.drive_file_id     IS 'Identificador del archivo en Google Drive.';
-COMMENT ON COLUMN documento.drive_view_url    IS 'Enlace publico de lectura generado/verificado por la sincronizacion.';
-COMMENT ON COLUMN documento.estado            IS 'Ciclo de vida: borrador -> revision -> vigente -> reemplazado/archivado.';
+COMMENT ON COLUMN documento.drive_file_id     IS 'Identificador del archivo en Drive. NULL = no está en la carpeta: el bot no ofrece enlace.';
+COMMENT ON COLUMN documento.comision          IS 'Comision leida del nombre del archivo (una letra). NULL si el documento no depende de la comision.';
 
 -- ---------------------------------------------------------------------------
 -- 5. RESPUESTA_DOCUMENTO  ->  documentos adjuntos a una respuesta
@@ -207,6 +195,7 @@ CREATE TABLE IF NOT EXISTS contacto (
     id          SERIAL PRIMARY KEY,
     clave       TEXT        NOT NULL UNIQUE,
     nombre      TEXT        NOT NULL,
+    opcion_id   INTEGER     NOT NULL REFERENCES opcion (id) ON DELETE CASCADE,
     area        TEXT,
     email       TEXT,
     url_perfil  TEXT,
@@ -221,14 +210,8 @@ CREATE TABLE IF NOT EXISTS contacto (
 COMMENT ON TABLE  contacto            IS 'Persona o area a la que se deriva la consulta (RF04).';
 COMMENT ON COLUMN contacto.motivo     IS 'Motivo de la derivacion, mostrado junto al contacto.';
 
-CREATE TABLE IF NOT EXISTS opcion_contacto (
-    opcion_id    INTEGER NOT NULL REFERENCES opcion_menu (id) ON DELETE CASCADE,
-    contacto_id  INTEGER NOT NULL REFERENCES contacto (id)  ON DELETE CASCADE,
-    orden        INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (opcion_id, contacto_id)
-);
-
-CREATE INDEX IF NOT EXISTS opcion_contacto_contacto_idx ON opcion_contacto (contacto_id);
+CREATE INDEX IF NOT EXISTS contacto_opcion_idx ON contacto (opcion_id, orden);
+COMMENT ON COLUMN contacto.opcion_id IS 'Opcion de derivacion a la que pertenece el contacto (una sola).';
 
 -- ---------------------------------------------------------------------------
 -- 7. METRICA_OPCION  ->  contadores agregados, sin datos personales (RNF05)
@@ -277,7 +260,7 @@ COMMENT ON COLUMN metrica_opcion.evento IS
 --  intencion y devuelve la MISMA opcion del menu que ya existia.
 --
 --  Principios (los mismos de arriba):
---   * Toda intencion esta atada a una opcion de `opcion_menu` y a una
+--   * Toda intencion esta atada a una opcion de `opcion` y a una
 --     `respuesta` ya validada: el texto libre no puede inventar contenido,
 --     solo localizarlo.
 --   * Versionado con `activo`: desactivar una variante la saca de la busqueda
@@ -285,70 +268,44 @@ COMMENT ON COLUMN metrica_opcion.evento IS
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
--- 8. KB_INTENCION  ->  a que tipo de consulta responde cada opcion del menu
---     `clave` es la identidad estable (no el id) para que la carga sea
---     idempotente y para poder comparar con el catalogo local.
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS kb_intencion (
-    id              SERIAL PRIMARY KEY,
-    clave           TEXT        NOT NULL UNIQUE,
-    nombre          TEXT        NOT NULL,
-    domain          TEXT        NOT NULL DEFAULT 'administrativo'
-                            CHECK (domain IN ('administrativo', 'academico')),
-    opcion_clave    TEXT        NOT NULL REFERENCES opcion_menu (clave)
-                            ON UPDATE CASCADE ON DELETE RESTRICT,
-    activo          BOOLEAN     NOT NULL DEFAULT TRUE,
-    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-COMMENT ON TABLE  kb_intencion                IS 'Intenciones conversacionales; cada una reusa una opcion del menu (no inventan respuestas).';
-COMMENT ON COLUMN kb_intencion.clave          IS 'Identidad estable de la intencion (ej: dias_cursada_TP).';
-COMMENT ON COLUMN kb_intencion.domain         IS 'administrativo (trámites) | academico (materias).';
-COMMENT ON COLUMN kb_intencion.opcion_clave   IS 'Opcion del menu que emite la respuesta autorizada.';
-COMMENT ON COLUMN kb_intencion.activo         IS 'FALSE = fuera de la busqueda, sin borrar el registro.';
-
--- ---------------------------------------------------------------------------
 -- 9. KB_PREGUNTA  ->  la formulacion canonica de la consulta
---     Una intencion puede tener varias preguntas (por ejemplo, una por materia
---     o una version corta y una larga); el ranking usa `priority`.
+--     Una opcion puede tener varias preguntas (por ejemplo, una por materia
+--     o una version corta y una larga); el ranking usa `prioridad`.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS kb_pregunta (
+CREATE TABLE IF NOT EXISTS pregunta (
     id                SERIAL PRIMARY KEY,
-    intencion_id      INTEGER     NOT NULL REFERENCES kb_intencion (id) ON DELETE CASCADE,
+    opcion_id         INTEGER     NOT NULL REFERENCES opcion (id) ON DELETE CASCADE,
     pregunta          TEXT        NOT NULL,
-    respuesta_id      INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
-    priority          INTEGER     NOT NULL DEFAULT 0,
-    minimum_threshold NUMERIC(4,3) NOT NULL DEFAULT 0.700
-                              CHECK (minimum_threshold >= 0 AND minimum_threshold <= 1),
+    prioridad          INTEGER     NOT NULL DEFAULT 0,
+    umbral_minimo NUMERIC(4,3) NOT NULL DEFAULT 0.700
+                              CHECK (umbral_minimo >= 0 AND umbral_minimo <= 1),
     activo            BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT kb_pregunta_uniq UNIQUE (intencion_id, pregunta)
+    CONSTRAINT pregunta_uniq UNIQUE (opcion_id, pregunta)
 );
 
-CREATE INDEX IF NOT EXISTS kb_pregunta_intencion_idx ON kb_pregunta (intencion_id);
+CREATE INDEX IF NOT EXISTS pregunta_opcion_idx ON pregunta (opcion_id);
 
-COMMENT ON TABLE  kb_pregunta                IS 'Formulaciones canonicas de una intencion.';
-COMMENT ON COLUMN kb_pregunta.respuesta_id   IS 'Respuesta autorizada a emitir; NULL deriva en la opcion del menu.';
-COMMENT ON COLUMN kb_pregunta.priority       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
-COMMENT ON COLUMN kb_pregunta.minimum_threshold IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
+COMMENT ON TABLE  pregunta                IS 'Formulaciones canonicas de una opcion del menu (la que se busca por texto).';
+COMMENT ON COLUMN pregunta.prioridad       IS 'Orden de presentacion cuando hay que pedir aclaracion (mayor primero).';
+COMMENT ON COLUMN pregunta.umbral_minimo IS 'Corte inferior de similitud para esta pregunta (calibrable, D04).';
 
 -- ---------------------------------------------------------------------------
 -- 10. KB_PREGUNTA_VARIANTE  ->  las formas en que se puede escribir
---     Una misma pregunta admite varias redacciones; `weight` pondera la
+--     Una misma pregunta admite varias redacciones; `peso` pondera la
 --     variante en el ranking. Las variantes genericas (sin materia, por
 --     ejemplo "dias de cursada") se repiten en varias preguntas a proposito:
 --     son las que permiten pedir aclaracion en vez de adivinar (D06).
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS kb_pregunta_variante (
+CREATE TABLE IF NOT EXISTS pregunta_variante (
     id              SERIAL PRIMARY KEY,
-    pregunta_id     INTEGER     NOT NULL REFERENCES kb_pregunta (id) ON DELETE CASCADE,
-    original_text   TEXT        NOT NULL,
-    normalized_text TEXT        NOT NULL,
-    weight          NUMERIC(3,2) NOT NULL DEFAULT 1.00
-                            CHECK (weight > 0 AND weight <= 1),
+    pregunta_id     INTEGER     NOT NULL REFERENCES pregunta (id) ON DELETE CASCADE,
+    texto_original   TEXT        NOT NULL,
+    texto_normalizado TEXT        NOT NULL,
+    peso          NUMERIC(3,2) NOT NULL DEFAULT 1.00
+                            CHECK (peso > 0 AND peso <= 1),
     activo          BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -357,48 +314,68 @@ CREATE TABLE IF NOT EXISTS kb_pregunta_variante (
     -- diacriticos (el normalizador JS los elimino), asi que no hace falta el
     -- wrapper immutable de unaccent.
     search_vector   tsvector
-        GENERATED ALWAYS AS (to_tsvector('spanish', normalized_text)) STORED,
+        GENERATED ALWAYS AS (to_tsvector('spanish', texto_normalizado)) STORED,
 
-    CONSTRAINT kb_variante_uniq UNIQUE (pregunta_id, normalized_text)
+    CONSTRAINT kb_variante_uniq UNIQUE (pregunta_id, texto_normalizado)
 );
 
 -- Nivel A: coincidencia exacta por igualdad del texto normalizado.
 CREATE INDEX IF NOT EXISTS kb_variante_normalized_idx
-    ON kb_pregunta_variante (normalized_text);
+    ON pregunta_variante (texto_normalizado);
 
 -- Nivel B_FTS: full-text search.
 CREATE INDEX IF NOT EXISTS kb_variante_fts_idx
-    ON kb_pregunta_variante USING GIN (search_vector);
+    ON pregunta_variante USING GIN (search_vector);
 
 -- Nivel B_TRG: similitud trigram. El GIN acelera el filtro `similarity(...) >= x`.
 CREATE INDEX IF NOT EXISTS kb_variante_trgm_idx
-    ON kb_pregunta_variante USING GIN (normalized_text gin_trgm_ops);
+    ON pregunta_variante USING GIN (texto_normalizado gin_trgm_ops);
 
-COMMENT ON TABLE  kb_pregunta_variante         IS 'Redacciones alternativas de una pregunta, ya normalizadas.';
-COMMENT ON COLUMN kb_pregunta_variante.weight IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
+COMMENT ON TABLE  pregunta_variante         IS 'Redacciones alternativas de una pregunta, ya normalizadas.';
+COMMENT ON COLUMN pregunta_variante.peso IS 'Peso de la variante en el ranking (1.00 = formulacion canonica).';
 
 -- ---------------------------------------------------------------------------
 -- 10b. KB_ALIAS  ->  siglas y abreviaturas que se expanden antes de buscar
 --     Por ejemplo "abd" -> "administracion de bases de datos". Se cargan desde
 --     la pestaña `alias` de la planilla.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS kb_alias (
+CREATE TABLE IF NOT EXISTS termino_equivalente (
     alias       TEXT PRIMARY KEY,
     expansion   TEXT NOT NULL
 );
 
-COMMENT ON TABLE kb_alias IS 'Siglas y abreviaturas de la consulta, ya normalizadas, con su expansion.';
+COMMENT ON TABLE termino_equivalente IS 'Siglas y abreviaturas de la consulta, ya normalizadas, con su expansion.';
 
 -- ---------------------------------------------------------------------------
 -- 10c. KB_TERMINO_IGNORADO  ->  palabras de la consulta que no identifican nada
 --     Se cargan desde la pestaña `ignorados` de la planilla. Sólo se usan al
 --     buscar (FTS y trigramas): no cambian cómo se guardan las variantes.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS kb_termino_ignorado (
+CREATE TABLE IF NOT EXISTS termino_ignorado (
     termino     TEXT PRIMARY KEY
 );
 
-COMMENT ON TABLE kb_termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
+COMMENT ON TABLE termino_ignorado IS 'Palabras de la consulta que se descartan al buscar (ruido), ya normalizadas.';
+
+-- ---------------------------------------------------------------------------
+-- 10e. PALABRA_VACIA  ->  articulos y preposiciones que no aportan significado
+--     Se cargan desde la pestaña `palabras_vacias`. Se quitan de la consulta y de las variantes.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS palabra_vacia (
+    termino TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE palabra_vacia IS 'Palabras que se quitan al normalizar consultas y variantes (de, la, y...).';
+
+-- ---------------------------------------------------------------------------
+-- 10d. TERMINO_RECONOCIMIENTO_SECCION  ->  títulos que parten un PDF en secciones
+--     Se cargan desde la pestaña del mismo nombre. Ya normalizados.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS termino_reconocimiento_fragmento (
+    termino TEXT PRIMARY KEY
+);
+
+COMMENT ON TABLE termino_reconocimiento_fragmento IS 'Títulos de sección que se reconocen dentro de los PDF para partirlos en fragmentos. Ya normalizados.';
 
 -- ---------------------------------------------------------------------------
 -- 11. Trigger de mantenimiento: actualizado_en
@@ -417,9 +394,9 @@ DECLARE
     t TEXT;
 BEGIN
     FOREACH t IN ARRAY ARRAY[
-        'categoria', 'opcion_menu', 'respuesta',
+        'menu_categoria', 'opcion', 'respuesta',
         'documento', 'contacto',
-        'kb_intencion', 'kb_pregunta', 'kb_pregunta_variante'
+        'pregunta', 'pregunta_variante'
     ] LOOP
         EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_touch ON %1$I', t);
         EXECUTE format(
@@ -432,7 +409,7 @@ END $$;
 -- 12. Vista de lectura del menu para el equipo de mantenimiento (RNF09)
 --     Un solo SELECT muestra el arbol completo con sus adjuntos.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW v_arbol_menu AS
+CREATE OR REPLACE VIEW v_menu_arbol AS
 SELECT
     c.clave              AS categoria_clave,
     c.nombre             AS categoria_nombre,
@@ -447,12 +424,13 @@ SELECT
     r.clave              AS respuesta_clave,
     r.texto              AS respuesta_texto,
     d.clave              AS documento_clave,
-    d.nombre             AS documento_nombre,
-    d.drive_view_url     AS documento_url,
-    d.estado             AS documento_estado
-FROM opcion_menu o
-JOIN categoria   c  ON c.id = o.categoria_id
-LEFT JOIN categoria cd ON cd.id = o.categoria_destino_id
+    d.clave || '.pdf'    AS documento_nombre,
+    CASE WHEN d.drive_file_id IS NOT NULL
+         THEN 'https://drive.google.com/file/d/' || d.drive_file_id || '/view'
+    END                  AS documento_url
+FROM opcion o
+JOIN menu_categoria   c  ON c.id = o.categoria_id
+LEFT JOIN menu_categoria cd ON cd.id = o.categoria_destino_id
 LEFT JOIN respuesta  r  ON r.id = o.respuesta_id
 LEFT JOIN respuesta_documento rd ON rd.respuesta_id = r.id
 LEFT JOIN documento d ON d.id = rd.documento_id
@@ -464,21 +442,19 @@ ORDER BY c.orden, o.orden, rd.orden;
 --     Que consultas se resuelven y cuales no. No guarda texto de los
 --     estudiantes: solo el origen del acierto.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW v_kb_resolucion AS
+CREATE OR REPLACE VIEW v_cobertura_intenciones AS
 SELECT
-    i.clave            AS intencion_clave,
-    i.nombre           AS intencion_nombre,
-    i.domain,
-    i.opcion_clave     AS opcion_clave,
-    p.priority         AS priority,
-    p.minimum_threshold,
+    o.clave            AS opcion_clave,
+    o.etiqueta         AS opcion_etiqueta,
+    p.prioridad,
+    p.umbral_minimo,
     p.pregunta,
     count(v.id)        AS variantes
-FROM kb_intencion i
-JOIN kb_pregunta p          ON p.intencion_id = i.id
-LEFT JOIN kb_pregunta_variante v ON v.pregunta_id = p.id AND v.activo
-WHERE i.activo AND p.activo
-GROUP BY i.clave, i.nombre, i.domain, i.opcion_clave, p.id, p.priority, p.minimum_threshold, p.pregunta
-ORDER BY i.domain, i.clave, p.priority DESC;
+FROM opcion o
+JOIN pregunta p               ON p.opcion_id = o.id
+LEFT JOIN pregunta_variante v ON v.pregunta_id = p.id AND v.activo
+WHERE o.activo AND p.activo
+GROUP BY o.clave, o.etiqueta, p.id, p.prioridad, p.umbral_minimo, p.pregunta
+ORDER BY o.clave, p.prioridad DESC;
 
-COMMENT ON VIEW v_kb_resolucion IS 'Cobertura de la base de conocimiento por intencion y pregunta.';
+COMMENT ON VIEW v_cobertura_intenciones IS 'Cobertura de la base de conocimiento por opcion del menu y pregunta.';

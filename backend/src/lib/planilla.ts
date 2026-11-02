@@ -20,12 +20,13 @@ export const ESQUEMA_CONTENIDO = {
   opciones: ['clave', 'categoria', 'etiqueta', 'tipo', 'destino', 'respuesta', 'orden', 'es_volver'],
   respuestas: ['clave', 'texto', 'orden'],
   respuesta_documentos: ['respuesta', 'documento', 'orden'],
-  intenciones: ['clave', 'nombre', 'dominio', 'opcion'],
-  preguntas: ['intencion', 'pregunta', 'prioridad', 'umbral'],
-  variantes: ['intencion', 'pregunta', 'texto', 'peso'],
-  contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'perfil', 'motivo', 'orden', 'opcion'],
-  alias: ['alias', 'expansion'],
+  preguntas: ['opcion', 'pregunta', 'prioridad', 'umbral_minimo'],
+  variantes: ['opcion', 'pregunta', 'texto_original', 'peso'],
+  contactos: ['clave', 'nombre', 'area', 'comision', 'email', 'url_perfil', 'motivo', 'orden', 'opcion'],
+  equivalentes: ['alias', 'expansion'],
   ignorados: ['termino'],
+  palabras_vacias: ['termino'],
+  reconocimiento_fragmentos: ['termino'],
 } as const;
 
 export type Pestana = keyof typeof ESQUEMA_CONTENIDO;

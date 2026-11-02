@@ -28,12 +28,6 @@ export function OptionList({ opciones, deshabilitado, onSeleccionar }: PropsOpci
         >
           <span>
             {opcion.etiqueta}
-            {opcion.descripcion ? (
-              <>
-                <br />
-                <span style={{ fontWeight: 400, fontSize: 12, opacity: 0.75 }}>{opcion.descripcion}</span>
-              </>
-            ) : null}
           </span>
           <IconoFlecha className="ifts-opcion__flecha" />
         </button>

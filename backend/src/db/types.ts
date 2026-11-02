@@ -20,12 +20,15 @@ export interface Documento {
   id: number;
   clave: string;
   nombre: string;
-  descripcion: string | null;
   tipo: string;
+  /** Campos del nombre del archivo, guardados al sincronizar. Null si el nombre no cumple la convención. */
+  materia: string | null;
+  comision: string | null;
+  anio: number | null;
+  cuatrimestre: string | null;
   mimeType: string;
+  /** Vista de lectura en Drive. Null si el archivo no está en la carpeta. */
   url: string | null;
-  vigente: boolean;
-  estado: 'borrador' | 'revision' | 'vigente' | 'reemplazado' | 'archivado';
   fechaActualizacion: string | null;
   sincronizado: boolean;
 }
@@ -46,10 +49,8 @@ export interface Contacto {
 export interface OpcionMenu {
   clave: string;
   etiqueta: string;
-  descripcion: string | null;
   tipo: TipoOpcion;
   esVolver: boolean;
-  icono: string | null;
 }
 
 /** Nodo devuelto por /api/menu: mensaje del bot + opciones. */

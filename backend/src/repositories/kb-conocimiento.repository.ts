@@ -1,5 +1,5 @@
 /**
- * Acceso a la base de conocimiento conversacional (tablas `kb_*` de PostgreSQL).
+ * Acceso a la base de conocimiento conversacional (tablas `intencion`, `pregunta`, `pregunta_variante`, `termino_equivalente` y `termino_ignorado`).
  *
  * La similitud (`similarity()` y `word_similarity()` de `pg_trgm`) se calcula
  * en la base, no en el código.
@@ -20,11 +20,8 @@ const DIAGNOSTICO_LOCAL = env.nodeEnv === 'local';
 export interface CandidatoKb {
   intentKey: string;
   intentName: string;
-  domain: 'administrativo' | 'academico';
   /** Opcion del menu que produce la misma respuesta autorizada. */
   opcionClave: string;
-  /** Respuesta autorizada asociada a la pregunta (puede ser null). */
-  respuestaId: number | null;
   preguntaId: number;
   question: string;
   priority: number;
@@ -46,16 +43,14 @@ export interface CandidatoKb {
 interface RawCandidato {
   intent_key: string;
   intent_name: string;
-  domain: 'administrativo' | 'academico';
   opcion_clave: string | null;
-  respuesta_id: number | null;
   pregunta_id: number;
   question: string;
-  priority: number;
-  minimum_threshold: string | number;
-  original_text: string;
-  normalized_text: string;
-  weight: string | number;
+  prioridad: number;
+  umbral_minimo: string | number;
+  texto_original: string;
+  texto_normalizado: string;
+  peso: string | number;
   similarity: string | number;
   cubiertos?: string[] | null;
 }
@@ -89,23 +84,21 @@ const UMBRAL_TERMINO_FUZZY = 0.6;
  * "condiciones" y no hace falta una aclaración para resolverlo.
  */
 const SQL_FTS = `
-  SELECT i.clave    AS intent_key,
-         i.nombre   AS intent_name,
-         i.domain,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.etiqueta AS intent_name,
+         o.clave AS opcion_clave,
          p.id       AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
-         p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         p.prioridad,
+         p.umbral_minimo,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          s.score AS similarity,
          s.cubiertos
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
     CROSS JOIN LATERAL (
       -- Por cada término: 1 si coincide con stemming, la similitud si es un
       -- error de tipeo (>= $2), 0 si no aparece. La cobertura es el promedio.
@@ -115,8 +108,8 @@ const SQL_FTS = `
           SELECT t.termino,
                  CASE
                    WHEN v.search_vector @@ plainto_tsquery('spanish', t.termino) THEN 1.0
-                   WHEN word_similarity(t.termino, v.normalized_text) >= $2
-                     THEN word_similarity(t.termino, v.normalized_text)
+                   WHEN word_similarity(t.termino, v.texto_normalizado) >= $2
+                     THEN word_similarity(t.termino, v.texto_normalizado)
                    ELSE 0.0
                  END AS mejor
             FROM unnest($1::text[]) AS t(termino)
@@ -124,29 +117,27 @@ const SQL_FTS = `
     ) s
    WHERE v.activo
      AND s.score > 0
-   ORDER BY similarity DESC, p.priority DESC, v.weight DESC
+   ORDER BY similarity DESC, p.prioridad DESC, v.peso DESC
    LIMIT $3`;
 
 const SQL_EXACTO = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.domain,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.etiqueta AS intent_name,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
-         p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         p.prioridad,
+         p.umbral_minimo,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          1.0::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo
-     AND v.normalized_text = $1
-   ORDER BY p.priority DESC, v.weight DESC
+     AND v.texto_normalizado = $1
+   ORDER BY p.prioridad DESC, v.peso DESC
    LIMIT $2`;
 
 /**
@@ -155,29 +146,27 @@ const SQL_EXACTO = `
  * en una palabra no se diluye por el largo de la frase.
  */
 const SQL_SIMILARES_TERMINO = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.domain,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.etiqueta AS intent_name,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
-         p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
-         word_similarity($1, v.normalized_text)::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+         p.prioridad,
+         p.umbral_minimo,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
+         word_similarity($1, v.texto_normalizado)::float8 AS similarity
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo
-     AND word_similarity($1, v.normalized_text) >= $2
+     AND word_similarity($1, v.texto_normalizado) >= $2
      -- Las coincidencias exactas (y con stemming) son de FTS. Aca sólo interesan
      -- los errores de tipeo: si no, las palabras compartidas por todas las
      -- variantes de una materia empatan a todas las intenciones en 1.00.
-     AND word_similarity($1, v.normalized_text) < 1
-   ORDER BY similarity DESC, p.priority DESC, v.weight DESC
+     AND word_similarity($1, v.texto_normalizado) < 1
+   ORDER BY similarity DESC, p.prioridad DESC, v.peso DESC
    LIMIT $3`;
 
 /** Términos más cortos que esto no aportan señal (ruido de 2-3 letras). */
@@ -186,36 +175,32 @@ const LARGO_MIN_TERMINO = 4;
 const toCandidato = (r: RawCandidato): CandidatoKb => ({
   intentKey: r.intent_key,
   intentName: r.intent_name,
-  domain: r.domain,
   opcionClave: r.opcion_clave ?? '',
-  respuestaId: r.respuesta_id,
   preguntaId: r.pregunta_id,
   question: r.question,
-  priority: num(r.priority),
-  minimumThreshold: num(r.minimum_threshold, 0.7),
-  originalText: r.original_text,
-  normalizedText: r.normalized_text,
-  weight: num(r.weight, 1),
+  priority: num(r.prioridad),
+  minimumThreshold: num(r.umbral_minimo, 0.7),
+  originalText: r.texto_original,
+  normalizedText: r.texto_normalizado,
+  weight: num(r.peso, 1),
   similarity: num(r.similarity),
 });
 
 const SQL_TODAS_VARIANTES = `
-  SELECT i.clave    AS intent_key,
-         i.nombre  AS intent_name,
-         i.domain,
-         i.opcion_clave,
+  SELECT o.clave    AS intent_key,
+         o.etiqueta AS intent_name,
+         o.clave AS opcion_clave,
          p.id      AS pregunta_id,
          p.pregunta AS question,
-         p.priority,
-         p.minimum_threshold,
-         p.respuesta_id,
-         v.original_text,
-         v.normalized_text,
-         v.weight,
+         p.prioridad,
+         p.umbral_minimo,
+         v.texto_original,
+         v.texto_normalizado,
+         v.peso,
          0::float8 AS similarity
-    FROM kb_pregunta_variante v
-    JOIN kb_pregunta  p ON p.id = v.pregunta_id AND p.activo
-    JOIN kb_intencion i ON i.id = p.intencion_id AND i.activo
+    FROM pregunta_variante v
+    JOIN pregunta  p ON p.id = v.pregunta_id AND p.activo
+    JOIN opcion o ON o.id = p.opcion_id AND o.activo
    WHERE v.activo`;
 
 /* ==========================================================================
@@ -231,7 +216,7 @@ const SQL_TODAS_VARIANTES = `
  */
 /** Siglas de la consulta con su expansión, para normalizar antes de buscar. */
 export async function obtenerAlias(): Promise<Map<string, string>> {
-  const r = await query<{ alias: string; expansion: string }>('SELECT alias, expansion FROM kb_alias');
+  const r = await query<{ alias: string; expansion: string }>('SELECT alias, expansion FROM termino_equivalente');
   return new Map(r.rows.map((x) => [x.alias, x.expansion] as const));
 }
 
@@ -240,8 +225,14 @@ export async function obtenerAlias(): Promise<Map<string, string>> {
  * Vienen de la pestaña `ignorados` de la planilla. No afectan la normalización
  * de las variantes, así que cambiarlas no requiere volver a sincronizar.
  */
+/** Palabras vacías de la pestaña `palabras_vacias`: se quitan de la consulta y de las variantes. */
+export async function obtenerPalabrasVacias(): Promise<Set<string>> {
+  const r = await query<{ termino: string }>('SELECT termino FROM palabra_vacia');
+  return new Set(r.rows.map((x) => x.termino));
+}
+
 export async function obtenerTerminosIgnorados(): Promise<Set<string>> {
-  const r = await query<{ termino: string }>('SELECT termino FROM kb_termino_ignorado');
+  const r = await query<{ termino: string }>('SELECT termino FROM termino_ignorado');
   return new Set(r.rows.map((x) => x.termino));
 }
 
@@ -262,7 +253,7 @@ export async function buscarPorPalabras(normalizado: string, minimo: number): Pr
   return r.rows
     .map((row) => ({
       ...toCandidato(row),
-      similarity: similitudPorPalabras(normalizado, row.normalized_text),
+      similarity: similitudPorPalabras(normalizado, row.texto_normalizado),
       fuenteNivel: 'palabras' as const,
     }))
     .filter((c) => c.similarity >= minimo)

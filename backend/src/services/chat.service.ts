@@ -117,10 +117,8 @@ export async function procesarSeleccion(
           opciones: comisiones.map((c) => ({
             clave: claveConComision(opcion.clave, c),
             etiqueta: `Comisión ${c}`,
-            descripcion: null,
             tipo: 'responder' as const,
             esVolver: false,
-            icono: null,
           })),
         },
       };

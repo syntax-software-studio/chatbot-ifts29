@@ -11,7 +11,7 @@
  *
  *   normalizacion (siglas de la pestaña `alias` y palabras vacías)
  *     -> regla de saludos (Nivel C, menu raiz)
- *     -> coincidencia exacta sobre `kb_pregunta_variante.normalized_text`
+ *     -> coincidencia exacta sobre `pregunta_variante.texto_normalizado`
  *     -> variantes / similitud trigram (`pg_trgm`)
  *     -> ranking y umbrales
  *     -> intencion | aclaracion | no_disponible
@@ -25,6 +25,7 @@ import {
   buscarPorPalabras,
   buscarPorFts,
   obtenerAlias,
+  obtenerPalabrasVacias,
   obtenerTerminosIgnorados,
   type CandidatoKb,
 } from '../repositories/kb-conocimiento.repository.js';
@@ -118,11 +119,10 @@ function mejorPorIntencion(candidatos: CandidatoKb[]): CandidatoKb[] {
 
 /**
  * Control de falsos positivos (§18): un candidato solo sirve si hay una fuente
- * autorizada de respuesta. `respuesta_id` es la respuesta de la pregunta;
- * `opcion_clave` es la opcion del menu equivalente (sirve para derivaciones).
+ * opcion del menu que responda: su `opcion_clave` es la fuente autorizada.
  */
 function esResoluble(c: CandidatoKb): boolean {
-  return c.respuestaId !== null || c.opcionClave.length > 0;
+  return c.opcionClave.length > 0;
 }
 
 /**
@@ -144,10 +144,8 @@ function opcionesDeAclaracion(candidatos: CandidatoKb[]): Aclaracion['opciones']
   return candidatos.slice(0, env.lenguajeNatural.maxOpcionesAclaracion).map((c) => ({
     clave: c.opcionClave,
     etiqueta: c.intentName,
-    descripcion: null,
     tipo: 'responder' as const,
     esVolver: false,
-    icono: null,
   }));
 }
 
@@ -180,7 +178,8 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
   const { umbralAlto, umbralMedio, margenAmbiguedad } = env.lenguajeNatural;
   const alias = await obtenerAlias().catch(fuenteOpcional('alias', new Map<string, string>()));
   const ignorados = await obtenerTerminosIgnorados().catch(fuenteOpcional('ignorados', new Set<string>()));
-  const normalizado = normalizarConsulta(texto, alias);
+  const vacias = await obtenerPalabrasVacias().catch(fuenteOpcional('palabras_vacias', new Set<string>()));
+  const normalizado = normalizarConsulta(texto, alias, vacias);
 
   // Nivel C: saludos. No es una respuesta de la base: el chat decide el menu raiz.
   if (SALUDOS.has(normalizado)) {
@@ -204,7 +203,7 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       candidatos = combinarPorMaximo([...porFts, ...porTrigram], porPalabras).filter(esResoluble);
     }
   } catch (err) {
-    // Sin `pg_trgm` o sin tablas `kb_*` la base no puede interpretar.
+    // Sin `pg_trgm` o sin las tablas de conocimiento la base no puede interpretar.
     console.warn('[nl] base de conocimiento no disponible:', err instanceof Error ? err.message : err);
     return {
       clase: 'error',

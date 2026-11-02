@@ -1,6 +1,6 @@
 # 07 · Contenido, fuentes y decisiones
 
-**Estado:** vigente. Describe la implementación actual.
+Describe la implementación actual.
 
 ## Resumen
 
@@ -13,7 +13,7 @@ La base PostgreSQL es la única fuente de lo que el bot muestra (menú, respuest
 
 | Qué | Dónde | Quién lo edita |
 |---|---|---|
-| Menú, respuestas, intenciones, preguntas, variantes, derivación | Planilla "Bot IFTS29 - Contenido" (Google Sheets) | Equipo, sin código |
+| Menú, respuestas, preguntas, variantes, derivación | Planilla "Bot IFTS29 - Contenido" (Google Sheets) | Equipo, sin código |
 | Documentos (PDF) | Carpeta de Drive | Equipo, subiendo o renombrando archivos |
 | Estructura de tablas | `db/001_schema.sql` | Desarrollo |
 
@@ -27,12 +27,13 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver |
 | `respuestas` | clave, texto, orden |
 | `respuesta_documentos` | respuesta, documento (nombre del archivo en Drive, sin `.pdf`), orden |
-| `intenciones` | clave, nombre, dominio, opcion |
-| `preguntas` | intencion, pregunta, prioridad, umbral |
-| `variantes` | intencion, pregunta, texto, peso |
-| `contactos` | clave, nombre, area, comision, email, perfil, motivo, orden, opcion |
-| `alias` | alias, expansion |
+| `preguntas` | opcion, pregunta, prioridad, umbral_minimo |
+| `variantes` | opcion, pregunta, texto_original, peso |
+| `contactos` | clave, nombre, area, comision, email, url_perfil, motivo, orden, opcion |
+| `equivalentes` | alias, expansion |
 | `ignorados` | termino (palabras de la consulta que se descartan al buscar: "como", "para", "una"...) |
+| `palabras_vacias` | termino (palabras que se quitan al buscar y al cargar las variantes: "de", "la", "y"...) |
+| `reconocimiento_fragmentos` | termino (títulos de sección que reconocen los PDF para partirlos en fragmentos) |
 
 La sincronización valida los encabezados y las referencias entre pestañas antes de escribir. Si hay un error, muestra todos y **no cambia nada**.
 
@@ -88,8 +89,8 @@ Cada contacto pertenece a una sola opción de tipo `derivar` (columna `opcion` d
 8. **Sin `ALTER` en el esquema.** `001_schema.sql` describe el estado final; una base nueva queda igual que una creada desde cero.
 9. **`db:push` aplica sólo el esquema.** El contenido entra por la sincronización.
 10. **Sin modo demo.** No existe un catálogo semilla: sin base de datos la API responde 503. Una sola fuente de datos.
-11. **Normalización de consultas.** Las siglas de la pestaña `alias` se expanden, en la consulta y en las variantes. Las palabras vacías (`PALABRAS_VACIAS`, en código) se quitan de ambos lados. Las palabras de ruido de la búsqueda (pestaña `ignorados`) sólo se quitan de la consulta, así que cambiarlas no requiere resincronizar.
+11. **Normalización de consultas.** Las siglas de la pestaña `equivalentes` se expanden, en la consulta y en las variantes. Las palabras vacías (pestaña `palabras_vacias`) se quitan de ambos lados. Las palabras de ruido de la búsqueda (pestaña `ignorados`) sólo se quitan de la consulta, así que cambiarlas no requiere resincronizar.
 12. **Búsqueda con cobertura de términos.** Cada variante recibe el promedio de cuánto cubre cada término de la consulta: 1 si coincide con stemming, la similitud si es un error de tipeo (≥ 0,6), 0 si no aparece. Por eso "condicons de abd" llega a condiciones sin aclaración.
-13. **Documentos por comisión.** Si una respuesta tiene documentos de dos o más comisiones del mismo tipo, el bot pregunta "¿De qué comisión sos?" y muestra sólo el documento elegido. La comisión se lee del nombre del archivo (ver la convención). Si la respuesta tiene un solo documento, o documentos sin comisión, responde directo.
+13. **Documentos por comisión.** Si una respuesta tiene documentos de dos o más comisiones del mismo tipo, el bot pregunta "¿De qué comisión sos?" y muestra sólo el documento elegido. La comisión se guarda en la base al sincronizar, leída del nombre del archivo (ver la convención). Si la respuesta tiene un solo documento, o documentos sin comisión, responde directo.
 14. **Extractos de documentos en texto libre.** Para una consulta escrita, si una sección de los documentos de la intención responde (con el umbral `KB_UMBRAL_PASAJE`, 0,90), se muestra el texto literal de esa sección y la frase "Para más información te adjuntamos el PDF completo". Si no, queda el documento completo. Los PDFs sin texto (imágenes) no tienen extractos. Ver [08](08-extractos-de-documentos.md).
 

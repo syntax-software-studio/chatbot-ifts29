@@ -1,6 +1,6 @@
 # 2. Manual Técnico
 
-**Estado:** vigente. Describe la implementación actual.
+Describe la implementación actual.
 
 **Para quién:** desarrolladores que instalan, mantienen o continúan el sistema.
 
@@ -76,7 +76,7 @@ backend/src/
 ├── lib/                            # Lógica pura, sin E/S
 │   ├── normalizar.ts               # Normalización de texto (consulta, variantes y documentos)
 │   ├── comisiones.ts               # Nombre de documento → comisión; filtrado
-│   ├── secciones.ts                # Parte las líneas de un PDF en secciones por título
+│   ├── fragmentos.ts                # Parte las líneas de un PDF en fragmentos por título
 │   ├── planilla.ts                 # Valida pestañas y encabezados de la planilla
 │   └── metricas.ts                 # Calendario del reporte, rango del mes y tabla
 ├── db/
@@ -108,7 +108,7 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
 
 **Texto libre:** el frontend envía `{ "message": "<texto>" }`. El motor:
 
-1. Expande siglas y nombres cortos con la pestaña `alias` (por ejemplo, "abd" → "administracion de bases de datos").
+1. Expande siglas y nombres cortos con la pestaña `equivalentes` (por ejemplo, "abd" → "administracion de bases de datos").
 2. Normaliza el texto (minúsculas, sin acentos ni signos) y quita palabras vacías ("de", "la", "el", "y"...). Las variantes de la base pasan por la misma normalización al cargarse.
 3. Saludos: devuelve el menú raíz.
 4. Coincidencia exacta con una variante → responde con la opción de esa intención.
