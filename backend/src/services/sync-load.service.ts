@@ -48,6 +48,8 @@ export interface OpcionesDocumentos {
   carpetaId?: string;
   dryRun?: boolean;
   drive?: PuertoDrive;
+  /** Recibe cada avance de la sincronización, para mostrarlo mientras corre. */
+  progreso?: (linea: string) => void;
 }
 
 export interface ResultadoSync {
@@ -80,15 +82,24 @@ function claveDeArchivo(nombre: string): string {
  * otra versión. Si la descarga o la extracción fallan, no se tocan los fragmentos
  * anteriores: la sincronización sigue con los demás documentos.
  */
+function conTiempoLimite<T>(promesa: Promise<T>, ms: number, que: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rechazar) => {
+    timer = setTimeout(() => rechazar(new Error(`${que}: más de ${ms / 1000} s`)), ms);
+  });
+  return Promise.race([promesa, limite]).finally(() => clearTimeout(timer));
+}
+
 async function actualizarFragmentos(
   clave: string,
   archivo: { id: string; md5: string | null },
-  mensajes: string[],
+  registrar: (mensaje: string) => void,
   drive: PuertoDrive,
   titulos: string[],
 ): Promise<void> {
   try {
-    const fragmentos = await extraerFragmentos(await drive.descargarArchivo(archivo.id), titulos);
+    const bytes = await conTiempoLimite(drive.descargarArchivo(archivo.id), 60_000, `descarga de ${clave}`);
+    const fragmentos = await extraerFragmentos(bytes, titulos);
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
     // entra en el texto de búsqueda: casi ninguna sección lo repite.
     const codigo = clave.split('_')[0]!.toLowerCase();
@@ -103,13 +114,13 @@ async function actualizarFragmentos(
       })),
       firmaExtraccion(archivo.md5 ?? '', titulos),
     );
-    mensajes.push(
+    registrar(
       fragmentos.length > 0
         ? `fragmentos: ${clave} -> ${fragmentos.length}`
         : `fragmentos: ${clave} sin texto extraíble (se muestra el documento completo)`,
     );
   } catch (err) {
-    mensajes.push(`fragmentos: ${clave} falló: ${err instanceof Error ? err.message : String(err)}`);
+    registrar(`fragmentos: ${clave} falló: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -133,6 +144,11 @@ async function actualizarFragmentos(
 export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): Promise<ResultadoSync> {
   const drive = opciones.drive ?? driveReal;
   const mensajes: string[] = [];
+  const avisar = opciones.progreso ?? (() => {});
+  const registrar = (mensaje: string) => {
+    mensajes.push(mensaje);
+    avisar(mensaje);
+  };
   const resultado: ResultadoSync = {
     ejecutada: false,
     dryRun: opciones.dryRun ?? false,
@@ -143,7 +159,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   };
 
   if (!opciones.drive && !hasGoogleDrive()) {
-    mensajes.push('Google Drive no configurado: se omite la sincronización.');
+    registrar('Google Drive no configurado: se omite la sincronización.');
     return resultado;
   }
 
@@ -159,9 +175,10 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
   const fichas = await fichasDocumentos();
   const titulos = await terminosFragmento();
 
-  for (const ficha of fichas) {
+  for (const [i, ficha] of fichas.entries()) {
+    avisar(`[${i + 1}/${fichas.length}] ${ficha.clave}`);
     if (!parsearDocumento(ficha.clave)) {
-      mensajes.push(`nombre fuera de la convención: ${ficha.clave} (sus campos de materia, tipo y año quedan vacíos)`);
+      registrar(`nombre fuera de la convención: ${ficha.clave} (sus campos de materia, tipo y año quedan vacíos)`);
     }
     const esperado = `${ficha.clave}.pdf`;
     let archivo: ArchivoDrive | undefined;
@@ -183,7 +200,7 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
       // Ya estaba sincronizado. Solo se extrae si los fragmentos no son de esta
       // versión del archivo (por ejemplo, documentos anteriores a la extracción).
       if (archivo.mimeType === 'application/pdf' && ficha.fragmentos_md5 !== firmaExtraccion(archivo.md5 ?? '', titulos)) {
-        await actualizarFragmentos(ficha.clave, archivo, mensajes, drive, titulos);
+        await actualizarFragmentos(ficha.clave, archivo, registrar, drive, titulos);
       }
       continue;
     }
@@ -195,18 +212,18 @@ export async function sincronizarDocumentos(opciones: OpcionesDocumentos = {}): 
     }
 
     if (cambio && archivo.mimeType === 'application/pdf') {
-      await actualizarFragmentos(ficha.clave, archivo, mensajes, drive, titulos);
+      await actualizarFragmentos(ficha.clave, archivo, registrar, drive, titulos);
     }
 
     resultado.actualizados += 1;
-    mensajes.push(`${cambio ? 'actualizado' : 'verificado'}: ${ficha.clave} -> ${archivo.nombre}`);
+    registrar(`${cambio ? 'actualizado' : 'verificado'}: ${ficha.clave} -> ${archivo.nombre}`);
   }
 
   // Documentos vinculados cuyo archivo ya no está en la carpeta.
   const ausentes = await documentosAusentes(archivos.map((a) => a.id));
   if (!resultado.dryRun) await desvincularDocumentos(ausentes);
   for (const clave of ausentes) {
-    mensajes.push(`sin archivo en Drive: ${clave} (el bot no ofrece enlace hasta que se vuelva a subir)`);
+    registrar(`sin archivo en Drive: ${clave} (el bot no ofrece enlace hasta que se vuelva a subir)`);
   }
 
   return resultado;

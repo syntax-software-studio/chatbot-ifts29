@@ -33,16 +33,26 @@ export async function sincronizar(
   pasos: Partial<PasosSincronizacion> = {},
 ): Promise<ResultadoSincronizacion> {
   const p = { ...pasosReales, ...pasos };
+  const avisar = opciones.progreso ?? (() => {});
 
-  const lectura = await p.leerContenido();
+  const etapa = async <T>(nombre: string, paso: () => Promise<T>): Promise<T> => {
+    avisar(`${nombre}…`);
+    const inicio = Date.now();
+    const resultado = await paso();
+    avisar(`${nombre}: listo (${((Date.now() - inicio) / 1000).toFixed(1).replace('.', ',')} s)`);
+    return resultado;
+  };
+
+  const lectura = await etapa('leer planilla', () => p.leerContenido());
   if (!lectura.ok) return { ok: false, errores: lectura.errores };
 
   const conversion = convertirContenido(lectura.hojas);
   if (!conversion.ok || !conversion.datos) return { ok: false, errores: conversion.errores };
+  const datos = conversion.datos;
 
   // En modo de prueba se valida la planilla, pero no se escribe el contenido.
-  const contenido = opciones.dryRun ? undefined : await p.aplicarContenido(conversion.datos);
-  const documentos = await p.sincronizarDocumentos(opciones);
+  const contenido = opciones.dryRun ? undefined : await etapa('escribir contenido', () => p.aplicarContenido(datos));
+  const documentos = await etapa('sincronizar documentos', () => p.sincronizarDocumentos(opciones));
 
   return {
     ok: true,

@@ -256,7 +256,7 @@ async function main(): Promise<void> {
        (SELECT count(*)::int FROM respuesta WHERE activo)     AS respuesta,
        (SELECT count(*)::int FROM documento)                   AS documento,
        (SELECT count(*)::int FROM contacto WHERE activo)      AS contacto,
-       (SELECT count(*)::int FROM opcion WHERE activo AND nombre IS NOT NULL) AS opciones_buscables,
+       (SELECT count(*)::int FROM opcion o WHERE o.activo AND EXISTS (SELECT 1 FROM pregunta p WHERE p.opcion_id = o.id)) AS opciones_buscables,
        (SELECT count(*)::int FROM pregunta WHERE activo)    AS kb_pregunta,
        (SELECT count(*)::int FROM pregunta_variante WHERE activo) AS kb_variante`,
   );
