@@ -7,7 +7,7 @@ Describe el esquema y el flujo de carga actuales.
 - **Motor:** PostgreSQL 16. Neon en producción; Docker local (`docker compose up`) en desarrollo.
 - **Driver:** `pg` (node-postgres). La misma `DATABASE_URL` sirve para ambos.
 - **Extensiones:** `pgcrypto`, `pg_trgm` (similitud para el texto libre). La búsqueda de palabras usa la configuración `spanish` de PostgreSQL, que viene incluida, sin extensión.
-- **Contenido:** no se escribe a mano en la base. Entra por la sincronización desde la planilla y Drive (ver [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md)).
+- **Contenido:** no se escribe a mano en la base. Entra por la sincronización desde la planilla y Drive (ver [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md)).
 - **Datos personales:** ninguno. Las métricas son agregados anónimos.
 
 ## 4.2 Tablas
@@ -58,7 +58,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 
 | Tabla | Descripción |
 |---|---|
-| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [09](09-pendientes-post-mvp.md), sección 5). |
+| `metrica_opcion` | Contadores diarios por opción y evento (`seleccion`, `texto_exacto`, `aclaracion`, `no_disponible`, etc.). Sin datos personales ni texto de la consulta. `categoria_clave` queda `NULL` por ahora (ver [10](11-pendientes-post-mvp.md), sección 5). |
 | `metrica_exportacion` | Un registro por mes publicado en la planilla de métricas: `mes` (`AAAA-MM`), ID de la planilla, registros, total y fecha de la última publicación. Lo actualiza la exportación mensual; republicar un mes reemplaza su fila. |
 
 ### Vistas

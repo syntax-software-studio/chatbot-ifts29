@@ -1,6 +1,6 @@
 # 08 · Extractos de documentos
 
-**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
+**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
 
 ## Idea
 
@@ -18,10 +18,10 @@ El texto del extracto sale del documento vigente. Nada se parafrasea ni se gener
 
 ## Dos búsquedas distintas
 
-| Búsqueda | Qué compara | Qué devuelve | Estado |
-|---|---|---|---|
-| **Opción** | La pregunta contra variantes escritas por el equipo (textos cortos) | Una opción de menú | Implementada |
-| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa opción | El fragmento que responde, con su título | Implementada |
+| Búsqueda | Qué compara | Qué devuelve |
+|---|---|---|
+| **Opción** | La pregunta contra variantes escritas por el equipo (textos cortos) | Una opción de menú |
+| **Pasaje** | La pregunta contra fragmentos del texto de los documentos de esa opción | El fragmento que responde, con su título |
 
 ## Flujo funcional
 

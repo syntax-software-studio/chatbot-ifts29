@@ -1,6 +1,6 @@
 # 3. Manual de Usuario
 
-## 👤 Guía para Usuarios Finales
+## Guía para Usuarios Finales
 
 Este manual explica de forma clara y sencilla cómo utilizar la aplicación PP4 Bot IFTS29, qué funciones ofrece y cómo navegar por ella.
 
@@ -343,16 +343,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 2. Intenta descargar después de 1-2 minutos
 3. Si sigue sin funcionar, contacta a: [email de soporte]
 
----
-
-## 10. Consejos para Aprovechar el Asistente
-
-- **Sé específico:** Cuanto más clara sea tu pregunta, mejor respuesta obtendrás
-- **Intenta ambas formas:** Experimenta con menú guiado y preguntas escritas
-- **Lee documentos completos:** Si descarga un PDF, léelo completamente antes de hacer otras preguntas
-- **Guarda contactos útiles:** Anota los emails que el Asistente te muestra
-- **Explora el menú:** Familiarízate con la estructura para futuras consultas
-- **No es urgente:** Para asuntos urgentes, llama directamente al área correspondiente
+ 
 
 ---
 

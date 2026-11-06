@@ -12,7 +12,7 @@ Pruebas de funciones puras: no usan base de datos, red ni credenciales. Verifica
 npm test --workspace backend
 ```
 
-La suite completa corre también las pruebas de integración (ver [06-pruebas-integracion.md](06-pruebas-integracion.md)). Cada prueba unitaria está junto al módulo que prueba. Para correr sólo un archivo:
+La suite completa corre también las pruebas de integración (ver [06-pruebas-integracion.md](07-pruebas-integracion.md)). Cada prueba unitaria está junto al módulo que prueba. Para correr sólo un archivo:
 
 ```bash
 node --import tsx --test src/lib/test/normalizar.test.ts
