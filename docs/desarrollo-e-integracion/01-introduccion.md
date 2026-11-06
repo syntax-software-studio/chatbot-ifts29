@@ -1,8 +1,8 @@
-# 1. Introducción - Etapa 4: Desarrollo e Integración
+# 1. Introducción - Desarrollo e Integración
 
 ## Descripción general
 
-Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema en una aplicación funcional, coherente con las etapas anteriores.
+Proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema en una aplicación funcional, coherente con las etapas anteriores.
 
 ## Objetivo
 
@@ -18,8 +18,8 @@ Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**
 
 1. **Frontend (React + Vite).** Widget embebible en el campus virtual mediante `iframe`. Muestra el menú guiado, el texto libre, las respuestas con sus documentos y las tarjetas de contacto.
 2. **Backend (Express + TypeScript).** API REST con el menú, el motor de texto libre, la sincronización de contenido y las métricas anónimas. Ver [02-manual-tecnico.md](02-manual-tecnico.md).
-3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo. Ver [04-base-datos.md](04-base-datos.md).
-4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](07-contenido-y-decisiones.md).
+3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo. Ver [04-base-datos.md](05-base-datos.md).
+4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
 
 ### Características principales
 
@@ -54,8 +54,3 @@ Esta es la cuarta y última etapa del proyecto **Asistente Virtual IFTS N.°29**
 - Menú guiado, texto libre y derivación funcionando contra la base local de Docker.
 - Contenido cargado desde la planilla y los documentos sincronizados con Drive.
 - Tests del backend pasando.
-
-## Fechas clave
-
-- **Inicio de etapa:** 27 de octubre de 2026
-- **Fecha de entrega:** 19 de noviembre de 2026

@@ -22,50 +22,60 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Componentes principales
 - Gestión de errores y validaciones
 
-### 3. [Manual de Usuario](03-manual-usuario.md)
+### 3. [Manual Operacional](03-manual-operacional.md)
+- **Central:** guía paso a paso para operar el sistema en local y producción
+- Cargar y actualizar documentos en la base de conocimiento
+- Sincronización, reindexación de fragmentos
+- Gestión de la base de datos, métricas, backups y secretos
+- Checklist de despliegue
+
+### 4. [Manual de Usuario](04-manual-usuario.md)
 - Introducción para usuarios finales
 - Requisitos del sistema
 - Guía de funcionalidades
 - Flujos de uso con capturas
 - Mensajes y alertas
 
-### 4. [Base de Datos](04-base-datos.md)
+### 5. [Base de Datos](05-base-datos.md)
 - Diagrama Entidad-Relación (DER)
 - Descripción de tablas
 - Esquema de datos
 - Scripts de creación
 
-### 5. [Pruebas Unitarias](05-pruebas-unitarias.md)
+### 6. [Pruebas Unitarias](06-pruebas-unitarias.md)
 - Metodología de testing
 - Casos de prueba implementados
 - Evidencias de ejecución
 - Resultados obtenidos
 
-### 6. [Pruebas de Integración](06-pruebas-integracion.md)
+### 7. [Pruebas de Integración](07-pruebas-integracion.md)
 - Plan de pruebas de integración
 - Casos de prueba
 - Evidencias y resultados
 - Validación de módulos
 
-### 7. [Contenido y decisiones](07-contenido-y-decisiones.md)
-- Fuentes de contenido (planilla y Drive)
-- Sincronización y convención de nombres
-- Flujo de derivación
-- Decisiones y pendientes
+### 8. [Flujo de Contenido y Documentos](08-flujo-contenido-y-documentos.md)
+- Sistema de claves y referencias
+- Convención de nombres de documentos
+- Esquema visual del flujo completo (Drive → Planilla → Sync → BD)
+- Estructura de las pestañas
+- Ejemplo completo de agregar un documento
+- Validación y checklist
 
-### 8. [Extractos de documentos](08-extractos-de-documentos.md) (implementada, en validación)
+### 9. [Extractos de documentos](09-extractos-de-documentos.md) (implementada, en validación)
 - Respuesta con extracto literal del PDF vigente
 - Búsqueda de pasajes sobre los documentos de cada intención
 - Flujo y requisitos técnicos
 - Preguntas abiertas
 
-### 9. [Pendientes post-MVP](09-pendientes-post-mvp.md)
-- Despliegue, extractos, contenido, pruebas, base de datos y operación
+### 10. [Contenido y decisiones](10-contenido-y-decisiones.md)
+- Fuentes de contenido (planilla y Drive)
+- Sincronización y convención de nombres
+- Flujo de derivación
+- Decisiones y pendientes
 
-### 10. [Tareas operativas](10-operacion.md)
-- Aplicar el esquema, sincronizar, resetear la base y actualizar `fragmentos_md5`
-- Exportación mensual de métricas (automática, sin acción manual)
-- Respaldo de `metrica_opcion` y rotación de secretos
+### 11. [Pendientes post-MVP](11-pendientes-post-mvp.md)
+- Despliegue, extractos, contenido, pruebas, base de datos y operación
 
 ---
 
@@ -76,14 +86,15 @@ desarrollo-e-integracion/
 ├── 00-INDICE.md
 ├── 01-introduccion.md
 ├── 02-manual-tecnico.md
-├── 03-manual-usuario.md
-├── 04-base-datos.md
-├── 05-pruebas-unitarias.md
-├── 06-pruebas-integracion.md
-├── 07-contenido-y-decisiones.md
-├── 08-extractos-de-documentos.md
-├── 09-pendientes-post-mvp.md
-├── 10-operacion.md
+├── 03-manual-operacional.md
+├── 04-manual-usuario.md
+├── 05-base-datos.md
+├── 06-pruebas-unitarias.md
+├── 07-pruebas-integracion.md
+├── 08-flujo-contenido-y-documentos.md
+├── 09-extractos-de-documentos.md
+├── 10-contenido-y-decisiones.md
+├── 11-pendientes-post-mvp.md
 └── screenshots/
     ├── manual-usuario/
     ├── pruebas-unitarias/

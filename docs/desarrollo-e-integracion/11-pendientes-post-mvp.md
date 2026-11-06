@@ -4,15 +4,15 @@ Todo lo que sigue queda para después de la entrega del MVP.
 
 ## Despliegue
 
-- Automatizar el despliegue, con script y confirmación en cada paso, o con GitHub Actions. Ver [10](10-operacion.md).
+- Automatizar el despliegue, con script y confirmación en cada paso, o con GitHub Actions. Ver [10](03-manual-operacional.md).
 - Sincronización automática con el cron de Vercel. Antes, medir cuánto tarda la sincronización completa.
 
 ## Texto libre y extractos
 
-- Conjunto dorado de consultas con el pasaje esperado, y medir `KB_UMBRAL_PASAJE` con él. Ver [08](08-extractos-de-documentos.md).
+- Conjunto dorado de consultas con el pasaje esperado, y medir `KB_UMBRAL_PASAJE` con él. Ver [09](09-extractos-de-documentos.md).
 - Ranking de pasajes cuando tienen la misma confianza.
 - Títulos falsos en los programas (viñetas de unidades temáticas, "REPASO").
-- Variantes para promoción y otros temas. Ver [07](07-contenido-y-decisiones.md).
+- Variantes para promoción y otros temas. Ver [10](10-contenido-y-decisiones.md).
 - Calibrar los umbrales con consultas reales, con un procedimiento documentado.
 - Ciclo de mejora: revisar las consultas que terminaron en `no_disponible` o en aclaración, y convertirlas en variantes o contenido.
 
@@ -35,7 +35,7 @@ Todo lo que sigue queda para después de la entrega del MVP.
 ## Base de datos
 
 - `db:reset`: el respaldo de métricas vive solo en memoria. Guardarlo en archivo o hacer el reset en una transacción.
-- Automatizar el respaldo de `metrica_opcion` ([10.6](10-operacion.md#106-respaldo-de-metrica_opcion)).
+- Automatizar el respaldo de `metrica_opcion` ([10.6](03-manual-operacional.md#106-respaldo-de-metrica_opcion)).
 - Completar `metrica_opcion.categoria_clave` al exportar, con un join a `categoria`.
 
 ## Operación
