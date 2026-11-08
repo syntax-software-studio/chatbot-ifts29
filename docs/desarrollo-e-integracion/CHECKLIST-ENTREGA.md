@@ -1,4 +1,4 @@
-# Checklist de Entrega - Etapa 4
+﻿# Checklist de Entrega - Etapa 4
 
 **Estado:** actualizado con la implementación vigente. Lo que sigue sin hacer se marca con `[ ]`.
 
@@ -10,9 +10,9 @@
 - [x] `02-manual-tecnico.md` - arquitectura, estructura del código, API, configuración, desarrollo local
 - [x] `03-manual-operacional.md` - recorridos del menú, texto libre y derivación por pantallas
 - [x] `05-base-datos.md` - tablas, relaciones (DER en Mermaid), carga, reset y configuración
-- [x] `06-pruebas-unitarias.md` - pruebas unitarias, todas pasando
-- [x] `07-pruebas-integracion.md` - pruebas de integración contra la base de prueba, todas pasando
-- [x] `10-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
+- [x] `06-pruebas.md` - pruebas unitarias, todas pasando
+- [x] `06-pruebas.md` - pruebas de integración contra la base de prueba, todas pasando
+- [x] `09-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
 - [ ] PDF integrado con toda la documentación
 - [ ] Capturas del manual de usuario (5 a 8 imágenes de la interfaz actual)
 

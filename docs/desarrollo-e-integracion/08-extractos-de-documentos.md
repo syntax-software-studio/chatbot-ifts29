@@ -1,6 +1,6 @@
-# 9 · Extractos de documentos
+﻿# 9 · Extractos de documentos
 
-**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
+**Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](09-contenido-y-decisiones.md).
 
 ## Idea
 

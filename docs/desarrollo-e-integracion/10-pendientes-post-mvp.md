@@ -1,4 +1,4 @@
-# 11 · Pendientes post-MVP
+﻿# 11 · Pendientes post-MVP
 
 Todo lo que sigue queda para después de la entrega del MVP.
 
@@ -9,10 +9,10 @@ Todo lo que sigue queda para después de la entrega del MVP.
 
 ## Texto libre y extractos
 
-- Conjunto dorado de consultas con el pasaje esperado, y medir `KB_UMBRAL_PASAJE` con él. Ver [09](09-extractos-de-documentos.md).
+- Conjunto dorado de consultas con el pasaje esperado, y medir `KB_UMBRAL_PASAJE` con él. Ver [09](08-extractos-de-documentos.md).
 - Ranking de pasajes cuando tienen la misma confianza.
 - Títulos falsos en los programas (viñetas de unidades temáticas, "REPASO").
-- Variantes para promoción y otros temas. Ver [10](10-contenido-y-decisiones.md).
+- Variantes para promoción y otros temas. Ver [10](09-contenido-y-decisiones.md).
 - Calibrar los umbrales con consultas reales, con un procedimiento documentado.
 - Ciclo de mejora: revisar las consultas que terminaron en `no_disponible` o en aclaración, y convertirlas en variantes o contenido.
 

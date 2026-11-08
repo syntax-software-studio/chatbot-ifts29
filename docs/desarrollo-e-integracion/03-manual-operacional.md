@@ -1,4 +1,4 @@
-# 3. Manual Operacional
+﻿# 3. Manual Operacional
 
 Guía paso a paso para operar el sistema en local (desarrollo) y en producción (Neon + Vercel). Cada tarea describe cuándo hacerla, cómo, cómo verificarla y qué riesgo tiene.
 
@@ -38,7 +38,7 @@ Documento        nombre: ABD_programa_2026_1C.pdf
 **Paso 1: Subir el PDF a Drive**
 
 1. Carpeta: https://drive.google.com/drive/folders/1Y13Rl0F-XP71tXJOQe9euK_xvRMB29ii
-2. Nombre respetando convención (ver [10-contenido-y-decisiones.md](10-contenido-y-decisiones.md)):
+2. Nombre respetando convención (ver [09-contenido-y-decisiones.md](09-contenido-y-decisiones.md)):
    - Formato: `MATERIA_tipo[_comision]_año[_cuatrimestre].pdf`
    - Ejemplo: `ABD_condiciones_A_2026_1C.pdf`
 3. El sistema parsea el nombre para extraer: materia=ABD, tipo=condiciones, comision=A, año=2026, cuatrimestre=1C
@@ -157,7 +157,7 @@ UPDATE documento SET fragmentos_md5 = NULL;
 
 Después, correr la sincronización (Paso 3 de 3.1.1). Como el MD5 ya no coincide, cada documento se descarga y se extrae de nuevo.
 
-- Son todos los documentos, con descargas de Drive. Hacerlo en local es más seguro que en Vercel (límite de 30 s, ver [11-pendientes-post-mvp.md](11-pendientes-post-mvp.md)).
+- Son todos los documentos, con descargas de Drive. Hacerlo en local es más seguro que en Vercel (límite de 30 s, ver [10-pendientes-post-mvp.md](10-pendientes-post-mvp.md)).
 - Si la sincronización se corta a mitad, los documentos sin `fragmentos_md5` quedan pendientes. Volver a correr completa la extracción.
 
 **Verificar:**
@@ -430,7 +430,7 @@ Guardar el archivo con la fecha en el nombre, fuera del repo.
 SELECT count(*) FROM metrica_opcion;  -- El número debe coincidir con el CSV
 ```
 
-La automatización (comando `npm run metricas:respaldo`) está pendiente (ver [11-pendientes-post-mvp.md](11-pendientes-post-mvp.md)).
+La automatización (comando `npm run metricas:respaldo`) está pendiente (ver [10-pendientes-post-mvp.md](10-pendientes-post-mvp.md)).
 
 ---
 
@@ -467,5 +467,5 @@ Revisar periódicamente que solo tengan acceso la cuenta de métricas y sus admi
 **Referencias:**
 - [02-manual-tecnico.md § 2.5 a 2.6](02-manual-tecnico.md) — Configuración e instalación
 - [05-base-datos.md § 4.4 a 4.5](05-base-datos.md) — Carga y sincronización
-- [10-contenido-y-decisiones.md](10-contenido-y-decisiones.md) — Fuentes y convención de nombres
-- [11-pendientes-post-mvp.md](11-pendientes-post-mvp.md) — Tareas futuras
+- [09-contenido-y-decisiones.md](09-contenido-y-decisiones.md) — Fuentes y convención de nombres
+- [10-pendientes-post-mvp.md](10-pendientes-post-mvp.md) — Tareas futuras
