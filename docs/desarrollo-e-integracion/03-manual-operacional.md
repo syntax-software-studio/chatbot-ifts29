@@ -8,7 +8,7 @@ Guía paso a paso para operar el sistema en local (desarrollo) y en producción 
 
 ---
 
-## 3.1 Cargar o actualizar documentos en la base de conocimiento
+## Cargar o actualizar documentos en la base de conocimiento
 
 El proceso completo de agregar o modificar un documento: subirlo a Drive, actualizarlo en la planilla de contenido, y sincronizar para que el sistema lo indexe automáticamente.
 
@@ -31,7 +31,7 @@ Documento        nombre: ABD_programa_2026_1C.pdf
 - Usa MAYÚSCULAS y guiones o guiones bajos: `RAIZ`, `RAIZ_OP_MATERIAS`, `ABD_programa`
 - Sé consistente y descriptivo: la clave debe indicar a qué se refiere
 
-### 3.1.1 Agregar un documento nuevo (ejemplo completo)
+### Agregar un documento nuevo (ejemplo completo)
 
 **Escenario:** Agregar el documento "Condiciones para aprobar ABD" con comisión A.
 
@@ -126,7 +126,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM documento_fragmento WHERE document
 # Escribir: "como apruebo abd" → debe mostrar extracto del PDF
 ```
 
-### 3.1.2 Actualizar un documento existente
+### Actualizar un documento existente
 
 **Si el PDF cambió:**
 
@@ -139,7 +139,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM documento_fragmento WHERE document
 1. Editar la pestaña correspondiente (`respuestas`, `preguntas`, `variantes`, etc.).
 2. Correr la sincronización.
 
-### 3.1.3 Re-extraer todos los documentos (cambio en normalización)
+### Re-extraer todos los documentos (cambio en normalización)
 
 **Cuándo:** cambió la forma de extraer o normalizar el texto de los PDFs (por ejemplo, el normalizador de `texto_busqueda`). Los fragmentos viejos quedan con el texto anterior, y las búsquedas dejan de coincidir.
 
@@ -168,7 +168,7 @@ SELECT count(*) FROM documento WHERE fragmentos_md5 IS NULL;  -- Debe dar 0
 
 Después, una consulta de pasaje: `como apruebo abd` debe devolver extractos.
 
-### 3.1.4 Reindexar fragmentos (si la búsqueda falla)
+### Reindexar fragmentos (si la búsqueda falla)
 
 **Cuándo:** los fragmentos existen pero no aparecen en las búsquedas de texto libre. O se agregaron fragmentos manualmente sin indexar.
 
@@ -199,7 +199,7 @@ SELECT count(*) FROM documento_fragmento;  -- Debe ser > 0
 
 Una consulta de pasaje debe devolver fragmentos: `como apruebo abd`.
 
-### 3.1.5 Agregar términos de fragmentos como opciones buscables
+### Agregar términos de fragmentos como opciones buscables
 
 **Cuándo:** querés que el bot encuentre términos específicos dentro de los documentos (ej: "bibliografía de abd", "objetivos de lógica computacional", "unidades temáticas").
 
@@ -309,7 +309,7 @@ npm run sync --workspace backend
 
 ---
 
-## 3.2 Aplicar el esquema (`db:push`)
+## Aplicar el esquema (`db:push`)
 
 **Cuándo:** se agregó una tabla nueva a `db/001_schema.sql` (o una extensión, un índice, etc.).
 
@@ -328,7 +328,7 @@ GET /api/health  # Responde "estado":"ok"
 
 ---
 
-## 3.3 Sincronizar el contenido
+## Sincronizar el contenido
 
 Carga/actualiza el menú, respuestas, contactos y documentos desde la planilla "Bot IFTS29 - Contenido" y Drive.
 
@@ -359,7 +359,7 @@ Respuesta con ok: true y errores vacío.
 
 ---
 
-## 3.4 Resetear la base (`--reset`)
+## Resetear la base (`--reset`)
 
 **Cuándo:** el esquema cambió de forma que `db:push` no alcanza (ej. columna nueva en tabla existente), o la base local quedó inconsistente.
 
@@ -384,7 +384,7 @@ npm run sync --workspace backend      # El reset deja las tablas de contenido va
 
 ---
 
-## 3.5 Exportación mensual de métricas
+## Exportación mensual de métricas
 
 **No requiere acción manual.** Vercel llama a `GET /api/metricas/exportar-mes-anterior` el día 1 de cada mes a las 06:00 (UTC), y publica el mes anterior en la planilla de métricas.
 
@@ -408,7 +408,7 @@ Detalle: [02-manual-tecnico.md § 2.5](02-manual-tecnico.md), [04-base-datos.md]
 
 ---
 
-## 3.6 Respaldo de datos
+## Respaldo de datos
 
 ### Respaldo de `metrica_opcion`
 
@@ -434,7 +434,7 @@ La automatización (comando `npm run metricas:respaldo`) está pendiente (ver [1
 
 ---
 
-## 3.7 Rotación de secretos y claves
+## Rotación de secretos y claves
 
 **Cuándo:** un secreto se filtró, un usuario dejó de tenerlo, o se cumple el plazo interno.
 
@@ -453,7 +453,7 @@ Revisar periódicamente que solo tengan acceso la cuenta de métricas y sus admi
 
 ---
 
-## 3.8 Checklist antes de un despliegue a producción
+## Checklist antes de un despliegue a producción
 
 1. **Respaldo hecho:** `metrica_opcion` respaldada (si hay reset).
 2. **Esquema actualizado:** `db:push` ejecutado, o `--reset` si corresponde.

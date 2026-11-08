@@ -1,4 +1,4 @@
-# 6. Pruebas de Integración
+# 7. Pruebas de Integración
 
 Resultados de la última ejecución: **16 pruebas de integración, todas pasando**.
 

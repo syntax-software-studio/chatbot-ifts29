@@ -1,6 +1,6 @@
 # 2. Manual Técnico
 
-## 2.1 Descripción del sistema
+## Descripción del sistema
 
 Asistente virtual del IFTS N.°29 para estudiantes. Responde por dos caminos que llegan a la misma información:
 
@@ -11,7 +11,7 @@ El sistema no genera texto: todo lo que muestra está validado y cargado desde l
 
 Se integra en el campus virtual (Moodle) como widget embebible (`iframe`).
 
-## 2.2 Arquitectura
+## Arquitectura
 
 ```
 Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──pg──▶  PostgreSQL
@@ -36,7 +36,7 @@ Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──
 | Extracción de PDF | `pdfjs-dist` (solo en la sincronización, no en las consultas) |
 | Tests | `node:test` con `tsx` |
 
-## 2.3 Estructura del código
+## Estructura del código
 
 ```
 backend/src/
@@ -92,7 +92,7 @@ Organizado por responsabilidad técnica: `routes` → `services` → `repositori
 
 Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones del menú), `ContactCard.tsx`, `DocumentCard.tsx`, `MessageBubble.tsx`. El estado de la conversación vive en `hooks/useChat.ts`, y el cliente HTTP en `api/client.ts`.
 
-## 2.4 Flujo de una consulta
+## Flujo de una consulta
 
 **Menú:** el frontend envía `{ "opcion": "<clave>" }`. El backend busca la opción y responde según su tipo:
 
@@ -120,7 +120,7 @@ La comparación por palabras se calcula en memoria sobre las variantes activas. 
 
 Sin base de datos la API responde 503 (`BASE_NO_CONFIGURADA`). No hay modo demo: el contenido siempre sale de la base.
 
-## 2.5 API
+## API
 
 | Método | Ruta | Uso |
 |---|---|---|
@@ -138,7 +138,7 @@ Sin base de datos la API responde 503 (`BASE_NO_CONFIGURADA`). No hay modo demo:
 
 **`/api/sync`** devuelve `{ ok, errores, contenido, documentos }`. Si `ok` es `false`, `errores` lista los problemas de la planilla y no se escribió nada.
 
-## 2.6 Configuración
+## Configuración
 
 Las variables se leen de `.env` en la raíz del repo (plantilla: `.env.example`).
 
@@ -162,7 +162,7 @@ Las variables se leen de `.env` en la raíz del repo (plantilla: `.env.example`)
 | `KB_UMBRAL_ALTO`, `KB_UMBRAL_MEDIO`, `KB_MARGEN_AMBIGUEDAD`, `KB_MAX_OPCIONES_ACLARACION` | No | Calibración del texto libre |
 | `KB_UMBRAL_PASAJE` | No | Confianza mínima para mostrar un extracto del documento (por defecto `0.90`) |
 
-## 2.7 Desarrollo local
+## Desarrollo local
 
 ```bash
 npm install
@@ -175,7 +175,7 @@ npm run dev:web                               # Widget en desarrollo
 
 Para verificar: `GET /api/health` debe responder `"estado":"ok"`, y el menú debe responder con datos.
 
-## 2.8 Pruebas
+## Pruebas
 
 ```bash
 npm test --workspace backend        # tests del backend

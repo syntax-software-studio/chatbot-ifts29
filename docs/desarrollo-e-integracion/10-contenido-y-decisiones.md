@@ -1,4 +1,4 @@
-# 07 · Contenido, fuentes y decisiones
+# 10 · Contenido, fuentes y decisiones
 
 Describe la implementación actual.
 
@@ -24,7 +24,7 @@ La cuenta de servicio tiene acceso **de lector** a la planilla y a la carpeta. V
 | Pestaña | Columnas |
 |---|---|
 | `categorias` | clave, nombre, mensaje, orden, es_raiz |
-| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver |
+| `opciones` | clave, categoria, etiqueta, tipo (navegar / responder / derivar), destino, respuesta, orden, es_volver, en_menu |
 | `respuestas` | clave, texto, orden |
 | `respuesta_documentos` | respuesta, documento (nombre del archivo en Drive, sin `.pdf`), orden |
 | `preguntas` | opcion, pregunta, prioridad, umbral_minimo |

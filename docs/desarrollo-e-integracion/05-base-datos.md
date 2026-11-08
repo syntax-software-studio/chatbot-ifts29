@@ -1,4 +1,4 @@
-# 4. Base de Datos
+# 5. Base de Datos
 
 Describe el esquema y el flujo de carga actuales.
 
@@ -17,7 +17,7 @@ Describe el esquema y el flujo de carga actuales.
 | Tabla | Descripción | Claves relevantes |
 |---|---|---|
 | `menu_categoria` | Nodo del árbol: una pantalla con mensaje y opciones | `clave` (única), `es_raiz` |
-| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id` |
+| `opcion` | Botón que el estudiante toca | `clave` (única), `categoria_id`, `tipo`, `categoria_destino_id`, `respuesta_id`, `en_menu` (si aparece en el menú guiado; `FALSE` = solo búsqueda de texto) |
 | `respuesta` | Texto institucional validado | `clave` (única) |
 | `documento` | Ficha de un archivo de Drive. `materia`, `tipo`, `comision`, `anio` y `cuatrimestre` se leen del nombre del archivo. Disponible = está en la carpeta de Drive | `clave` (única), `drive_file_id` (única; NULL = no está en la carpeta) |
 | `respuesta_documento` | Adjuntos de una respuesta | (`respuesta_id`, `documento_id`) |
@@ -50,7 +50,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 |---|---|
 | `documento_fragmento` | Secciones de un documento, por título: `titulo`, `texto` (el literal del PDF, lo que se muestra), `texto_busqueda` (normalizado, con el nombre de la materia) y `search_vector` (GIN). Se regeneran al sincronizar |
 
-`documento.fragmentos_md5` guarda el `md5` del archivo con el que se extrajeron los fragmentos. La sincronización extrae solo cuando difiere del `md5` de Drive. Un documento sin texto extraíble no tiene filas en `documento_fragmento`.
+`documento.fragmentos_md5` guarda el `md5` del archivo con el que se extrajeron los fragmentos. La sincronización extrae solo cuando difiere del `md5` de Drive. Un documento sin texto extraíble no tiene filas en `documento_fragmento`. Los documentos de tipo `cronograma` tampoco se fragmentan (formato de tabla); su `fragmentos_md5` queda siempre `NULL`.
 
 Índices: B-tree sobre `texto_normalizado` (coincidencia exacta), GIN sobre `search_vector` (búsqueda de palabras) y GIN con `gin_trgm_ops` (similitud).
 
