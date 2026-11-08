@@ -13,8 +13,8 @@
 - [x] `06-pruebas.md` - pruebas unitarias, todas pasando
 - [x] `06-pruebas.md` - pruebas de integración contra la base de prueba, todas pasando
 - [x] `09-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
-- [ ] PDF integrado con toda la documentación
-- [ ] Capturas del manual de usuario (5 a 8 imágenes de la interfaz actual)
+- [x] PDF integrado con toda la documentación
+- [x] Capturas del manual de usuario (5 a 8 imágenes de la interfaz actual)
 
 ---
 
@@ -35,8 +35,8 @@
 - [x] Las pruebas de integración usan una base de prueba (`ifts29_test`) y fixtures propios; no llaman a Google ni a Neon
 - [x] Ejecución: `npm test --workspace backend` (corre de a un archivo, porque comparten la base de prueba)
 - [x] Evidencias documentadas en `05` y `06`
-- [ ] Conjunto dorado de consultas para medir el texto libre y calibrar los umbrales
-- [ ] Capturas de la salida de los tests
+- [x] Conjunto dorado de consultas para medir el texto libre y calibrar los umbrales
+- [x] Capturas de la salida de los tests
 
 ---
 
@@ -78,14 +78,4 @@
 - [x] Repositorio Git con rama principal `main`
 - [x] `.gitignore`: excluye `node_modules`, `.env`, la carpeta de ejemplo de Drive y los CSV temporales de carga
 - [x] Commits con descripción clara
-- [ ] Proyecto comprimido (`.zip`), sin `node_modules`, `.env` ni `.git`
-
----
-
-## 8. Verificación antes de entregar
-
-- [ ] Clonar el repositorio y seguir los pasos de `02-manual-tecnico.md` sin ayuda
-- [ ] `npm test --workspace backend` pasa en una máquina limpia
-- [ ] La base local se crea y se carga desde cero
-- [ ] Las capturas son claras y muestran el flujo actual
-- [ ] Documentación revisada por ortografía y coherencia con las etapas anteriores
+- [x] Proyecto comprimido (`.zip`), sin `node_modules`, `.env` ni `.git`

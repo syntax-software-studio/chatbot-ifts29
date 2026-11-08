@@ -64,20 +64,7 @@ Con el Asistente Virtual puedes:
 ## 3. Acceso y Uso
 
 ### 3.1 Acceder al Asistente Virtual
-
-**Opción 1: Desde el Campus Virtual (Moodle)**
-
-El Asistente está integrado directamente en el campus:
-1. Ingresa a https://aulasvirtuales.bue.edu.ar con tu usuario
-2. Verás un **botón flotante** en la esquina inferior derecha
-3. Haz clic para abrir el Asistente
-
-**Opción 2: Acceso Directo**
-
-Puedes acceder directamente desde el navegador, sin pasar por el campus:
-1. Visita: https://chatbot-ifts29-jade.vercel.app/
-2. Se abre automáticamente en tu navegador
-3. Funciona exactamente igual que en Moodle
+Verás un **botón flotante** en la esquina inferior derecha
 
 ### 3.2 Primera Vez
 
@@ -262,34 +249,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ---
 
-## 7. Mensajes y Alertas Frecuentes
-
-### 7.1 Mensajes de Éxito
-
-| Mensaje | Significado | Acción |
-|---------|-------------|--------|
-| "Operación realizada exitosamente" | La acción se completó sin problemas | Puedes continuar |
-| "Datos guardados" | Los datos fueron almacenados correctamente | Continuará automáticamente |
-
-### 7.2 Mensajes de Error
-
-| Mensaje | Significado | Solución |
-|---------|-------------|----------|
-| "Campo obligatorio vacío" | Falta completar un campo requerido | Completa todos los campos marcados con * |
-| "Email inválido" | El formato del email no es correcto | Revisa e ingresa un email válido (ejemplo@dominio.com) |
-| "Registro duplicado" | Ya existe un registro con esos datos | Cambia los datos e intenta nuevamente |
-| "Error de conexión" | No se puede conectar a la base de datos | Verifica tu conexión a Internet |
-
-### 7.3 Mensajes de Advertencia
-
-| Mensaje | Significado | Acción |
-|---------|------------|--------|
-| "¿Confirmar eliminación?" | Se solicita confirmación antes de borrar | Haz clic en "Sí" para confirmar o "No" para cancelar |
-| "Esta acción no se puede deshacer" | Advertencia sobre una acción irreversible | Procede con cuidado |
-
----
-
-## 8. Preguntas Frecuentes (FAQ)
+## 7. Preguntas Frecuentes (FAQ)
 
 ### P: ¿El Asistente entiende todas mis preguntas?
 
@@ -365,21 +325,4 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 **Solución:**
 1. Verifica tu conexión a Internet
 2. Intenta descargar después de 1-2 minutos
-3. Si sigue sin funcionar, contacta a: [email de soporte]
 
- 
-
----
-
-## 11. Contacto y Soporte
-
-**Para problemas con el Asistente:**
-
-- **Email:** [A definir con el IFTS N.°29]
-- **Teléfono:** [A definir]
-- **Horario:** [A definir]
-
-**Para preguntas académicas/administrativas:**
-
-- Usa la opción "No encontré lo que busco" dentro del Asistente para llegar al área correcta
-- O accede directamente a: https://www.ifts29.edu.ar (sitio oficial)

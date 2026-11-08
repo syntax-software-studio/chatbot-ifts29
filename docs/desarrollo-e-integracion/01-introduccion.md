@@ -17,9 +17,9 @@ Proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema 
 ### Componentes
 
 1. **Frontend (React + Vite).** Widget embebible en el campus virtual mediante `iframe`. Muestra el menú guiado, el texto libre, las respuestas con sus documentos y las tarjetas de contacto.
-2. **Backend (Express + TypeScript).** API REST con el menú, el motor de texto libre, la sincronización de contenido y las métricas anónimas. Ver [02-manual-tecnico.md](02-manual-tecnico.md).
-3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo. Ver [04-base-datos.md](05-base-datos.md).
-4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](09-contenido-y-decisiones.md).
+2. **Backend (Express + TypeScript).** API REST con el menú, el motor de texto libre, la sincronización de contenido y las métricas anónimas.
+3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo.
+4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base.
 
 ### Características principales
 
@@ -39,15 +39,6 @@ Proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema 
 | Integraciones | Google Sheets y Drive (cuenta de servicio, solo lectura) |
 | Tests | `node:test` con `tsx` |
 | Despliegue | Vercel (serverless) para la API, con base en Neon |
-
-## Entregables de esta etapa
-
-1. Aplicación funcional (frontend y backend).
-2. Manual técnico.
-3. Manual de usuario, con capturas.
-4. Documentación de base de datos y de contenido.
-5. Documentación de pruebas unitarias e integración, con evidencias.
-6. Repositorio Git actualizado.
 
 ## Estado actual
 

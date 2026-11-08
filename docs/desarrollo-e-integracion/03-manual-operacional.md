@@ -4,8 +4,6 @@ Guía paso a paso para operar el sistema en local (desarrollo) y en producción 
 
 **Para quién:** quien mantiene el sistema en producción o lo desarrolla localmente.
 
-**Regla general:** cualquier comando que escriba en Neon se ejecuta con confirmación previa, y nunca sin respaldo de `metrica_opcion` (ver [3.6](#36-respaldo-de-datos)).
-
 ---
 
 ## Cargar o actualizar documentos en la base de conocimiento
@@ -31,7 +29,7 @@ Documento        nombre: ABD_programa_2026_1C.pdf
 - Usa MAYÚSCULAS y guiones o guiones bajos: `RAIZ`, `RAIZ_OP_MATERIAS`, `ABD_programa`
 - Sé consistente y descriptivo: la clave debe indicar a qué se refiere
 
-### Agregar un documento nuevo (ejemplo completo)
+### Agregar un documento nuevo
 
 **Escenario:** Agregar el documento "Condiciones para aprobar ABD" con comisión A.
 
@@ -67,7 +65,7 @@ documento: ABD_condiciones_A_2026_1C
 orden: 1
 ```
 
-⚠️ **Importante:** el campo `documento` es el nombre del archivo **SIN** la extensión `.pdf`.
+**Importante:** el campo `documento` es el nombre del archivo **SIN** la extensión `.pdf`.
 
 **c) Pestaña `preguntas` (si quieres que se encuentre por texto libre)**
 
@@ -205,7 +203,7 @@ Una consulta de pasaje debe devolver fragmentos: `como apruebo abd`.
 
 Los PDFs se dividen en fragmentos por títulos. Este proceso agrega esos títulos como **opciones buscables**: cuando alguien pregunta "¿cuál es la bibliografía de ABD?", el bot devuelve el fragmento correspondiente.
 
-#### Cómo funciona la búsqueda de fragmentos (⚠️ importante)
+#### Cómo funciona la búsqueda de fragmentos
 
 1. **Título en el PDF** (ej: "BIBLIOGRAFÍA") → se normaliza a minúsculas sin tildes
 2. **Término en planilla** (ej: "Bibliografía") → se normaliza durante `sync` 
@@ -228,7 +226,7 @@ Fundamentación
 Unidades temáticas
 ```
 
-⚠️ **Debe coincidir exactamente con el título en el PDF** (no importa mayúsculas, se normalizan automáticamente).
+**Debe coincidir exactamente con el título en el PDF** (no importa mayúsculas, se normalizan automáticamente).
 
 #### Paso 2: Crear respuestas
 
@@ -284,7 +282,7 @@ texto_original: bibliografía
 peso: 0,7
 ```
 
-#### Paso 5: Sincronizar (⚠️ OBLIGATORIO)
+#### Paso 5: Sincronizar
 
 ```bash
 npm run sync --workspace backend
@@ -392,6 +390,10 @@ npm run sync --workspace backend      # El reset deja las tablas de contenido va
 
 Mirar los logs de la función en Vercel, o revisar que la pestaña del mes anterior en la planilla se haya actualizado. Si no, revisar que `CRON_SECRET` y `GOOGLE_METRICAS_*` estén cargadas en Vercel.
 
+![Planilla de métricas mensuales](screenshots/07-exportacion-metricas.png)
+
+*Resultado en la planilla de Google Sheets: una pestaña por mes con fecha, opción, categoría, evento y total.*
+
 **Rehacer un mes (manual):**
 
 Por ejemplo después de corregir datos en `metrica_opcion`:
@@ -461,11 +463,3 @@ Revisar periódicamente que solo tengan acceso la cuenta de métricas y sus admi
 4. **Documentos indexados:** si hay cambios en extracción, verificar [3.1.4](#314-reindexar-fragmentos-si-la-búsqueda-falla).
 5. **Variables de entorno en Vercel:** `DATABASE_URL`, `SYNC_SECRET`, `CRON_SECRET`, `GOOGLE_*`, `GOOGLE_METRICAS_*`.
 6. **Health check:** `GET /api/health` en `"ok"`. Consultas de referencia del widget funcionan.
-
----
-
-**Referencias:**
-- [02-manual-tecnico.md § 2.5 a 2.6](02-manual-tecnico.md) — Configuración e instalación
-- [05-base-datos.md § 4.4 a 4.5](05-base-datos.md) — Carga y sincronización
-- [09-contenido-y-decisiones.md](09-contenido-y-decisiones.md) — Fuentes y convención de nombres
-- [10-pendientes-post-mvp.md](10-pendientes-post-mvp.md) — Tareas futuras
