@@ -2,7 +2,7 @@
 
 Describe el esquema y el flujo de carga actuales.
 
-## 4.1 Resumen
+## 1. Resumen
 
 - **Motor:** PostgreSQL 16. Neon en producción; Docker local (`docker compose up`) en desarrollo.
 - **Driver:** `pg` (node-postgres). La misma `DATABASE_URL` sirve para ambos.
@@ -10,7 +10,7 @@ Describe el esquema y el flujo de carga actuales.
 - **Contenido:** no se escribe a mano en la base. Entra por la sincronización desde la planilla y Drive (ver [07-contenido-y-decisiones.md](09-contenido-y-decisiones.md)).
 - **Datos personales:** ninguno. Las métricas son agregados anónimos.
 
-## 4.2 Tablas
+## 2. Tablas
 
 ### Menú
 
@@ -66,7 +66,7 @@ Una restricción de la tabla impide combinaciones inválidas.
 - `v_menu_arbol`: el árbol completo con sus respuestas y documentos, para revisión.
 - `v_cobertura_intenciones`: cobertura de la base de conocimiento por opción del menú y pregunta.
 
-## 4.3 Diagrama
+## 3. Diagrama
 
 ```mermaid
 erDiagram
@@ -81,7 +81,7 @@ erDiagram
     OPCION ||--o{ METRICA_OPCION : "se registra en"
 ```
 
-## 4.4 Carga y sincronización
+## 4. Carga y sincronización
 
 El contenido se carga con un solo proceso, que valida antes de escribir:
 
@@ -95,7 +95,7 @@ npm run sync --workspace backend      # o POST /api/sync con SYNC_SECRET
 
 Las métricas no se tocan en ningún paso.
 
-## 4.5 Esquema y reset
+## 5. Esquema y reset
 
 | Comando | Qué hace |
 |---|---|
@@ -106,7 +106,7 @@ Las métricas no se tocan en ningún paso.
 
 Nunca correr `--reset` contra Neon sin respaldo.
 
-## 4.6 Archivos SQL
+## 6. Archivos SQL
 
 | Archivo | Uso |
 |---|---|
@@ -115,7 +115,51 @@ Nunca correr `--reset` contra Neon sin respaldo.
 
 El contenido no tiene archivos SQL: viene de la planilla.
 
-## 4.7 Desarrollo local con Docker
+## 7. Operaciones CRUD
+
+Las cuatro operaciones básicas de persistencia se realizan desde la aplicación a través de dos canales: la sincronización (para el cliente institucional que gestiona el contenido) y la API REST (para los estudiantes que consultan).
+
+### Operaciones y cómo se ejecutan
+
+| Operación | Quién la usa | Cómo se realiza desde la aplicación |
+|---|---|---|
+| **Create** | Cliente institucional | Agrega filas en la planilla de Google Sheets → ejecuta `npm run sync` (local) o `POST /api/sync` (producción). El sync inserta los registros nuevos en la base. |
+| **Read** | Estudiante / widget | `GET /api/menu`, `POST /api/chat`, `GET /api/health`. La API lee el contenido de la base y lo devuelve al widget. |
+| **Update** | Cliente institucional | Edita filas en la planilla → ejecuta el sync. Los registros existentes se actualizan por `clave` (`ON CONFLICT (clave) DO UPDATE`). |
+| **Delete** | Cliente institucional | Elimina filas de la planilla → ejecuta el sync. El sync borra de la base los registros cuya `clave` ya no está en la planilla (`DELETE FROM tabla WHERE NOT (clave = ANY(claves_vigentes))`). |
+
+El flujo detallado de cada operación está en [03-manual-operacional.md](03-manual-operacional.md).
+
+### Validaciones implementadas
+
+**Registros duplicados**
+
+La columna `clave` tiene restricción `UNIQUE` en todas las tablas de contenido. La sincronización usa `ON CONFLICT (clave) DO UPDATE`, por lo que un registro con clave existente se actualiza en lugar de generar un error de duplicado. La planilla también valida que no haya filas repetidas con la misma clave dentro de cada pestaña.
+
+**Campos obligatorios**
+
+Las columnas requeridas están declaradas `NOT NULL` en el esquema (`001_schema.sql`). Además, `convertirContenido` (en `sync-transform.service.ts`) valida cada pestaña antes de escribir: detecta celdas vacías en campos obligatorios, referencias a claves inexistentes en otras pestañas, y tipos de datos inválidos. Si se detecta cualquier error, el sync devuelve la lista completa de errores y **no escribe nada**.
+
+**Protección antes de eliminar**
+
+El paso de eliminación (`borrarFueraDe`) solo se ejecuta luego de que la validación completa del contenido termina sin errores. Si la planilla tiene inconsistencias, el sync aborta antes de llegar a ese paso. Esto garantiza que no se eliminen registros válidos por una planilla mal formada.
+
+**Mensajes de error**
+
+La API devuelve errores estructurados con código y mensaje:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Fila 5 de 'respuestas': el campo 'texto' no puede estar vacío."
+  }
+}
+```
+
+El sync, al detectar errores en la planilla, lista cada problema con su pestaña, fila y descripción, y detiene la operación antes de modificar la base.
+
+## 8. Desarrollo local con Docker
 
 ```bash
 docker compose up -d --build
@@ -129,7 +173,7 @@ DATABASE_URL=postgresql://postgres:password123@localhost:5432/ifts29 npm run syn
 
 Si el volumen ya existía con una versión anterior del esquema, el arranque no vuelve a ejecutar `001`. Para empezar de cero: `docker compose down -v` y después `up`.
 
-## 4.8 Configuración
+## 9. Configuración
 
 | Variable | Uso |
 |---|---|
