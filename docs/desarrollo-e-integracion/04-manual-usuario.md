@@ -216,7 +216,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.1 Menú Inicial
 
-![Menú Inicial](screenshots/manual-usuario/01-pantalla-principal.png)
+![Menú Inicial](screenshots/01-pantalla-principal.png)
 
 *Saludo de bienvenida y opciones principales del menú.*
 
@@ -224,7 +224,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.2 Navegación por Menú
 
-![Navegación por Menú](screenshots/manual-usuario/02-navegacion-menu.png)
+![Navegación por Menú](screenshots/02-navegacion-menu.png)
 
 *Subnivel de una materia con sus opciones disponibles.*
 
@@ -232,7 +232,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.3 Respuesta con Documento
 
-![Respuesta con Documento](screenshots/manual-usuario/03-respuesta-documento.png)
+![Respuesta con Documento](screenshots/03-respuesta-documento.png)
 
 *Texto institucional validado con enlace al PDF oficial.*
 
@@ -240,7 +240,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.4 Consulta Escrita
 
-![Consulta Escrita](screenshots/manual-usuario/04-consulta-directa.png)
+![Consulta Escrita](screenshots/04-consulta-directa.png)
 
 *El estudiante escribe una pregunta y el bot responde directamente.*
 
@@ -248,7 +248,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.5 Aclaración por Consulta Ambigua
 
-![Aclaración](screenshots/manual-usuario/05-aclaracion.png)
+![Aclaración](screenshots/05-aclaracion.png)
 
 *El bot ofrece opciones cuando la consulta puede tener más de un significado.*
 
@@ -256,7 +256,7 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ### 6.6 Derivación a Contacto
 
-![Derivación](screenshots/manual-usuario/06-derivacion.png)
+![Derivación](screenshots/06-derivacion.png)
 
 *Contacto administrativo con nombre, área y email.*
 
