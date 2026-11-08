@@ -23,7 +23,7 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Gestión de errores y validaciones
 
 ### 3. [Manual Operacional](03-manual-operacional.md)
-- **Central:** guía paso a paso para operar el sistema en local y producción
+- Guía paso a paso para operar el sistema en local y producción
 - Cargar y actualizar documentos en la base de conocimiento
 - Sincronización, reindexación de fragmentos
 - Gestión de la base de datos, métricas, backups y secretos
@@ -34,27 +34,19 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Requisitos del sistema
 - Guía de funcionalidades
 - Flujos de uso con capturas
-- Mensajes y alertas
 
 ### 5. [Base de Datos](05-base-datos.md)
 - Diagrama Entidad-Relación (DER)
 - Descripción de tablas
 - Esquema de datos
-- Scripts de creación
 
-### 6. [Pruebas Unitarias](06-pruebas-unitarias.md)
-- Metodología de testing
-- Casos de prueba implementados
-- Evidencias de ejecución
-- Resultados obtenidos
+### 6. [Pruebas](06-pruebas.md)
+- Pruebas unitarias (80) y de integración (16): 96 en total
+- Casos cubiertos por archivo
+- Evidencia de ejecución (GIF)
+- Evaluación del texto libre
 
-### 7. [Pruebas de Integración](07-pruebas-integracion.md)
-- Plan de pruebas de integración
-- Casos de prueba
-- Evidencias y resultados
-- Validación de módulos
-
-### 8. [Flujo de Contenido y Documentos](08-flujo-contenido-y-documentos.md)
+### 7. [Flujo de Contenido y Documentos](07-flujo-contenido-y-documentos.md)
 - Sistema de claves y referencias
 - Convención de nombres de documentos
 - Esquema visual del flujo completo (Drive → Planilla → Sync → BD)
@@ -62,19 +54,18 @@ Esta carpeta contiene toda la documentación de la cuarta y última etapa del pr
 - Ejemplo completo de agregar un documento
 - Validación y checklist
 
-### 9. [Extractos de documentos](09-extractos-de-documentos.md) (implementada, en validación)
+### 8. [Extractos de Documentos](08-extractos-de-documentos.md)
 - Respuesta con extracto literal del PDF vigente
 - Búsqueda de pasajes sobre los documentos de cada intención
 - Flujo y requisitos técnicos
-- Preguntas abiertas
 
-### 10. [Contenido y decisiones](10-contenido-y-decisiones.md)
+### 9. [Contenido y Decisiones](09-contenido-y-decisiones.md)
 - Fuentes de contenido (planilla y Drive)
 - Sincronización y convención de nombres
 - Flujo de derivación
-- Decisiones y pendientes
+- Decisiones de diseño
 
-### 11. [Pendientes post-MVP](11-pendientes-post-mvp.md)
+### 10. [Pendientes Post-MVP](10-pendientes-post-mvp.md)
 - Despliegue, extractos, contenido, pruebas, base de datos y operación
 
 ---
@@ -89,16 +80,19 @@ desarrollo-e-integracion/
 ├── 03-manual-operacional.md
 ├── 04-manual-usuario.md
 ├── 05-base-datos.md
-├── 06-pruebas-unitarias.md
-├── 07-pruebas-integracion.md
-├── 08-flujo-contenido-y-documentos.md
-├── 09-extractos-de-documentos.md
-├── 10-contenido-y-decisiones.md
-├── 11-pendientes-post-mvp.md
+├── 06-pruebas.md
+├── 07-flujo-contenido-y-documentos.md
+├── 08-extractos-de-documentos.md
+├── 09-contenido-y-decisiones.md
+├── 10-pendientes-post-mvp.md
 └── screenshots/
-    ├── manual-usuario/
-    ├── pruebas-unitarias/
-    └── pruebas-integracion/
+    ├── 00-pruebas.gif
+    ├── 01-pantalla-principal.png
+    ├── 02-navegacion-menu.png
+    ├── 03-respuesta-documento.png
+    ├── 04-consulta-directa.png
+    ├── 05-aclaracion.png
+    └── 06-derivacion.png
 ```
 
 ---
@@ -106,9 +100,8 @@ desarrollo-e-integracion/
 ## Requisitos de Entrega
 
 - [x] Documentación técnica completa
-- [x] Manual de usuario
-- [x] Base de datos funcional (CRUD implementado)
-- [x] Pruebas unitarias documentadas
-- [x] Pruebas de integración documentadas
+- [x] Manual de usuario con capturas
+- [x] Base de datos funcional
+- [x] Pruebas unitarias y de integración documentadas
 - [x] Evidencias de ejecución
 - [x] Instrucciones de instalación y despliegue

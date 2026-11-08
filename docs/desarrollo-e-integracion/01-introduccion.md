@@ -1,4 +1,4 @@
-# 1. Introducción - Desarrollo e Integración
+﻿# 1. Introducción - Desarrollo e Integración
 
 ## Descripción general
 
@@ -19,7 +19,7 @@ Proyecto **Asistente Virtual IFTS N.°29**. Integra los componentes del sistema 
 1. **Frontend (React + Vite).** Widget embebible en el campus virtual mediante `iframe`. Muestra el menú guiado, el texto libre, las respuestas con sus documentos y las tarjetas de contacto.
 2. **Backend (Express + TypeScript).** API REST con el menú, el motor de texto libre, la sincronización de contenido y las métricas anónimas. Ver [02-manual-tecnico.md](02-manual-tecnico.md).
 3. **Base de datos (PostgreSQL).** Neon en producción y Docker en desarrollo. Ver [04-base-datos.md](05-base-datos.md).
-4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
+4. **Contenido.** Planilla de Google y carpeta de Drive, sincronizadas con la base. Ver [07-contenido-y-decisiones.md](09-contenido-y-decisiones.md).
 
 ### Características principales
 

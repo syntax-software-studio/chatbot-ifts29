@@ -1,4 +1,4 @@
-# 2. Manual Técnico
+﻿# 2. Manual Técnico
 
 ## Descripción del sistema
 
@@ -23,7 +23,7 @@ Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──
 - **Frontend**: widget embebible. Renderiza pantallas de opciones, respuestas, documentos y tarjetas de contacto.
 - **Backend**: API REST. Desplegable como función serverless en Vercel o como servidor local.
 - **Base de datos:** ver [04-base-datos.md](05-base-datos.md).
-- **Contenido:** ver [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
+- **Contenido:** ver [07-contenido-y-decisiones.md](09-contenido-y-decisiones.md).
 
 ### Tecnologías
 
@@ -113,8 +113,8 @@ Frontend: `components/ChatWidget.tsx` (contenedor), `OptionList.tsx` (botones de
    - **Trigramas por término:** cada término se compara con las palabras de cada variante (`word_similarity`). Las coincidencias exactas no cuentan acá, porque ya las cubre FTS.
    - **Comparación por palabras:** proporción de palabras de la consulta que aparecen en la variante, tolerando un error de tipeo por palabra (distancia de Damerau ≤ 1 en palabras de 4 letras o más).
 6. Umbrales: `≥ KB_UMBRAL_ALTO` (0,90) responde; entre `KB_UMBRAL_MEDIO` (0,70) y el alto, o si dos intenciones empatan, devuelve `aclaracion` con opciones del menú; por debajo, `no_disponible`.
-7. Si la opción tiene documentos de dos o más comisiones del mismo tipo, la respuesta es una pregunta de comisión (ver [10](10-contenido-y-decisiones.md), decisión 13).
-8. En consultas escritas con respuesta de documentos, busca pasajes en los fragmentos de esos documentos (`documento_fragmento`), con la misma cobertura y el umbral `KB_UMBRAL_PASAJE` (0,90). Si hay pasajes, se muestran en lugar del texto general, seguidos de «Para más información te adjuntamos el PDF completo». Si no, queda el documento completo (ver [09](09-extractos-de-documentos.md)).
+7. Si la opción tiene documentos de dos o más comisiones del mismo tipo, la respuesta es una pregunta de comisión (ver [10](09-contenido-y-decisiones.md), decisión 13).
+8. En consultas escritas con respuesta de documentos, busca pasajes en los fragmentos de esos documentos (`documento_fragmento`), con la misma cobertura y el umbral `KB_UMBRAL_PASAJE` (0,90). Si hay pasajes, se muestran en lugar del texto general, seguidos de «Para más información te adjuntamos el PDF completo». Si no, queda el documento completo (ver [09](08-extractos-de-documentos.md)).
 
 La comparación por palabras se calcula en memoria sobre las variantes activas. Si la base crece mucho, conviene pasarla a SQL.
 
@@ -182,5 +182,5 @@ npm test --workspace backend        # tests del backend
 npm run typecheck                   # tipos de backend y frontend
 ```
 
-Los tests del backend no necesitan base ni red. Ver [05-pruebas-unitarias.md](06-pruebas-unitarias.md) y [06-pruebas-integracion.md](07-pruebas-integracion.md).
+Los tests del backend no necesitan base ni red. Ver [06-pruebas.md](06-pruebas.md) y [06-pruebas.md](06-pruebas.md).
 
