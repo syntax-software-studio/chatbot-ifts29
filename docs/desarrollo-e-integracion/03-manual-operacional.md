@@ -8,7 +8,7 @@ Guía paso a paso para operar el sistema en local (desarrollo) y en producción 
 
 ---
 
-## 3.1 Cargar o actualizar documentos en la base de conocimiento
+## Cargar o actualizar documentos en la base de conocimiento
 
 El proceso completo de agregar o modificar un documento: subirlo a Drive, actualizarlo en la planilla de contenido, y sincronizar para que el sistema lo indexe automáticamente.
 
@@ -18,9 +18,9 @@ Todo el contenido se vincula por **claves únicas**. Cada entidad (categoría, o
 
 Ejemplo:
 ```
-Categoría        clave: RAIZ
+Categoría        clave: INICIO
                    ↓ (referencia)
-Opción          clave: RAIZ_OP_MATERIAS, categoria: RAIZ
+Opción          clave: INICIO_OP_MATERIAS, categoria: INICIO
                    ↓ (referencia)
 Respuesta        clave: ABD_programa
                    ↓ (referencia en respuesta_documentos)
@@ -31,7 +31,7 @@ Documento        nombre: ABD_programa_2026_1C.pdf
 - Usa MAYÚSCULAS y guiones o guiones bajos: `RAIZ`, `RAIZ_OP_MATERIAS`, `ABD_programa`
 - Sé consistente y descriptivo: la clave debe indicar a qué se refiere
 
-### 3.1.1 Agregar un documento nuevo (ejemplo completo)
+### Agregar un documento nuevo (ejemplo completo)
 
 **Escenario:** Agregar el documento "Condiciones para aprobar ABD" con comisión A.
 
@@ -126,7 +126,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM documento_fragmento WHERE document
 # Escribir: "como apruebo abd" → debe mostrar extracto del PDF
 ```
 
-### 3.1.2 Actualizar un documento existente
+### Actualizar un documento existente
 
 **Si el PDF cambió:**
 
@@ -139,7 +139,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM documento_fragmento WHERE document
 1. Editar la pestaña correspondiente (`respuestas`, `preguntas`, `variantes`, etc.).
 2. Correr la sincronización.
 
-### 3.1.3 Re-extraer todos los documentos (cambio en normalización)
+### Re-extraer todos los documentos (cambio en normalización)
 
 **Cuándo:** cambió la forma de extraer o normalizar el texto de los PDFs (por ejemplo, el normalizador de `texto_busqueda`). Los fragmentos viejos quedan con el texto anterior, y las búsquedas dejan de coincidir.
 
@@ -168,7 +168,7 @@ SELECT count(*) FROM documento WHERE fragmentos_md5 IS NULL;  -- Debe dar 0
 
 Después, una consulta de pasaje: `como apruebo abd` debe devolver extractos.
 
-### 3.1.4 Reindexar fragmentos (si la búsqueda falla)
+### Reindexar fragmentos (si la búsqueda falla)
 
 **Cuándo:** los fragmentos existen pero no aparecen en las búsquedas de texto libre. O se agregaron fragmentos manualmente sin indexar.
 
@@ -199,9 +199,117 @@ SELECT count(*) FROM documento_fragmento;  -- Debe ser > 0
 
 Una consulta de pasaje debe devolver fragmentos: `como apruebo abd`.
 
+### Agregar términos de fragmentos como opciones buscables
+
+**Cuándo:** querés que el bot encuentre términos específicos dentro de los documentos (ej: "bibliografía de abd", "objetivos de lógica computacional", "unidades temáticas").
+
+Los PDFs se dividen en fragmentos por títulos. Este proceso agrega esos títulos como **opciones buscables**: cuando alguien pregunta "¿cuál es la bibliografía de ABD?", el bot devuelve el fragmento correspondiente.
+
+#### Cómo funciona la búsqueda de fragmentos (⚠️ importante)
+
+1. **Título en el PDF** (ej: "BIBLIOGRAFÍA") → se normaliza a minúsculas sin tildes
+2. **Término en planilla** (ej: "Bibliografía") → se normaliza durante `sync` 
+3. **Base de datos** → almacena términos normalizados (ej: "bibliografia")
+4. **Búsqueda** → compara PDF normalizado con términos en BD
+5. **Resultado** → devuelve el fragmento si coinciden
+
+**Punto crítico:** Los términos en `reconocimiento_fragmentos` deben exactamente coincidir con los títulos en el PDF (respetando el significado, no la capitalización). Sin `npm run sync`, los nuevos términos no se cargan en la BD y no funcionarán.
+
+**Flujo completo (5 pasos, 4 pestañas a actualizar):**
+
+#### Paso 1: Verificar que el término esté en `reconocimiento_fragmentos`
+
+En la pestaña `reconocimiento_fragmentos`, agregar (si no existe) una fila con el título del fragmento en el PDF:
+
+```
+termino
+Bibliografía
+Fundamentación
+Unidades temáticas
+```
+
+⚠️ **Debe coincidir exactamente con el título en el PDF** (no importa mayúsculas, se normalizan automáticamente).
+
+#### Paso 2: Crear respuestas
+
+En la pestaña `respuestas`, agrega una fila por cada término + materia:
+
+```
+clave: ABD_BIBLIOGRAFIA
+texto: La bibliografía se encuentra en el programa vigente. Consultá el documento para más detalles.
+orden: 7
+```
+
+Repite para: fundamentación, objetivos, bibliografía, contenidos, evaluación (o los términos que uses).
+
+#### Paso 3: Crear opciones
+
+En la pestaña `opciones`, agrega opciones que referencien esas respuestas:
+
+```
+clave: ABD_OP_BIBLIOGRAFIA
+categoria: ABD
+etiqueta: Bibliografía de Administración de Bases de Datos
+tipo: responder
+respuesta: ABD_BIBLIOGRAFIA
+orden: 8
+es_volver: FALSE
+en_menu: FALSE
+```
+
+**Importante:** `categoria` es la categoría de materia (ej: ABD, EAM, LC, TP). `respuesta` es la clave de la respuesta que creaste en Paso 2. `en_menu: FALSE` hace que la opción no aparezca en el menú de navegación, solo sea encontrable por búsqueda de texto libre.
+
+#### Paso 4: Crear preguntas y variantes
+
+En la pestaña `preguntas`, agregar:
+
+```
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+prioridad: 30
+umbral_minimo: 0,7
+```
+
+En la pestaña `variantes`, agregar formas distintas de preguntar:
+
+```
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+texto_original: bibliografía abd
+peso: 1
+
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+texto_original: bibliografía
+peso: 0,7
+```
+
+#### Paso 5: Sincronizar (⚠️ OBLIGATORIO)
+
+```bash
+npm run sync --workspace backend
+```
+
+**Este paso es obligatorio.** Sin él, los nuevos términos en `reconocimiento_fragmentos` no se cargan en la BD y no funcionarán.
+
+**Verificar:**
+
+- La respuesta tiene `ok: true` y `errores` vacío
+- En el widget: busca "bibliografía abd" → debe devolver el fragmento (no solo la respuesta)
+
+**Checklist:**
+
+- [ ] Término existe en `reconocimiento_fragmentos` (coincide con título en PDF)
+- [ ] Respuesta existe en `respuestas`
+- [ ] Opción existe en `opciones` (referencia respuesta, `en_menu: FALSE`)
+- [ ] Pregunta existe en `preguntas` (referencia opción)
+- [ ] Variantes existen en `variantes` (sin duplicados)
+- [ ] **`npm run sync` ejecutada SIN ERRORES** ← paso obligatorio
+- [ ] Búsqueda en widget devuelve fragmento PDF (no solo respuesta)
+
 ---
 
-## 3.2 Aplicar el esquema (`db:push`)
+## Aplicar el esquema (`db:push`)
 
 **Cuándo:** se agregó una tabla nueva a `db/001_schema.sql` (o una extensión, un índice, etc.).
 
@@ -220,7 +328,7 @@ GET /api/health  # Responde "estado":"ok"
 
 ---
 
-## 3.3 Sincronizar el contenido
+## Sincronizar el contenido
 
 Carga/actualiza el menú, respuestas, contactos y documentos desde la planilla "Bot IFTS29 - Contenido" y Drive.
 
@@ -251,7 +359,7 @@ Respuesta con ok: true y errores vacío.
 
 ---
 
-## 3.4 Resetear la base (`--reset`)
+## Resetear la base (`--reset`)
 
 **Cuándo:** el esquema cambió de forma que `db:push` no alcanza (ej. columna nueva en tabla existente), o la base local quedó inconsistente.
 
@@ -276,7 +384,7 @@ npm run sync --workspace backend      # El reset deja las tablas de contenido va
 
 ---
 
-## 3.5 Exportación mensual de métricas
+## Exportación mensual de métricas
 
 **No requiere acción manual.** Vercel llama a `GET /api/metricas/exportar-mes-anterior` el día 1 de cada mes a las 06:00 (UTC), y publica el mes anterior en la planilla de métricas.
 
@@ -300,7 +408,7 @@ Detalle: [02-manual-tecnico.md § 2.5](02-manual-tecnico.md), [04-base-datos.md]
 
 ---
 
-## 3.6 Respaldo de datos
+## Respaldo de datos
 
 ### Respaldo de `metrica_opcion`
 
@@ -326,7 +434,7 @@ La automatización (comando `npm run metricas:respaldo`) está pendiente (ver [1
 
 ---
 
-## 3.7 Rotación de secretos y claves
+## Rotación de secretos y claves
 
 **Cuándo:** un secreto se filtró, un usuario dejó de tenerlo, o se cumple el plazo interno.
 
@@ -345,7 +453,7 @@ Revisar periódicamente que solo tengan acceso la cuenta de métricas y sus admi
 
 ---
 
-## 3.8 Checklist antes de un despliegue a producción
+## Checklist antes de un despliegue a producción
 
 1. **Respaldo hecho:** `metrica_opcion` respaldada (si hay reset).
 2. **Esquema actualizado:** `db:push` ejecutado, o `--reset` si corresponde.

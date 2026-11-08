@@ -17,8 +17,8 @@ const pestana = (nombre: keyof typeof ESQUEMA_CONTENIDO, ...filas: string[][]): 
 
 /** Todas las pestañas del esquema, con una fila de ejemplo en cada una. */
 const contenidoValido = (): Record<string, Valores> => ({
-  categorias: pestana('categorias', ['RAIZ', 'Inicio', 'Hola', '0', 'TRUE']),
-  opciones: pestana('opciones', ['RAIZ_OP_ACAD', 'RAIZ', 'Materias', 'navegar', 'M_ACAD', '', '1', 'FALSE']),
+  categorias: pestana('categorias', ['INICIO', 'Inicio', 'Hola', '0', 'TRUE']),
+  opciones: pestana('opciones', ['INICIO_OP_ACAD', 'INICIO', 'Materias', 'navegar', 'M_ACAD', '', '1', 'FALSE']),
   respuestas: pestana('respuestas', ['ABD_programa', 'Texto del programa, con coma y "comillas".', '1']),
   respuesta_documentos: pestana('respuesta_documentos', ['ABD_programa', 'ABD_programa_2026_1C.pdf', '1']),
   preguntas: pestana('preguntas', ['programa_ABD', '¿Cuál es el programa?', '30', '0.7']),

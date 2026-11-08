@@ -1,4 +1,4 @@
-# 09 · Pendientes post-MVP
+# 11 · Pendientes post-MVP
 
 Todo lo que sigue queda para después de la entrega del MVP.
 
@@ -18,7 +18,7 @@ Todo lo que sigue queda para después de la entrega del MVP.
 
 ## Contenido
 
-- `EAM_condiciones`: el archivo está en la planilla y no existe en Drive.
+- `EAM_condiciones`: el archivo está en la planilla y no existe en Drive. Su contenido está integrado en programa, se recomienda separarlo.
 - Confirmar si siguen vigentes los cronogramas con encabezado "2° cuatrimestre 2024".
 - Reglamento y protocolo de exámenes: son imágenes; pedir un PDF con texto seleccionable.
 - Submenú por comisión para los documentos de materia.

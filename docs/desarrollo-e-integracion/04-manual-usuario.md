@@ -1,4 +1,4 @@
-# 3. Manual de Usuario
+# 4. Manual de Usuario
 
 ## Guía para Usuarios Finales
 

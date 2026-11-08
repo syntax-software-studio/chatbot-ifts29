@@ -1,4 +1,4 @@
-# 08 · Extractos de documentos
+# 9 · Extractos de documentos
 
 **Estado:** implementada en su primera versión: la sincronización extrae las secciones de los PDFs de Drive, y el chat muestra extractos en las consultas de texto libre. Las decisiones están en [Decisiones](#decisiones). Cuando se valide, se pasan a [07-contenido-y-decisiones.md](10-contenido-y-decisiones.md).
 
@@ -31,7 +31,9 @@ Los pasos que ve el estudiante. Cada paso indica entre corchetes la técnica que
 flowchart TD
     A["Consulta del estudiante"] --> B["Normalización<br/>[equivalentes, palabras vacías, ignorados]"]
     B --> C{"Búsqueda de opción<br/>[FTS + trigrama por término<br/>sobre variantes]"}
-    C -- "sin coincidencia" --> N1["No disponible<br/>(como hoy)"]
+    C -- "sin coincidencia" --> G2{"Búsqueda global<br/>en todos los fragmentos"}
+    G2 -- "supera umbral" --> F2["Extracto + PDF<br/>(sin opción de menú)"]
+    G2 -- "no supera" --> N1["No disponible"]
     C -- "una opción" --> D["Documentos de la opción"]
     C -- "varias opciones" --> Q["Aclaración con opciones"]
     D --> E{"Búsqueda de pasaje<br/>[FTS sobre fragmentos del documento<br/>+ trigrama por término como complemento]"}
@@ -92,9 +94,4 @@ flowchart LR
 7. **Documentos sin texto extraíble, fuera.** `GENERAL_reglamento` y `GENERAL_protocolo-examenes` son imágenes. El OCR da resultados que no sirven para citar, así que no se usa: se le pide al cliente un PDF con texto seleccionable.
 8. **Sin reprocesar lo que no cambió.** La sincronización compara el `md5` del archivo con `documento.fragmentos_md5`, y solo descarga y extrae cuando difieren.
 
-## Preguntas abiertas
-
-1. ¿La relación es 1 documento a N fragmentos? Un documento con varias secciones necesita varios fragmentos.
-2. ¿Quién aprueba los fragmentos, y cómo se guarda esa aprobación?
-3. ¿Qué documentos entran primero? Por ahora, los prioritarios; el resto cuando se necesiten.
 

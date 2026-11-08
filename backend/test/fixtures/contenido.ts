@@ -11,7 +11,7 @@ import type { Fila, Pestana } from '../../src/lib/planilla.js';
 
 export const contenidoPrueba: Partial<Record<Pestana, Fila[]>> = {
   categorias: [
-    { clave: 'RAIZ', nombre: 'Inicio', mensaje: '¡Hola! ¿En qué puedo ayudarte?', orden: '0', es_raiz: 'TRUE' },
+    { clave: 'INICIO', nombre: 'Inicio', mensaje: '¡Hola! ¿En qué puedo ayudarte?', orden: '0', es_raiz: 'TRUE' },
     { clave: 'ACAD', nombre: 'Materias', mensaje: '¿Sobre qué materia necesitás información?', orden: '1', es_raiz: 'FALSE' },
     { clave: 'ABD', nombre: 'Administración de Bases de Datos', mensaje: '¿Qué información necesitás?', orden: '1', es_raiz: 'FALSE' },
     { clave: 'DERIVACION', nombre: 'No encontré lo que busco', mensaje: '¿Sobre qué necesitás ayuda?', orden: '2', es_raiz: 'FALSE' },
@@ -20,17 +20,17 @@ export const contenidoPrueba: Partial<Record<Pestana, Fila[]>> = {
     { clave: 'TRAM', nombre: 'Trámites', mensaje: '¿Qué trámite necesitás?', orden: '5', es_raiz: 'FALSE' },
   ],
   opciones: [
-    { clave: 'RAIZ_OP_ACAD', categoria: 'RAIZ', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE' },
-    { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré lo que busco', tipo: 'navegar', destino: 'DERIVACION', respuesta: '', orden: '2', es_volver: 'FALSE' },
-    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'Administración de Bases de Datos', tipo: 'navegar', destino: 'ABD', respuesta: '', orden: '1', es_volver: 'FALSE' },
-    { clave: 'ABD_OP_PROG', categoria: 'ABD', etiqueta: 'Programa', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE' },
-    { clave: 'ABD_OP_COND', categoria: 'ABD', etiqueta: 'Condiciones de aprobación', tipo: 'responder', destino: '', respuesta: 'ABD_condiciones', orden: '2', es_volver: 'FALSE' },
-    { clave: 'ABD_OP_VOLVER', categoria: 'ABD', etiqueta: '< Volver al menú anterior', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '3', es_volver: 'TRUE' },
-    { clave: 'DERIVACION_OP_TRAMITES', categoria: 'DERIVACION', etiqueta: 'Trámites, certificados, etc.', tipo: 'derivar', destino: '', respuesta: 'DERIVACION_GENERAL', orden: '1', es_volver: 'FALSE' },
-    { clave: 'DERIVACION_OP_VOLVER', categoria: 'DERIVACION', etiqueta: '< Volver al menú anterior', tipo: 'navegar', destino: 'RAIZ', respuesta: '', orden: '2', es_volver: 'TRUE' },
-    { clave: 'SIUC_OP_FOROS', categoria: 'SIUC', etiqueta: 'Foros y mensajería', tipo: 'responder', destino: '', respuesta: 'SIUC_foros', orden: '1', es_volver: 'FALSE' },
-    { clave: 'NORM_OP_REGL', categoria: 'NORM', etiqueta: 'Reglamento y protocolos', tipo: 'responder', destino: '', respuesta: 'NORM_reglamento', orden: '1', es_volver: 'FALSE' },
-    { clave: 'TRAM_OP_ENTREGA', categoria: 'TRAM', etiqueta: 'Entrega de documentación', tipo: 'responder', destino: '', respuesta: 'TRAM_entrega', orden: '1', es_volver: 'FALSE' },
+    { clave: 'INICIO_OP_ACAD', categoria: 'INICIO', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'INICIO_OP_NOENCONTRE', categoria: 'INICIO', etiqueta: 'No encontré lo que busco', tipo: 'navegar', destino: 'DERIVACION', respuesta: '', orden: '2', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'Administración de Bases de Datos', tipo: 'navegar', destino: 'ABD', respuesta: '', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'ABD_OP_PROG', categoria: 'ABD', etiqueta: 'Programa', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'ABD_OP_COND', categoria: 'ABD', etiqueta: 'Condiciones de aprobación', tipo: 'responder', destino: '', respuesta: 'ABD_condiciones', orden: '2', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'ABD_OP_VOLVER', categoria: 'ABD', etiqueta: '< Volver al menú anterior', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '3', es_volver: 'TRUE', en_menu: 'TRUE' },
+    { clave: 'DERIVACION_OP_TRAMITES', categoria: 'DERIVACION', etiqueta: 'Trámites, certificados, etc.', tipo: 'derivar', destino: '', respuesta: 'DERIVACION_GENERAL', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'DERIVACION_OP_VOLVER', categoria: 'DERIVACION', etiqueta: '< Volver al menú anterior', tipo: 'navegar', destino: 'INICIO', respuesta: '', orden: '2', es_volver: 'TRUE', en_menu: 'TRUE' },
+    { clave: 'SIUC_OP_FOROS', categoria: 'SIUC', etiqueta: 'Foros y mensajería', tipo: 'responder', destino: '', respuesta: 'SIUC_foros', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'NORM_OP_REGL', categoria: 'NORM', etiqueta: 'Reglamento y protocolos', tipo: 'responder', destino: '', respuesta: 'NORM_reglamento', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'TRAM_OP_ENTREGA', categoria: 'TRAM', etiqueta: 'Entrega de documentación', tipo: 'responder', destino: '', respuesta: 'TRAM_entrega', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
   ],
   respuestas: [
     { clave: 'ABD_programa', texto: 'Este es el programa de Administración de Bases de Datos.', orden: '1' },

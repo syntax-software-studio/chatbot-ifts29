@@ -1,7 +1,7 @@
 /**
  * GET /api/menu
  * Devuelve el nodo del menú con su mensaje y opciones.
- *   ?categoria=RAIZ (por defecto) | ADMINISTRATIVAS | ACADEMICAS | ...
+ *   ?categoria=INICIO (por defecto) | ADMINISTRATIVAS | ACADEMICAS | ...
  *   ?mapa=1 -> devuelve todo el árbol en una sola llamada (útil para tests).
  */
 

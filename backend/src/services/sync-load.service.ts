@@ -98,6 +98,10 @@ async function actualizarFragmentos(
   titulos: string[],
 ): Promise<void> {
   try {
+    if (parsearDocumento(clave)?.tipo === 'cronograma') {
+      registrar(`fragmentos: ${clave} omitido (cronograma en tabla, no fragmentable)`);
+      return;
+    }
     const bytes = await conTiempoLimite(drive.descargarArchivo(archivo.id), 60_000, `descarga de ${clave}`);
     const fragmentos = await extraerFragmentos(bytes, titulos);
     // El nombre de la materia (por ejemplo "administracion bases datos" para ABD)
@@ -272,6 +276,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       destinoId: o.destino ? categoriaId.get(o.destino) : undefined,
       respuestaId: o.respuesta ? respuestaId.get(o.respuesta) : undefined,
       esVolver: o.esVolver,
+      enMenu: o.enMenu,
       orden: o.orden,
     });
   }

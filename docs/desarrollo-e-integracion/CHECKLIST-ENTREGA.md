@@ -8,11 +8,11 @@
 
 - [x] `01-introduccion.md` - alcance, tecnologías y estado actual
 - [x] `02-manual-tecnico.md` - arquitectura, estructura del código, API, configuración, desarrollo local
-- [x] `03-manual-usuario.md` - recorridos del menú, texto libre y derivación por pantallas
-- [x] `04-base-datos.md` - tablas, relaciones (DER en Mermaid), carga, reset y configuración
-- [x] `05-pruebas-unitarias.md` - 80 pruebas, todas pasando
-- [x] `06-pruebas-integracion.md` - 16 pruebas contra la base de prueba, todas pasando
-- [x] `07-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
+- [x] `03-manual-operacional.md` - recorridos del menú, texto libre y derivación por pantallas
+- [x] `05-base-datos.md` - tablas, relaciones (DER en Mermaid), carga, reset y configuración
+- [x] `06-pruebas-unitarias.md` - pruebas unitarias, todas pasando
+- [x] `07-pruebas-integracion.md` - pruebas de integración contra la base de prueba, todas pasando
+- [x] `10-contenido-y-decisiones.md` - fuentes de contenido, planilla, convención de nombres, decisiones y pendientes
 - [ ] PDF integrado con toda la documentación
 - [ ] Capturas del manual de usuario (5 a 8 imágenes de la interfaz actual)
 
@@ -75,7 +75,7 @@
 
 ## 7. Repositorio y entrega
 
-- [x] Repositorio Git con la rama de trabajo `feat/base-fuente-unica`
+- [x] Repositorio Git con rama principal `main`
 - [x] `.gitignore`: excluye `node_modules`, `.env`, la carpeta de ejemplo de Drive y los CSV temporales de carga
 - [x] Commits con descripción clara
 - [ ] Proyecto comprimido (`.zip`), sin `node_modules`, `.env` ni `.git`

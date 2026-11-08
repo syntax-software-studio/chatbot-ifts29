@@ -41,14 +41,14 @@ erDiagram
 
 ```
 CATEGORÍA
-  clave: RAIZ
+  clave: INICIO
   nombre: Inicio
   
-    ↓ (referencia: categoria_id = RAIZ)
+    ↓ (referencia: categoria_id = INICIO)
     
 OPCIÓN (del menú)
-  clave: RAIZ_OP_MATERIAS
-  categoria: RAIZ
+  clave: INICIO_OP_MATERIAS
+  categoria: INICIO
   tipo: navegar
   destino: MATERIAS
   
@@ -129,8 +129,8 @@ Cada pestaña contiene datos que el operador edita. El sistema valida referencia
 
 | Pestaña | Campos | Ejemplo | Notas |
 |---|---|---|---|
-| `categorias` | clave, nombre, mensaje, orden, es_raiz | `RAIZ`, `Inicio`, `Hola`, `0`, `TRUE` | `es_raiz=TRUE` solo para la pantalla inicial |
-| `opciones` | clave, categoria, etiqueta, tipo, destino, respuesta, orden, es_volver | `RAIZ_OP_MAT`, `RAIZ`, `Materias`, `navegar`, `MATERIAS`, ` `, `1`, `FALSE` | `tipo`: navegar/responder/derivar |
+| `categorias` | clave, nombre, mensaje, orden, es_raiz | `INICIO`, `Inicio`, `Hola`, `0`, `TRUE` | `es_raiz=TRUE` solo para la pantalla inicial |
+| `opciones` | clave, categoria, etiqueta, tipo, destino, respuesta, orden, es_volver, en_menu | `INICIO_OP_MAT`, `INICIO`, `Materias`, `navegar`, `MATERIAS`, ` `, `1`, `FALSE`, `TRUE` | `tipo`: navegar/responder/derivar; `en_menu=FALSE` para opciones de texto libre sin botón visible |
 | `respuestas` | clave, texto, orden | `ABD_prog`, `Estas son las condiciones...`, `1` | Texto institucional validado |
 
 ### Vincular Respuestas con Documentos
@@ -242,7 +242,7 @@ Si hay errores en las referencias, la sync **no escribe nada** y devuelve la lis
 
 | Entidad | Patrón | Ejemplo |
 |---|---|---|
-| Categoría raíz | `RAIZ` | `RAIZ` |
+| Categoría raíz | `INICIO` | `INICIO` |
 | Categoría | `<DESCRIPCIÓN>` | `MATERIAS`, `DERIVACION`, `INFORMACION` |
 | Opción | `<CATEGORÍA>_OP_<DESCRIPCIÓN>` o `<CODIGO_MATERIA>_<TIPO>` | `RAIZ_OP_MATERIAS`, `ABD_CONDICIONES` |
 | Respuesta | `<CODIGO_MATERIA>_<TIPO>` o `<DESCRIPCIÓN>` | `ABD_programa`, `ABD_condiciones`, `DERIVACION_GENERAL` |

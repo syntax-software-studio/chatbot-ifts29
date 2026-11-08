@@ -92,7 +92,7 @@ type ResolucionConsulta =
   /** Saludo: el que arma la respuesta es el chat (menu raiz). */
   | { clase: 'saludo'; meta: MetaInterpretacion }
   | { clase: 'aclaracion'; aclaracion: Aclaracion; meta: MetaInterpretacion }
-  | { clase: 'no_disponible'; mensaje: string; meta: MetaInterpretacion }
+  | { clase: 'no_disponible'; mensaje: string; meta: MetaInterpretacion; terminos: string[] }
   /** La base de conocimiento no respondio: no se inventa nada (D08). */
   | { clase: 'error'; mensaje: string; meta: MetaInterpretacion };
 
@@ -212,11 +212,14 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
     };
   }
 
+  const terminosConsulta = normalizado.split(' ').filter((t) => t.length > 2 && !ignorados.has(t));
+
   if (candidatos.length === 0) {
     return {
       clase: 'no_disponible',
       mensaje: MENSAJE_NO_DISPONIBLE,
       meta: meta(null, 0, 'none', 'ninguno'),
+      terminos: terminosConsulta,
     };
   }
 
@@ -227,6 +230,7 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       clase: 'no_disponible',
       mensaje: MENSAJE_NO_DISPONIBLE,
       meta: meta(null, 0, 'none', 'ninguno'),
+      terminos: terminosConsulta,
     };
   }
 
@@ -244,6 +248,7 @@ export async function interpretarConsulta(texto: string): Promise<ResolucionCons
       clase: 'no_disponible',
       mensaje: MENSAJE_NO_DISPONIBLE,
       meta: meta(null, confianza, 'none', 'ninguno'),
+      terminos: terminosConsulta,
     };
   }
 

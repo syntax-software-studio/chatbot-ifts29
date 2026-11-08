@@ -46,6 +46,7 @@ export interface Opcion {
   respuesta: string | null;
   orden: number;
   esVolver: boolean;
+  enMenu: boolean;
 }
 
 export interface Documento {
@@ -211,6 +212,7 @@ export function convertirContenido(hojas: Hojas): ResultadoConversion {
       respuesta,
       orden: entero(f.orden!, `${donde} orden`),
       esVolver: booleano(f.es_volver!, `${donde} es_volver`),
+      enMenu: booleano(f.en_menu!, `${donde} en_menu`),
     };
   });
   const opcionClaves = claves(opciones);

@@ -10,7 +10,7 @@ import { urlDeLectura } from '../clients/drive.js';
 import { notFound } from '../utils/errors.js';
 import type { Categoria, Contacto, Documento, NodoMenu, OpcionMenu, Respuesta, Derivacion, TipoOpcion } from '../db/types.js';
 
-export const CATEGORIA_RAIZ = 'RAIZ';
+export const CATEGORIA_RAIZ = 'INICIO';
 
 /* ==========================================================================
  * Mapeadores
@@ -115,7 +115,7 @@ const SQL_CATEGORIA_POR_CLAVE = `
 const SQL_OPCIONES = `
   SELECT o.id, o.clave, o.etiqueta, o.tipo, o.es_volver
     FROM opcion o
-   WHERE o.categoria_id = $1 AND o.activo
+   WHERE o.categoria_id = $1 AND o.activo AND o.en_menu
    ORDER BY o.orden, o.id`;
 
 const SQL_OPCION_POR_CLAVE = `

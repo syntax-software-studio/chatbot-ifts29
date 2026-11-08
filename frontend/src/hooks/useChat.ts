@@ -67,7 +67,7 @@ const nuevoId = (): string => `t${++secuencia}`;
 export function useChat(): EstadoChat {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [opciones, setOpciones] = useState<OpcionMenu[]>([]);
-  const [nodoActual, setNodoActual] = useState('RAIZ');
+  const [nodoActual, setNodoActual] = useState('INICIO');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
