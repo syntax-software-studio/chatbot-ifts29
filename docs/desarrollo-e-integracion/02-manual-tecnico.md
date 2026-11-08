@@ -14,7 +14,7 @@ Se integra en el campus virtual (Moodle) como widget embebible (`iframe`).
 ## Arquitectura
 
 ```
-Widget (React + Vite)  ──HTTP──▶  API (Express 5 + TypeScript)  ──pg──▶  PostgreSQL
+Widget (React + Vite)  ── HTTP ──▶  API (Express 5 + TypeScript)  ── pg ──▶  PostgreSQL
                                         │                                (Neon / Docker)
                                         ├──▶ Google Sheets (lectura: planilla de contenido)
                                         └──▶ Google Drive  (lectura: documentos y enlaces)
@@ -182,5 +182,5 @@ npm test --workspace backend        # tests del backend
 npm run typecheck                   # tipos de backend y frontend
 ```
 
-Los tests del backend no necesitan base ni red. Ver [06-pruebas.md](06-pruebas.md) y [06-pruebas.md](06-pruebas.md).
+Los tests del backend no necesitan base ni red. Ver [06-pruebas.md](06-pruebas.md).
 

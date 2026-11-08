@@ -185,7 +185,7 @@ documento: ABD_condiciones_A_2026_1C
 orden: 1
 ```
 
-⚠️ El nombre **SIN** `.pdf`.
+El nombre **SIN** `.pdf`.
 
 **Pestaña `preguntas`** (para búsqueda):
 ```
@@ -325,6 +325,3 @@ Estas tablas se generan automáticamente durante la sincronización:
 
 Si algo falla, la respuesta te dice exactamente qué está mal.
 
----
-
-**Referencia:** [3. Manual Operacional](03-manual-operacional.md) para instrucciones paso a paso.

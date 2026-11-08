@@ -94,14 +94,3 @@ desarrollo-e-integracion/
     ├── 05-aclaracion.png
     └── 06-derivacion.png
 ```
-
----
-
-## Requisitos de Entrega
-
-- [x] Documentación técnica completa
-- [x] Manual de usuario con capturas
-- [x] Base de datos funcional
-- [x] Pruebas unitarias y de integración documentadas
-- [x] Evidencias de ejecución
-- [x] Instrucciones de instalación y despliegue
