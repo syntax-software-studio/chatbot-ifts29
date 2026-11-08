@@ -15,14 +15,14 @@ type Hojas = Partial<Record<Pestana, Fila[]>>;
 /** Contenido válido mínimo: un menú con una respuesta, una intención y un contacto de derivación. */
 const contenidoValido = (): Hojas => ({
   categorias: [
-    { clave: 'RAIZ', nombre: 'Inicio', mensaje: 'Hola', orden: '0', es_raiz: 'TRUE' },
+    { clave: 'INICIO', nombre: 'Inicio', mensaje: 'Hola', orden: '0', es_raiz: 'TRUE' },
     { clave: 'ACAD', nombre: 'Materias', mensaje: '', orden: '1', es_raiz: 'FALSE' },
   ],
   respuestas: [{ clave: 'ABD_programa', texto: 'Programa de ABD.', orden: '1' }],
   opciones: [
-    { clave: 'RAIZ_OP_ACAD', categoria: 'RAIZ', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE' },
-    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'ABD', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE' },
-    { clave: 'RAIZ_OP_NOENCONTRE', categoria: 'RAIZ', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE' },
+    { clave: 'INICIO_OP_ACAD', categoria: 'INICIO', etiqueta: 'Materias', tipo: 'navegar', destino: 'ACAD', respuesta: '', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'ACAD_OP_ABD', categoria: 'ACAD', etiqueta: 'ABD', tipo: 'responder', destino: '', respuesta: 'ABD_programa', orden: '1', es_volver: 'FALSE', en_menu: 'TRUE' },
+    { clave: 'INICIO_OP_NOENCONTRE', categoria: 'INICIO', etiqueta: 'No encontré', tipo: 'derivar', destino: '', respuesta: '', orden: '9', es_volver: 'FALSE', en_menu: 'TRUE' },
   ],
   respuesta_documentos: [{ respuesta: 'ABD_programa', documento: 'ABD_programa_2026_1C.pdf', orden: '1' }],
   palabras_vacias: [{ termino: 'de' }],
@@ -31,7 +31,7 @@ const contenidoValido = (): Hojas => ({
     { opcion: 'ACAD_OP_ABD', pregunta: '¿Cuál es el programa?', texto_original: 'Programa de ABD', peso: '1' },
   ],
   contactos: [
-    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', url_perfil: '', motivo: 'Trámites', orden: '3', opcion: 'RAIZ_OP_NOENCONTRE' },
+    { clave: 'bedelia', nombre: 'Bedelía', area: 'Bedelía', comision: 'General', email: 'b@bue.edu.ar', url_perfil: '', motivo: 'Trámites', orden: '3', opcion: 'INICIO_OP_NOENCONTRE' },
   ],
 });
 
@@ -39,7 +39,7 @@ test('un contenido válido se convierte sin errores', () => {
   const r = convertirContenido(contenidoValido());
   assert.equal(r.ok, true, r.errores.join('\n'));
   assert.equal(r.datos?.categorias[0]?.esRaiz, true);
-  assert.equal(r.datos?.opciones.find((o) => o.clave === 'RAIZ_OP_NOENCONTRE')?.tipo, 'derivar');
+  assert.equal(r.datos?.opciones.find((o) => o.clave === 'INICIO_OP_NOENCONTRE')?.tipo, 'derivar');
 });
 
 test('el umbral con coma decimal se convierte a número', () => {
@@ -71,7 +71,7 @@ test('una opción de navegación sin destino es un error', () => {
   h.opciones![0]!.destino = '';
   const r = convertirContenido(h);
   assert.equal(r.ok, false);
-  assert.ok(r.errores.some((e) => e.includes('RAIZ_OP_ACAD') && e.includes('navegar')));
+  assert.ok(r.errores.some((e) => e.includes('INICIO_OP_ACAD') && e.includes('navegar')));
 });
 
 test('una opción de respuesta sin respuesta es un error', () => {

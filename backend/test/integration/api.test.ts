@@ -53,9 +53,9 @@ test('el menú raíz trae sus opciones desde la base', async () => {
   const res = await fetch(`${base}/api/menu`);
   const json = (await res.json()) as any;
   assert.equal(res.status, 200);
-  assert.equal(json.categoria.clave, 'RAIZ');
-  assert.ok(claves(json.opciones).includes('RAIZ_OP_ACAD'));
-  assert.ok(claves(json.opciones).includes('RAIZ_OP_NOENCONTRE'));
+  assert.equal(json.categoria.clave, 'INICIO');
+  assert.ok(claves(json.opciones).includes('INICIO_OP_ACAD'));
+  assert.ok(claves(json.opciones).includes('INICIO_OP_NOENCONTRE'));
 });
 
 test('elegir una materia navega a sus opciones', async () => {
@@ -75,7 +75,7 @@ test('elegir una respuesta devuelve su texto y sus documentos', async () => {
 });
 
 test('"No encontré lo que busco" muestra la pantalla de motivos', async () => {
-  const r = await chat({ opcion: 'RAIZ_OP_NOENCONTRE' });
+  const r = await chat({ opcion: 'INICIO_OP_NOENCONTRE' });
   assert.equal(r.status, 200);
   assert.equal(r.json.tipo, 'nodo');
   assert.ok(claves(r.json.nodo.opciones).includes('DERIVACION_OP_TRAMITES'));

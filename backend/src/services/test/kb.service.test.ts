@@ -60,7 +60,7 @@ test('un saludo, en el chat, devuelve el menú raíz', async () => {
   const turno = await procesarConsulta('hola');
   assert.equal(turno.tipo, 'nodo');
   if (turno.tipo === 'nodo') {
-    assert.equal(turno.nodo.categoria.clave, 'RAIZ');
+    assert.equal(turno.nodo.categoria.clave, 'INICIO');
   }
 });
 

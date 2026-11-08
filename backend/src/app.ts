@@ -33,7 +33,7 @@ export function createApp(): express.Express {
       servicio: 'Asistente Virtual Institucional - IFTS N.29',
       version: '1.0.0',
       endpoints: [
-        'GET  /api/menu?categoria=RAIZ',
+        'GET  /api/menu?categoria=INICIO',
         'GET  /api/menu?mapa=1',
         'GET  /api/menu/:claveOpcion',
         'POST /api/chat',

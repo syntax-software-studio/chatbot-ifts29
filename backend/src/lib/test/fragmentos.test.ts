@@ -68,14 +68,14 @@ test('parte el texto en secciones por título y deja el texto antes del primer t
   ]);
 });
 
-test('un título al inicio de línea seguido de : abre sección con el resto de la línea', () => {
+test('una línea de título seguida de texto con dos puntos no divide la sección', () => {
   const frags = partir(lineas(
-    'PROMOCIÓN :',
+    'PROMOCIÓN',
     'Calificación de 7 en cada parcial.',
     'FINAL: aquellos que posean una calificación menor a 7.',
   ));
-  assert.deepEqual(frags.map((f) => f.titulo), ['PROMOCIÓN :', 'FINAL']);
-  assert.equal(frags[1]?.texto, 'aquellos que posean una calificación menor a 7.');
+  assert.deepEqual(frags.map((f) => f.titulo), ['PROMOCIÓN']);
+  assert.ok(frags[0]?.texto.includes('FINAL: aquellos'));
 });
 
 test('normalizar quita tildes, signos y mayúsculas, para la búsqueda', () => {
