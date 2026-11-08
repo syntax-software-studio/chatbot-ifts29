@@ -214,27 +214,51 @@ El Asistente se abre en un panel lateral (380 x 520 píxeles aproximadamente):
 
 ## 6. Capturas de Pantalla
 
-### 6.1 Pantalla Principal
+### 6.1 Menú Inicial
 
-![Pantalla Principal](screenshots/manual-usuario/01-pantalla-principal.png)
+![Menú Inicial](screenshots/manual-usuario/01-pantalla-principal.png)
 
-*Descripción: Vista general de la pantalla de inicio con el menú principal y opciones disponibles.*
-
----
-
-### 6.2 Pantalla de [Funcionalidad]
-
-![Pantalla de Funcionalidad](screenshots/manual-usuario/02-funcionalidad.png)
-
-*Descripción: Pantalla donde se realiza la operación de [X].*
+*Saludo de bienvenida y opciones principales del menú.*
 
 ---
 
-### 6.3 Pantalla de [Otra Funcionalidad]
+### 6.2 Navegación por Menú
 
-![Pantalla de Otra Funcionalidad](screenshots/manual-usuario/03-otra-funcionalidad.png)
+![Navegación por Menú](screenshots/manual-usuario/02-navegacion-menu.png)
 
-*Descripción: Pantalla de confirmación o resultado.*
+*Subnivel de una materia con sus opciones disponibles.*
+
+---
+
+### 6.3 Respuesta con Documento
+
+![Respuesta con Documento](screenshots/manual-usuario/03-respuesta-documento.png)
+
+*Texto institucional validado con enlace al PDF oficial.*
+
+---
+
+### 6.4 Consulta Escrita
+
+![Consulta Escrita](screenshots/manual-usuario/04-consulta-directa.png)
+
+*El estudiante escribe una pregunta y el bot responde directamente.*
+
+---
+
+### 6.5 Aclaración por Consulta Ambigua
+
+![Aclaración](screenshots/manual-usuario/05-aclaracion.png)
+
+*El bot ofrece opciones cuando la consulta puede tener más de un significado.*
+
+---
+
+### 6.6 Derivación a Contacto
+
+![Derivación](screenshots/manual-usuario/06-derivacion.png)
+
+*Contacto administrativo con nombre, área y email.*
 
 ---
 
