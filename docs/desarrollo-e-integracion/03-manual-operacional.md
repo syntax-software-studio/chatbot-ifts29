@@ -18,9 +18,9 @@ Todo el contenido se vincula por **claves únicas**. Cada entidad (categoría, o
 
 Ejemplo:
 ```
-Categoría        clave: RAIZ
+Categoría        clave: INICIO
                    ↓ (referencia)
-Opción          clave: RAIZ_OP_MATERIAS, categoria: RAIZ
+Opción          clave: INICIO_OP_MATERIAS, categoria: INICIO
                    ↓ (referencia)
 Respuesta        clave: ABD_programa
                    ↓ (referencia en respuesta_documentos)
@@ -254,9 +254,10 @@ tipo: responder
 respuesta: ABD_BIBLIOGRAFIA
 orden: 8
 es_volver: FALSE
+en_menu: FALSE
 ```
 
-**Importante:** `categoria` es la categoría de materia (ej: ABD, EAM, LC, TP). `respuesta` es la clave de la respuesta que creaste en Paso 2.
+**Importante:** `categoria` es la categoría de materia (ej: ABD, EAM, LC, TP). `respuesta` es la clave de la respuesta que creaste en Paso 2. `en_menu: FALSE` hace que la opción no aparezca en el menú de navegación, solo sea encontrable por búsqueda de texto libre.
 
 #### Paso 4: Crear preguntas y variantes
 
@@ -300,7 +301,7 @@ npm run sync --workspace backend
 
 - [ ] Término existe en `reconocimiento_fragmentos` (coincide con título en PDF)
 - [ ] Respuesta existe en `respuestas`
-- [ ] Opción existe en `opciones` (referencia respuesta)
+- [ ] Opción existe en `opciones` (referencia respuesta, `en_menu: FALSE`)
 - [ ] Pregunta existe en `preguntas` (referencia opción)
 - [ ] Variantes existen en `variantes` (sin duplicados)
 - [ ] **`npm run sync` ejecutada SIN ERRORES** ← paso obligatorio
