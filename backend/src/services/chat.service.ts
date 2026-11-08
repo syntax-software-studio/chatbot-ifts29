@@ -28,7 +28,7 @@ import {
 } from '../repositories/chat-menu.repository.js';
 import { registrarMetrica, type Evento } from './analytics.service.js';
 import { interpretarConsulta } from './kb.service.js';
-import { buscarExtractos } from './fragmentos.service.js';
+import { buscarExtractos, buscarExtractosGlobal } from './fragmentos.service.js';
 import { badRequest } from '../utils/errors.js';
 import { env } from '../config/env.js';
 import {
@@ -197,9 +197,23 @@ export async function procesarConsulta(texto: string): Promise<TurnoChat> {
       await registrarMetrica(CLAVE_METRICA_ACLARACION, 'aclaracion');
       return { tipo: 'aclaracion', aclaracion: resolucion.aclaracion, meta: resolucion.meta };
 
-    case 'no_disponible':
+    case 'no_disponible': {
+      if (resolucion.terminos.length > 0) {
+        const global = await buscarExtractosGlobal(resolucion.terminos).catch(() => null);
+        if (global && global.extractos.length > 0) {
+          await registrarMetrica('(fragmento_global)', 'seleccion');
+          return {
+            tipo: 'respuesta',
+            claveOpcion: '(fragmento_global)',
+            respuesta: { texto: '', documentos: global.documentos, extractos: global.extractos },
+            nodoActual: '',
+            meta: resolucion.meta,
+          };
+        }
+      }
       await registrarMetrica(CLAVE_METRICA_NO_DISPONIBLE, 'no_disponible');
       return { tipo: 'no_disponible', mensaje: resolucion.mensaje, meta: resolucion.meta };
+    }
 
     case 'error':
       await registrarMetrica(CLAVE_METRICA_NO_DISPONIBLE, 'error');
