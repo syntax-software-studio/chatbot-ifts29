@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS opcion (
     categoria_destino_id INTEGER    REFERENCES menu_categoria (id) ON DELETE RESTRICT,
     respuesta_id        INTEGER     REFERENCES respuesta (id) ON DELETE SET NULL,
     es_volver           BOOLEAN     NOT NULL DEFAULT FALSE,
+    en_menu             BOOLEAN     NOT NULL DEFAULT TRUE,
     orden               INTEGER     NOT NULL DEFAULT 0,
     activo              BOOLEAN     NOT NULL DEFAULT TRUE,
     creado_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -109,6 +110,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS opcion_navegar_uniq
 COMMENT ON TABLE  opcion               IS 'Opciones seleccionables del menu, destino final de toda consulta (RF05).';
 COMMENT ON COLUMN opcion.tipo            IS 'navegar = subpregunta; responder = respuesta con adjuntos; derivar = contactos (RF04).';
 COMMENT ON COLUMN opcion.es_volver     IS 'TRUE para la opcion "< Volver al menu anterior".';
+COMMENT ON COLUMN opcion.en_menu       IS 'FALSE para opciones solo buscables por texto libre (no aparecen en el menu de navegacion).';
 COMMENT ON COLUMN opcion.categoria_destino_id IS 'Categoria a la que navega la opcion.';
 COMMENT ON COLUMN opcion.respuesta_id   IS 'Respuesta a mostrar. En tipo derivar es opcional (texto introductorio).';
 

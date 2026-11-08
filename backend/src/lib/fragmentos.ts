@@ -92,22 +92,24 @@ export function fragmentar(lineas: LineaPdf[], titulos: readonly string[]): Frag
   for (const l of lineas) {
     const t = l.text;
     // 1. La línea entera es un título reconocido.
-    if (t.length <= 70 && tituloConocido(t.replace(/\s*:\s*$/, ''), titulos)) {
+    let tituloNorm = tituloConocido(t.replace(/\s*:\s*$/, ''), titulos);
+    if (t.length <= 70 && tituloNorm) {
       cerrar();
-      actual = { titulo: t, cuerpo: [] };
+      actual = { titulo: tituloNorm, cuerpo: [] };
       continue;
     }
     // 2. Título al inicio de la línea seguido de `:`.
     const m = /^([^:]{2,60}):\s*(.*)$/.exec(t);
-    if (m && tituloConocido(m[1]!, titulos)) {
+    tituloNorm = m ? tituloConocido(m[1]!, titulos) : null;
+    if (tituloNorm) {
       cerrar();
-      actual = { titulo: m[1]!.trim(), cuerpo: m[2] ? [m[2]] : [] };
+      actual = { titulo: tituloNorm, cuerpo: m![2] ? [m![2]] : [] };
       continue;
     }
     // 3. Encabezado en mayúsculas.
     if (esEncabezadoMayusculas(t)) {
       cerrar();
-      actual = { titulo: t, cuerpo: [] };
+      actual = { titulo: normalizar(t), cuerpo: [] };
       continue;
     }
     actual.cuerpo.push(t);

@@ -272,6 +272,7 @@ async function escribir(client: PoolClient, datos: DatosContenido): Promise<Resu
       destinoId: o.destino ? categoriaId.get(o.destino) : undefined,
       respuestaId: o.respuesta ? respuestaId.get(o.respuesta) : undefined,
       esVolver: o.esVolver,
+      enMenu: o.enMenu,
       orden: o.orden,
     });
   }

@@ -199,6 +199,113 @@ SELECT count(*) FROM documento_fragmento;  -- Debe ser > 0
 
 Una consulta de pasaje debe devolver fragmentos: `como apruebo abd`.
 
+### 3.1.5 Agregar términos de fragmentos como opciones buscables
+
+**Cuándo:** querés que el bot encuentre términos específicos dentro de los documentos (ej: "bibliografía de abd", "objetivos de lógica computacional", "unidades temáticas").
+
+Los PDFs se dividen en fragmentos por títulos. Este proceso agrega esos títulos como **opciones buscables**: cuando alguien pregunta "¿cuál es la bibliografía de ABD?", el bot devuelve el fragmento correspondiente.
+
+#### Cómo funciona la búsqueda de fragmentos (⚠️ importante)
+
+1. **Título en el PDF** (ej: "BIBLIOGRAFÍA") → se normaliza a minúsculas sin tildes
+2. **Término en planilla** (ej: "Bibliografía") → se normaliza durante `sync` 
+3. **Base de datos** → almacena términos normalizados (ej: "bibliografia")
+4. **Búsqueda** → compara PDF normalizado con términos en BD
+5. **Resultado** → devuelve el fragmento si coinciden
+
+**Punto crítico:** Los términos en `reconocimiento_fragmentos` deben exactamente coincidir con los títulos en el PDF (respetando el significado, no la capitalización). Sin `npm run sync`, los nuevos términos no se cargan en la BD y no funcionarán.
+
+**Flujo completo (5 pasos, 4 pestañas a actualizar):**
+
+#### Paso 1: Verificar que el término esté en `reconocimiento_fragmentos`
+
+En la pestaña `reconocimiento_fragmentos`, agregar (si no existe) una fila con el título del fragmento en el PDF:
+
+```
+termino
+Bibliografía
+Fundamentación
+Unidades temáticas
+```
+
+⚠️ **Debe coincidir exactamente con el título en el PDF** (no importa mayúsculas, se normalizan automáticamente).
+
+#### Paso 2: Crear respuestas
+
+En la pestaña `respuestas`, agrega una fila por cada término + materia:
+
+```
+clave: ABD_BIBLIOGRAFIA
+texto: La bibliografía se encuentra en el programa vigente. Consultá el documento para más detalles.
+orden: 7
+```
+
+Repite para: fundamentación, objetivos, bibliografía, contenidos, evaluación (o los términos que uses).
+
+#### Paso 3: Crear opciones
+
+En la pestaña `opciones`, agrega opciones que referencien esas respuestas:
+
+```
+clave: ABD_OP_BIBLIOGRAFIA
+categoria: ABD
+etiqueta: Bibliografía de Administración de Bases de Datos
+tipo: responder
+respuesta: ABD_BIBLIOGRAFIA
+orden: 8
+es_volver: FALSE
+```
+
+**Importante:** `categoria` es la categoría de materia (ej: ABD, EAM, LC, TP). `respuesta` es la clave de la respuesta que creaste en Paso 2.
+
+#### Paso 4: Crear preguntas y variantes
+
+En la pestaña `preguntas`, agregar:
+
+```
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+prioridad: 30
+umbral_minimo: 0,7
+```
+
+En la pestaña `variantes`, agregar formas distintas de preguntar:
+
+```
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+texto_original: bibliografía abd
+peso: 1
+
+opcion: ABD_OP_BIBLIOGRAFIA
+pregunta: ¿Cuál es la bibliografía de ABD?
+texto_original: bibliografía
+peso: 0,7
+```
+
+#### Paso 5: Sincronizar (⚠️ OBLIGATORIO)
+
+```bash
+npm run sync --workspace backend
+```
+
+**Este paso es obligatorio.** Sin él, los nuevos términos en `reconocimiento_fragmentos` no se cargan en la BD y no funcionarán.
+
+**Verificar:**
+
+- La respuesta tiene `ok: true` y `errores` vacío
+- En el widget: busca "bibliografía abd" → debe devolver el fragmento (no solo la respuesta)
+
+**Checklist:**
+
+- [ ] Término existe en `reconocimiento_fragmentos` (coincide con título en PDF)
+- [ ] Respuesta existe en `respuestas`
+- [ ] Opción existe en `opciones` (referencia respuesta)
+- [ ] Pregunta existe en `preguntas` (referencia opción)
+- [ ] Variantes existen en `variantes` (sin duplicados)
+- [ ] **`npm run sync` ejecutada SIN ERRORES** ← paso obligatorio
+- [ ] Búsqueda en widget devuelve fragmento PDF (no solo respuesta)
+
 ---
 
 ## 3.2 Aplicar el esquema (`db:push`)

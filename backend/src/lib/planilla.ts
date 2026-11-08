@@ -17,7 +17,7 @@
 /** Encabezados esperados por pestaña, en el orden de la planilla. */
 export const ESQUEMA_CONTENIDO = {
   categorias: ['clave', 'nombre', 'mensaje', 'orden', 'es_raiz'],
-  opciones: ['clave', 'categoria', 'etiqueta', 'tipo', 'destino', 'respuesta', 'orden', 'es_volver'],
+  opciones: ['clave', 'categoria', 'etiqueta', 'tipo', 'destino', 'respuesta', 'orden', 'es_volver', 'en_menu'],
   respuestas: ['clave', 'texto', 'orden'],
   respuesta_documentos: ['respuesta', 'documento', 'orden'],
   preguntas: ['opcion', 'pregunta', 'prioridad', 'umbral_minimo'],
